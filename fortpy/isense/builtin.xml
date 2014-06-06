@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+<!-- 
+The standard intrinsic procedures are either functions or subroutines.
+Use <function> for a function.
+Use <subroutine> for a subroutine.
+
+Functions and Subroutines both have the following possible *attributes*.
+They inherit from the variable type in the code. Parameters are considered
+variable types. Thus, the parameters that get passed in to the functions
+*also* have these same attributes.
+
+ - name: the symbol that gets typed into fortran to call the function.
+ - type: if it is a function and returns a value, the type of the value.
+     If a parameter can be of more than one type (i.e. the function is
+     overloaded) then add all the types as a comma-separated list.
+     However, do not add their kind (see the next item) in that list,
+     rather add it in the kind list as a comma-separated string.
+     E.g. if a function takes "int, real(dp), logical" you will put
+     type="real, int, logical" and kind=",dp,".
+ - kind: if type is not '', the kind (i.e. dp for double-precision, 
+     sp for single-precision, si for short-int, li for long-int).
+ - default: if no parameters are passed in, what value is returned.
+ - dimension: if the function returns an array-typed value, what is its 
+     dimension. Enter as you would in the code, but without the 
+     parenthesis; e.g. 2D is ":,:".
+ - modifiers: keywords like optional, public, allocatable, pointer,
+     intent, dimension(:,:). This might lean on your fortran experience
+     a little to know what to do. For intent, write either "intent(in)",
+     "intent(out)" or "intent(inout)". For dimension, write it exactly
+     as it would appear if you had written the function yourself, i.e.
+     "dimension(:)" for a 1D array of arbitrary dimension. Don't 
+     capitalize the keywords for the modifiers. Only *executables*
+     should have their names capitalized.
+
+If the attribute does not apply to the executable or parameter, just 
+leave it out. This will often be the case for subroutines, which don't
+usually have any of the attributes except 'name' for the intrinsic
+Fortran functions.
+
+The following tags support the documentation for the functions:
+ - summary: what the function or subroutine does. Characteristics of the
+    result.
+ - usage: description of the result value as well as an example of how to
+   use it and what gets returned. When you copy and paste the result
+   value description and example, separate them with "EXAMPLE" so that it
+   will be quick to find the example when the intellisense shows.
+
+If you encounter math symbols: if they are simple enough, write them as
+you would in LaTex. If they are matrices, use bracket notation. E.g. a
+2D matrix is [[1,2,3],[4,5,6],[7,8,9]]. It is much more readable than
+the LaTex equivalent. Remember that newline characters are not allowed
+in XML, so any fancy formatting with whitespace will be lost. The docsring
+that will get displayed at the end of the day will be interpreted 
+without new lines.
+
+The only other child tag allowed in the <function> or <subroutine> is the
+<parameter> tag which describes the parameters the function will accept.
+The parameter tag's *inner XML* is the docstring that describes what the
+parameters value should be, its dimensionality etc.
+
+If the docstring inside <summary> or <usage> references a different function
+e.g. MODULO, then add a cross reference attribute @CREF[MODULO] so that
+the HTML help file generator will pick up all of those.
+
+For some of the entries, there are paragraphs that describe the behavior
+of the function in more detail. We are not interested in all the extra
+information. Only grab the short sections after the keywords: 
+"Result Characteristics", "Result Value", "Examples". If you are unsure
+whether something is relevant, just make note of it and ask me later.
+
+One more thing: please don't go passed 80 characters width in your XML
+file, it would be nice to keep it human readable for when the next version
+of Fortran is released, then we can update any changed definitions more
+easily. Also, if you need to, you can split the definitions over multiple
+XML files. Call them builtin-1.xml, builtin-2.xml etc. Just be sure that
+all the <function> and <subroutine> tags are nested inside a root tag with
+the name 'builtin'.
+
+I have included a simple example for you.-->
+<builtin>
+  <function name="ABS" type="int, real, complex" kind="" default="" dimension="">
+    <summary>Absolute value. The result is the same as A except that if A 
+    is complex, the result is real.</summary>
+    <parameter name="A" type="int, real, complex">The value to take the
+    absolute value of.</parameter>
+    <usage>The value of the result is |A|; if A is of type complex with 
+    value x + yi, this is equal to \sqrt{x^2 + y^2}. EXAMPLE: ABS (–1) 
+    has the value 1. ABS ((3.0, 4.0)) has the value 5.0.</usage>
+  </function>
+</builtin>

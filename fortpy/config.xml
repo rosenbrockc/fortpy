@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<config>
+  <codes>
+    <trunk name="uncle" value="~/codes/uncle/trunk" />
+    <trunk name="celib" value="~/codes/celib/trunk" />
+    <trunk name="enumlib" value="~/codes/enumlib/trunk" />
+  </codes>
+  <mappings>
+    <map module="utilities_module" file="utilities.f90" />
+  </mappings>
+</config>
