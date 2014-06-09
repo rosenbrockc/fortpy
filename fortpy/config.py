@@ -33,6 +33,24 @@ class _config(types.ModuleType):
         same as the files they are in."""
         return self.property_get("mappings")
 
+    @property
+    def server(self):
+        """Returns the information required to connect to a server via SSH for
+        tramp editing support."""
+        return self.property_get("server")
+
+    @property
+    def ssh_codes(self):
+        """Returns a list of additional code folders to monitor on the SSH
+        server that houses the file being edited with tramp."""
+        return self.property_get("ssh.codes")
+
+    @property
+    def ssh_mappings(self):
+        """Returns a list of module mappings for modules that aren't named the
+        same as the files they are in on the SSH server."""
+        return self.property_get("ssh.mappings")
+
     def property_get(self, key):
         if key in self._vardict:
             return self._vardict[key]
@@ -60,8 +78,20 @@ class _config(types.ModuleType):
                     self._load_codes(child)
                 elif child.tag == "mappings":
                     self._load_mapping(child)
+                elif child.tag == "ssh":
+                    self._load_ssh(child)
       
-    def _load_codes(self, tag):
+    def _load_ssh(self, tag):
+        """Loads the SSH configuration into the vardict."""
+        for child in tag:
+            if child.tag == "server":
+                self._vardict["server"] = child.attrib
+            elif child.tag == "codes":
+                self._load_codes(child, True)
+            elif child.tag == "mappings":
+                self._load_mapping(child, True)
+
+    def _load_codes(self, tag, ssh=False):
         """Extracts all the paths to additional code directories to 
         be considered.
 
@@ -70,10 +100,13 @@ class _config(types.ModuleType):
         for code in tag:
             if code.tag == "trunk":
                 codes.append(code.attrib["value"])
+        
+        if ssh == False:
+            self._vardict["codes"] = codes
+        else:
+            self._vardict["ssh.codes"] = codes
 
-        self._vardict["codes"] = codes
-
-    def _load_mapping(self, tag):
+    def _load_mapping(self, tag, ssh=False):
         """Extracts all the alternate module name mappings to 
         be considered.
 
@@ -83,6 +116,9 @@ class _config(types.ModuleType):
             if mapping.tag == "map":
                 mappings[mapping.attrib["module"]] = mapping.attrib["file"]
 
-        self._vardict["mappings"] = mappings
+        if ssh == False:
+            self._vardict["mappings"] = mappings
+        else:
+            self._vardict["ssh.mappings"] = mappings
 
-#modules["config"] = _config()
+modules["config"] = _config()

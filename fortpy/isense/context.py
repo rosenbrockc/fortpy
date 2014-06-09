@@ -28,10 +28,11 @@ class UserContext(object):
       if the cursor is on the symbol or argument list for a subroutine or 
       function, or if the cursor is in some arithmetic.
     """
-    def __init__(self, source, pos):
+    def __init__(self, source, pos, parser_key="default"):
         """Creates an instance of the UserContext."""
         self._source = source.splitlines()
         self.pos = pos
+        self.parser = cache.parser(parser_key)
 
         #Initialize the lazy variables
         self._symbol = None
@@ -186,9 +187,9 @@ class UserContext(object):
         #Before we carry on with the rest of the context, find the separating
         #CONTAINS keyword so we know whether to look for types or subs/funcs.
         #If the code parser hasn't ever parsed this module, parse it now.
-        if not self.modulename in cache.parser.modules:
-            cache.parser.load_dependency(self.modulename, True, False, False)
-        self.module = cache.parser.modules[self.modulename]
+        if not self.modulename in self.parser.modules:
+            self.parser.load_dependency(self.modulename, True, False, False)
+        self.module = self.parser.modules[self.modulename]
 
         if line > self.module.contains_index:
             self.section = "contains"

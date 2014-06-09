@@ -8,8 +8,21 @@ import pyparsing
 _time_caches = []
 #This is our instance of the CodeParser. It handles the parsing
 #of all the Fortran modules and has its own caching builtin.
-parser = CodeParser()
+_parsers = { "default": CodeParser() }
 nester = pyparsing.nestedExpr("(",")")
+
+def parser(key = "default"):
+    """Returns the parser for the given key, (e.g. 'ssh')"""
+    #Make sure we have a parser for that key. If we don't, then set
+    #one up if we know what parameters to use; otherwise return the
+    #default parser.
+    if key not in _parsers:
+        if key == "ssh":
+            _parsers["ssh"] = CodeParser(True, False)
+        else:
+            key = "default"
+
+    return _parsers[key]
 
 def clear_caches(delete_all=False):
     """Fortpy caches many things, that should be completed after each completion
@@ -22,7 +35,7 @@ def clear_caches(delete_all=False):
 
     if delete_all:
         _time_caches = []
-        parser = None
+        _parser = { "default": CodeParser() }
     else:
         # normally just kill the expired entries, not all
         for tc in _time_caches:
@@ -87,7 +100,7 @@ _RX_EXEC = r"\n\s*((?P<type>character|real|type|logical|integer)?" + \
                 r"(?P<codetype>subroutine|function)\s+(?P<name>[^(]+)" + \
                 r"\s*\((?P<parameters>[^)]+)\)"
 RE_EXEC = re.compile(_RX_EXEC, re.I)
-RE_MEMBERS = parser.modulep.vparser.RE_MEMBERS
+RE_MEMBERS = parser().modulep.vparser.RE_MEMBERS
 _RX_DEPEND = r"^\s*(?P<sub>call\s+)?(?P<exec>[a-z0-9_%]+)\s*(?P<args>\([^\n]+)$"
 RE_DEPEND = re.compile(_RX_DEPEND, re.M | re. I)
 _RX_CURSOR = r"(?P<symbol>[^\s=,%(]+)"
@@ -96,7 +109,7 @@ _RX_FULL_CURSOR = r"(?P<symbol>[^\s=,(]+)"
 RE_FULL_CURSOR = re.compile(_RX_FULL_CURSOR, re.I)
 
 #A list of all the function names that are 'builtin' in Fortran
-_builtin = parser.modulep.xparser._intrinsic_functions()
+_builtin = parser().modulep.xparser._intrinsic_functions()
 builtin = {}
 for fun in _builtin:
     builtin[fun.lower()] = fun

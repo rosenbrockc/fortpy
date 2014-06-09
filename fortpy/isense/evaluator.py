@@ -184,7 +184,7 @@ class Evaluator(object):
         """Gets completion or call signature information for the current cursor."""
         #We can't really do anything sensible without the name of the function
         #whose signature we are completing.
-        iexec = cache.parser.tree_find(self.context.el_name, 
+        iexec = self.context.parser.tree_find(self.context.el_name, 
                                        self.context.module, "executables")
         if iexec is None:
             return []
@@ -288,7 +288,7 @@ class Evaluator(object):
         if target_name == "":
             return None
 
-        return cache.parser.tree_find(target_name, self.context.module, "types")
+        return self.context.parser.tree_find(target_name, self.context.module, "types")
 
     def _complete_type_chain(self, symbol, fullsymbol):
         """Suggests completion for the end of a type chain."""
@@ -315,7 +315,7 @@ class Evaluator(object):
         """Suggests completion for calling a function or subroutine."""
         #Return a list of valid parameters for the function being called
         fncall = self.context.el_name
-        iexec = cache.parser.tree_find(fncall, self.context.module, "executables")
+        iexec = self.context.parser.tree_find(fncall, self.context.module, "executables")
 
         if iexec is not None:
             if symbol == "":

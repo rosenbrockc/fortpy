@@ -5,8 +5,10 @@ from time import clock
 import xml.etree.ElementTree as ET
 import fortpy.config
 from serialize import Serializer
+import sys
+import tramp
 
-config = fortpy.config._config()
+config = sys.modules["config"]
 
 class CodeParser(object):
     """Parses fortran files to extract child code elements and docstrings.
@@ -16,18 +18,33 @@ class CodeParser(object):
     :attr basepaths: a list of folders to search in for dependency modules.
     :attr mappings: a list of modulename -> filename mappings to use in dependency searches.
     :attr verbose: specifies the level of detail in print outputs to console.
+    :attr austere: when true, the python program quits if it can't find a module it
+       is supposed to be loading; otherwise it just continues.
+    :attr ssh: when true, the config settings for a remote SSH server are used instead
+       of the local file system config.
     """
     
-    def __init__(self):
+    def __init__(self, ssh=False, austere=False):
+        """Initializes a module parser for parsing Fortran code files."""
         self.modulep = ModuleParser()
         self.modules = {}
+        self.ssh = ssh
+        self.austere = austere
        
-        self.basepaths = config.codes
-        self.basepaths = [ os.path.expanduser(p) for p in self.basepaths ]
-
-        self.mappings = config.mappings
+        self.tramp = tramp.FileSupport()
         self.serialize = Serializer()
-        
+
+        if self.ssh:
+            self.basepaths = config.ssh_codes
+        else:
+            self.basepaths = config.codes
+        self.basepaths = [ self.tramp.expanduser(p, self.ssh) for p in self.basepaths ]
+
+        if self.ssh:
+            self.mappings = config.ssh_mappings
+        else:
+            self.mappings = config.mappings
+
         #A dictionary of filenames and the modules that they correspond
         #to if loaded
         self._modulefiles = {}
@@ -88,18 +105,19 @@ class CodeParser(object):
         segs = filepath.split(".")
         segs.pop()
         xmlpath = ".".join(segs) + ".xml"
-        self.modulep.docparser.parsexml(xmlpath, self.modules)
-
+        if self.tramp.exists(xmlpath):
+            xmlstring = self.tramp.readlines(xmlpath)
+            self.modulep.docparser.parsexml(xmlstring, self.modules)
+            
     def _parse_from_file(self, filepath, fname,
                          dependencies, recursive, greedy):
         """Parses the specified string to load the modules *from scratch* as
         opposed to loading pickled versions from the file cache."""
         #Now that we have the file contents, we can parse them using the parsers
-        with open(filepath) as target:
-            string = target.read()
+        string = self.tramp.read(filepath)
 
         pmodules = self.modulep.parse(string, self)
-        file_mtime = os.path.getmtime(filepath)
+        file_mtime = self.tramp.getmtime(filepath)
 
         for module in pmodules:
             module.change_time = file_mtime
@@ -116,7 +134,7 @@ class CodeParser(object):
         """Checks whether the modules in the specified file path need
         to be reparsed because the file was changed since it was
         last loaded."""       
-        file_mtime = os.path.getmtime(filepath)
+        file_mtime = self.tramp.getmtime(filepath)
 
         #If we have parsed this file and have its modules in memory, its
         #filepath will be in self._parsed. Otherwise we can load it from
@@ -221,8 +239,10 @@ class CodeParser(object):
                     print "MAPPING: using {} as the file name for module {}".format(self.mappings[key], key)
                 self.parse(self._pathfiles[self.mappings[key]], dependencies, recursive)
             else:
-                print "FATAL: could not find module {}. Enable greedy search or add a module filename mapping.".format(key)
-                exit(1)
+                print ("FATAL: could not find module {}. Enable greedy search or"
+                       " add a module filename mapping.".format(key))
+                if self.austere:
+                    exit(1)
 
     def _load_greedy(self, module_name, dependencies, recursive):
         """Keeps loading modules in the filepaths dictionary until all have
@@ -249,7 +269,7 @@ class CodeParser(object):
         files = []
         
         #Find all the files in the directory
-        for (dirpath, dirnames, filenames) in os.walk(path):
+        for (dirpath, dirnames, filenames) in self.tramp.walk(path):
             files.extend(filenames)
             break
 

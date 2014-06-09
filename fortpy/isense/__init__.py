@@ -33,13 +33,7 @@ class Script(object):
         #edited in that cache so that any other buffers with reference to
         #this module being edited have the latest information. TODO
         if source is None:
-            #Test if the path is an ssh path that uses tramp
-            if "ssh:" in path:
-                #Use tramp for the file read
-                print "SSH needed; Not Implemented"
-            else:
-                with open(path) as f:
-                    source = f.read()
+            source = cache.parser().tramp.read(path)
 
         #This section makes sure that the argument we have from the buffer
         #for the line number actually makes sense for the source code we have.
@@ -68,7 +62,11 @@ class Script(object):
         #This is the actual parsing of the source file using the fortpy parsers
         #NOTE: to avoid errors in pre-optimization, I will leave this like so
         #We can use some cache control on the UserContext later to speed things up. TODO
-        self._user_context = context.UserContext(source, self._pos)
+        if cache.parser().tramp.is_ssh(path):
+            parser_key = "ssh"
+        else:
+            parser_key = "default"
+        self._user_context = context.UserContext(source, self._pos, parser_key)
         self._evaluator = evaluator.Evaluator(self._user_context, self._pos)
 
         #Time how long all that parsing took.

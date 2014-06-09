@@ -92,6 +92,7 @@ if platform.system().lower() == 'windows':
                                     'Fortpy')
 elif platform.system().lower() == 'darwin':
     _cache_directory = os.path.join('~', 'Library', 'Caches', 'Fortpy')
+    _temp_directory = os.path.join('~', 'var', 'tmp', 'Fortpy')
 else:
     _cache_directory = os.path.join(os.getenv('XDG_CACHE_HOME') or '~/.cache',
                                     'fortpy')

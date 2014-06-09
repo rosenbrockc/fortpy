@@ -213,35 +213,32 @@ class DocStringParser(object):
         else:
             return container
 
-    def parsexml(self, xmlpath, modules):
+    def parsexml(self, xmlstring, modules):
         """Parses the docstrings out of the specified xml file."""
         result = {}
 
-        if os.path.exists(xmlpath):
-            xmlroot = ET.parse(xmlpath).getroot()
-            if xmlroot.tag == "fortpy" and "mode" in xmlroot.attrib and \
-               xmlroot.attrib["mode"] == "docstring":
-                #We fill the dictionary with decorates names as keys and lists
-                #of the xml docstring elements as values.
-                for child in xmlroot:
-                    xmltags = []
-                    if child.tag == "decorates" and "name" in child.attrib:
-                        decorates = child.attrib["name"]
-                        xmltags.extend(list(child))
-                    elif "decorates" in child.attrib:
-                        decorates = child.attrib["decorates"]
-                        xmltags.append(child)
+        xmlroot = ET.fromstring(xmlstring)
+        if xmlroot.tag == "fortpy" and "mode" in xmlroot.attrib and \
+           xmlroot.attrib["mode"] == "docstring":
+            #We fill the dictionary with decorates names as keys and lists
+            #of the xml docstring elements as values.
+            for child in xmlroot:
+                xmltags = []
+                if child.tag == "decorates" and "name" in child.attrib:
+                    decorates = child.attrib["name"]
+                    xmltags.extend(list(child))
+                elif "decorates" in child.attrib:
+                    decorates = child.attrib["decorates"]
+                    xmltags.append(child)
 
-                    if decorates in result:
-                        result[decorates].extend(xmltags)
-                    else:
-                        result[decorates] = xmltags
+                if decorates in result:
+                    result[decorates].extend(xmltags)
+                else:
+                    result[decorates] = xmltags
 
-                #Loop through all the docstrings we found and team them up with
-                #their respective module members.
-                self._xml_update_modules(result, modules)
-        else:
-            return None
+            #Loop through all the docstrings we found and team them up with
+            #their respective module members.
+            self._xml_update_modules(result, modules)
 
     def _xml_update_modules(self, xmldict, modules):
         """Updates the docstrings in the specified modules by looking for

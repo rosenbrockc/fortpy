@@ -8,4 +8,15 @@
   <mappings>
     <map module="utilities_module" file="utilities.f90" />
   </mappings>
+  <ssh>
+    <server name="ssh.fsl.byu.edu" username="profcwr" pkey="~/.ssh/id_rsa"></server>
+    <codes>
+      <trunk name="uncle" value="~/theuncle/uncle/trunk" />
+      <trunk name="celib" value="~/theuncle/celib/trunk" />
+      <trunk name="enumlib" value="~/theuncle/enumlib/trunk" />
+    </codes>
+    <mappings>
+      <map module="utilities_module" file="utilities.f90" />
+    </mappings>
+  </ssh>
 </config>
