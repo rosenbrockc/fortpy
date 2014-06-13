@@ -1,10 +1,11 @@
 import os
-import paramiko
 import sys
 import settings
 import hashlib
 from stat import S_ISDIR
 import errno
+
+paramiko = None
 
 class FileSupport(object):
     """This tramp module provides support for having intellisense support
@@ -18,6 +19,10 @@ class FileSupport(object):
 
     def _setup_ssh(self):
         """Initializes the connection to the server via SSH."""
+        global paramiko
+        if paramiko is none:
+            import paramiko
+
         self.ssh = paramiko.SSHClient()
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         self.ssh.connect(self.server, username=self.user, pkey=self.pkey)
@@ -43,6 +48,16 @@ class FileSupport(object):
         accessing a file over SSH."""
         return filepath[:4] == "/ssh"
 
+    def touch(self, filepath):
+        """Touches the specified file so that its modified time changes."""
+        if self.is_ssh(filepath):
+            self._check_ssh()
+            remotepath = self._get_remote(filepath)
+            stdin, stdout, stderr = self.ssh.exec_command("touch {}".format(remotepath))
+            stdin.close()
+        else:
+            os.system("touch {}".format(filepath))
+        
     def expanduser(self, filepath, ssh=False):
         """Replaces the user root ~ with the full path on the file system.
         Works for local disks and remote servers. For remote servers, set

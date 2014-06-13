@@ -161,6 +161,14 @@ class CodeParser(object):
             #either do a full parse or a pickle load.
             return [file_mtime]
 
+    def reparse(self, filepath):
+        """Reparses the specified module file from disk, overwriting any
+        cached representations etc. of the module."""
+        #The easiest way to do this is to touch the file and then call
+        #the regular parse method so that the cache becomes invalidated.
+        self.tramp.touch(filepath)
+        self.parse(filepath)
+
     def parse(self, filepath, dependencies=False, recursive=False, greedy=False):
         """Parses the fortran code in the specified file.
 

@@ -70,11 +70,6 @@ class Script(object):
         self._user_context = context.UserContext(source, self._pos, parser_key)
         self._evaluator = evaluator.Evaluator(self._user_context, self._pos)
 
-        #The last thing to do before we can form completions etc. is perform
-        #a real-time update of the in-memory versions of the modules.
-        if settings.real_time_update:
-            cache.rt.update(self._user_context)
-
         #Time how long all that parsing took.
         debug.speed('init')
 
@@ -95,6 +90,11 @@ class Script(object):
     def in_function_call(self):
         """Return either completion information or a call signature for
         the function definition that we are on currently."""
+        #The last thing to do before we can form completions etc. is perform
+        #a real-time update of the in-memory versions of the modules.
+        if settings.real_time_update:
+            cache.rt.update(self._user_context)
+
         return self._evaluator.in_function_call()
 
     def completions(self):
