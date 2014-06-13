@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fortpy mode="template" versions="1">
+  <comments versions="1">#</comments>
+  <body stop="EOF" versions="1">
+    <line id="autovar" type="float" values="*" versions="1" />
+  </body>
+</fortpy>

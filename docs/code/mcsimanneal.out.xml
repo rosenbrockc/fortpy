@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fortpy mode="template" versions="1,2">
+  <comments versions="1,2">#</comments>
+  <body stop="EOF" key="step.temperature" versions="1">
+    <line id="step" type="int,float,int,float" values="1,3,2,*" 
+	  names="stepnum, temperature, energy, cv, mcsteps, rejected, concentrations" />
+  </body>
+  <comparisons versions="1,2" mode="strict">
+    <compare id="step.energy" operator="finite" tolerance="0.02E-02" />
+    <compare id="step.cv" operator="finite" tolerance="1E-14" />
+    <compare id="step.rejected" operator="finite" tolerance="$['mcsteps']/100" />
+  </comparisons>
+</fortpy>
