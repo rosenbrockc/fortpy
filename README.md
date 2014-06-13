@@ -33,7 +33,7 @@ Screenshots
 
 Here are some of the things you can do once Fortpy is integrated with Emacs using fortpy.el:
 
-![Automatic Signature Suggestions](../master/docs/screeshots/signature.png "Help with call signatures of functions and subroutines.")
+![Automatic Signature Suggestions](../master/docs/screenshots/signature.png "Help with call signatures of functions and subroutines.")
 
 Help with call signatures of functions and subroutines.
 
