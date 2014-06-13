@@ -4,6 +4,7 @@ import context
 import evaluator
 import re
 import os
+import fortpy.settings as settings
 
 class Script(object):
     """
@@ -31,7 +32,7 @@ class Script(object):
         #is being edited. We will have cached versions of the other modules
         #in the global code cache, but we need to update the file being
         #edited in that cache so that any other buffers with reference to
-        #this module being edited have the latest information. TODO
+        #this module being edited have the latest information.
         if source is None:
             source = cache.parser().tramp.read(path)
 
@@ -68,6 +69,11 @@ class Script(object):
             parser_key = "default"
         self._user_context = context.UserContext(source, self._pos, parser_key)
         self._evaluator = evaluator.Evaluator(self._user_context, self._pos)
+
+        #The last thing to do before we can form completions etc. is perform
+        #a real-time update of the in-memory versions of the modules.
+        if settings.real_time_update:
+            cache.rt.update(self._user_context)
 
         #Time how long all that parsing took.
         debug.speed('init')

@@ -2,6 +2,7 @@ from fortpy.code import CodeParser
 import time
 import re
 import pyparsing
+import rtupdate
 
 #Time cache has expiration on the items inside that get used only
 #temporarily during code completion
@@ -10,6 +11,8 @@ _time_caches = []
 #of all the Fortran modules and has its own caching builtin.
 _parsers = { "default": CodeParser() }
 nester = pyparsing.nestedExpr("(",")")
+#Get a generic module updater for doing real-time updates on
+#source code sent from the emacs buffer.
 
 def parser(key = "default"):
     """Returns the parser for the given key, (e.g. 'ssh')"""
@@ -85,6 +88,8 @@ def cache_call_signatures(source, user_pos, stmt):
 
     module_path = stmt.get_parent_until().path
     return None if module_path is None else (module_path, before_bracket, stmt.start_pos)
+
+rt = rtupdate.ModuleUpdater()
 
 #Setup and compile a bunch of regular expressions that we use
 #every time the user context needs to be determined.

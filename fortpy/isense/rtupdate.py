@@ -1,368 +1,628 @@
-from difflib import Differ
-
-class CodeBlock(object):
-    """Represents a contiguous block of code in the buffer text.
-
-    :arg start: the starting line number of this block in the file.
-    :arg end: the ending line number.
-    :arg contents: a list of strings representing the continuous block
-      of lines of code.
-    :arg iscached: specifies whether the lines belong to the cached
-      version of the code or the buffer version.
-    :arg action: a +, - or ? signifying how the lines should be treated.
-    """
-    def __init__(self, start, end, contents, action):
-        self.start = start
-        self.end = end
-        self.contents = contents
-        self.action = ""
-        self.decoratables = {}
-
-    @property
-    def isline(self):
-        """Specifies whether this block is actually just a single line."""
-        return self.end - self.start == 0
-
-class LiveDiffer(object):
-    """Parses out the differences between the cached version of a
-    code file and the one sent in from emacs to see what has been
-    added or removed since the last parsing.
-
-    :arg codeparser: an instance of the code parser that has cached
-      versions of the other modules already parsed.
-    :arg source: the string representing the current state of the
-      buffer in emacs that should be diffed with the cached module.
-    """
-    def __init__(self, codeparser):
-        self.parser = codeparser
-        self.d = Differ()
-
-    def diff(self, source, cached):
-        """Returns a list of CodeBlock objects that describe which changes to
-        parse in the new source code in order to update the cached module
-        representation.
-
-        :arg source: the string representing the current state of the
-          buffer in emacs that should be diffed with the cached module.
-        :arg cached: the string representation of the cached module.
-        """
-        lines = self._get_diff(source, cached)
-        return self._split_diff(lines)        
-        
-    def _split_diff(self, lines):
-        """Breaks the diff results up by who was affected, associates
-        contiguous block of code together.
-
-        :arg lines: the lines returned from the Differ.
-        """
-        result = []
-        #Keep track of which line we are on in each file.
-        linec = 0 #Cached line count
-        liner = 0 #Source line count
-
-        #These variables keep track of continuous blocks of code that are
-        #either additions or removals
-        contig = []
-        #When true, the current block of contig lines is in the emacs (source)
-        #file contents.
-        src_contig = False
-
-        for i in range(len(lines)):
-            l = lines[i]
-            code = l[:2]
-
-            #Safely get the codes of the next and previous lines so we can handle
-            #the way that ? is presented.
-            if i + 1 < len(lines):
-                coden = lines[i + 1][:2] #The code for the next line
-            else:
-                coden = ""
-            if i - 1 > 0:
-                codep = lines[i - 1][:2] #The code for the previous line
-            else:
-                codep = ""
-
-            if coden == "? ":
-                #The code is in both files; the previous entry was the line in
-                #cached file, the next entry is the line it should be replaced
-                #with. We will need to re-parse the line using the new code to
-                #update possible var references etc.
-                linec += 1
-            elif codep == "? ":
-                liner += 1
-                result.append(CodeBlock(linec, linec, l, "?"))
-            elif code == "+ ":
-                liner += 1
-                self._get_block_result(linec, contig, "-", src_contig, result)
-                src_contig = True
-            elif code == "- ":
-                linec += 1
-                self._get_block_result(liner, contig, "+", not src_contig, result)
-                src_contig = False
-            elif code == "  ":
-                linec += 1
-                liner += 1
-
-        return result
-
-    def _get_block_result(self, linenum, contig, mode, src_contig, result):
-        """Appends a code block for the specified mode and contig list if required."""
-        #See what the last contig block was made of (cached/source files)
-        if src_contig:
-            contig.append(l)
-        else:
-            #We had a continuous list of lines that were opposite type from
-            #the opposite file. We need to create block object to store them.
-            b = CodeBlock(linec - len(contig), linec, contig, "-")
-            result.append(b)
-            #Reset the contig block tracker to be in the opposite mode.
-            contig = [ l ]
-
-    def _get_diff(self, source, cached):
-        """Gets a list of lines from the Differ that represents what
-        has changed between the source and the cached module.
-
-        :arg source: the string representing the current state of the
-          buffer in emacs that should be diffed with the cached module.
-        :arg path: the full path to the file being edited in the buffer.
-        """
-        if cached != "":
-            return list(self.d.compare(cached, source))
-        else:
-            return []
+import cache
+import re
+from difflib import SequenceMatcher
+from fortpy.elements import Executable, CustomType, Module
+import xml.etree.ElementTree as ET
        
 class LineParser(object):
     """Parses individual lines or blocks of code to retrieve code element
     representations from them. Exposes low level regex methods for type
-    testing of strings."""
-    def __init__(self, codeparser):
-        self.parser = codeparser
-        self.modulep = codeparser.modulep
+    testing of strings.
+
+    :attr parent: the ModuleUpdater instance that owns this line parser.
+    """
+    def __init__(self, parent):
+        #The parsers are agnostic to whether the file came from SSH or the
+        #local file system. We can just use the default parser to get at
+        #the regex definitions for line parsing.
+        self.modulep = cache.parser().modulep
         self.docparser = self.modulep.docparser
         self.tparser = self.modulep.tparser
         self.xparser = self.modulep.xparser
-        self.modlines = {}
+        self.parent = parent
+        self.additions = []
 
-    def _get_element(self, linenum, module):
-        """Gets the code element who owns the line number specified.
+        self._current_op = None
+        #Lines and character counts for finding where matches fit in the file
+        self._lines = []
+        self._chars = []
 
-        :arg linenum: the number of the line to test ownership for.
-        :arg module: the module whose children will be tested.
-        """
-        if not module.name in self.modlines:
-            self._load_modlines(module)
-
-        #Just cycle through the line numbers in order from the dictionary
-        #and see which is the first one.
-        element = None
-        end = 0
-        for i in sorted(self.modlines[module.name].keys()):
-            if i <= linenum:
-                end, element = self.modlines[module.name][i]
-                if linenum <= end:
-                    break
-                else:
-                    #Something is up, the line number doesn't fall within
-                    #the full body of this code element.
-                    element = None
-            
-        if element is not None:
-            return element
+    @property
+    def refstring(self):
+        """Returns the source code of the buffer for the current operation,
+        or if there is no operation, an empty string."""
+        if self._current_op is None:
+            return ""
         else:
-            #It must be between code elements, which makes it part of
-            #the parent modules contents, return the parent.
-            return module
+            return self._current_op.context.refstring   
 
-    def _load_modlines(self, module):
-        """Loads the line numbers spanned by each code element in the
-        module into a dictionary in modlines under the module name."""
+    def parse(self, op, mode=None):
+        """Handles the parsing of the specified operation using the current
+        statements from the buffer/cache. If 'comment' is not None, the 
+        statement in comment is parsed instead.
+
+        :arg mode: override the 'insert', 'replace' or 'delete' specifier.
+        """
+        #We need to handle docstrings separately because they are XML and slight
+        #insertions/changes can't be handled using only one line. We have to get
+        #hold of the entire XML block and parse it all at once again.
+        if op.state[0] is None:
+            linenum, statement, length = op.curcached
+        else:
+            linenum, statement, length = op.curbuffer
+
+        #If there is nothing to run, it is pointless carrying on down the
+        #stack of functions before this gets realized.
+        if statement != "":
+            self._current_op = op
+            #We may need to override the mode for the 'replace' operation.
+            nmode = mode if mode is not None else op.mode
+
+            #We are dealing with pure code, decide what type the owner is and run
+            #their method for real time updating.
+            if isinstance(op.element, Executable):
+                op.element.rt_update(statement, linenum, nmode, self.xparser)
+            elif isinstance(op.element, CustomType):
+                op.element.rt_update(statement, linenum, nmode, self.tparser)
+            elif isinstance(op.element, Module):
+                op.element.rt_update(statement, linenum, nmode, self.modulep, self)
+
+        if len(self.additions) > 0:
+            #Some new instances were created from a single line signature.
+            #probably any additional statements in the list being executed
+            #include items that should belong to the new instance.
+            for add in self.additions:
+                instance, module = add
+                self.parent.update_instance_extent(instance, module, op)
+
+            self.additions = []       
+
+    def absolute_charindex(self, string, start, end):
+        """Finds the absolute character index of the specified regex match
+        start and end indices in the *buffer* refstring."""
+        search = string[start:end]
+        abs_start = self.refstring.index(search)
+        return abs_start, (end - start) + abs_start
+
+    def charindex(self, line, char, context):
+        """Determines the absolute character index for the specified line
+        and char using the *buffer's* code string."""
+        #Make sure that we have chars and lines to work from
+        if len(context.bufferstr) > 0 and len(self._chars) == 0:
+            #Add one for the \n that we split on for each line
+            self._chars = [ len(x) + 1 for x in context.bufferstr ]
+            #Remove the last line break since it doesn't exist
+            self._chars[-1] -= 1
+
+            #Now we want to add up the number of characters in each line
+            #as the lines progress so that it is easy to search for the
+            #line of a single character index
+            total = 0
+            for i in range(len(self._chars)):
+                total += self._chars[i]
+                self._chars[i] = total
+        
+        return self._chars[line - 1] + char
+
+class Operation(object):
+    """Represents an insert, delete or replace operation for turning the cached
+    version of a module into it's version in the emacs buffer.
+
+    :attr context: the context of the buffer source code.
+    :attr parser: the line parser instance to use for handling the operations.
+    :attr mode: either 'replace', 'insert' or 'delete'.
+    :attr icached: the [start,end] line index in the cached source code.
+    :attr ibuffer: the [start,end] line index in the buffer source code.
+    :attr index: the index of this operation in the module updater's operation list.
+    :attr buffered: the list of complete fortran statements contained in the
+      reference lists from the buffer source code.
+    :attr cached: the list of complete fortran statements contained in the
+      reference lists from the cached source code.
+    :attr state: a tuple of (buffer index, cache index) for the statement that
+      is currently being processed by the operation.
+    """
+    def __init__(self, context, parser, operation, index):
+        self.context = context
+        self.parser = parser
+        self.mode = operation[0]
+        self.icached = operation[1:3]
+        self.ibuffer = operation[3:5]
+        self.index = index
+
+        self.buffered = self._get_buffered()
+        self.cached = self._get_cached()
+
+        #State holds a list of the current (buffer index, cache index) that is 
+        #being parsed by the line parser.
+        self.state = None
+        self.bar_extent = False
+
+        self._element = None
+        #This variable will hold a list of the lines that actually participated
+        #in a real-time docstring update (buffer lines).
+        self._doclines = None
+        #We need to keep track of where we used to be so that we know
+        #how to update the positions of the rest of instances in the module.
+        self.length = 0
+        #Doc delta tracks changes in length that were made to an element by a
+        #docstring before of it's definition signature. Since the element was
+        #already updated, we don't want it to get hit again by the module
+        #updating it's child elements.
+        self.docdelta = 0
+
+    def __str__(self):
+        if self.state is not None and self.state[0] is None:
+            line, statement, charindex = self.curcached
+        else:
+            line, statement, charindex = self.curbuffer
+
+        a = "{} ({},{})".format(self.mode, 
+                                "-".join([str(c) for c in self.icached]),
+                                "-".join([str(b) for b in self.ibuffer]))
+        s = "{}({}): {}".format(line, charindex, statement)
+        e = self.element.name
+        return a + '\n' + s + "\n" + e
+
+    def set_element(self, element):
+        """Overrides the element instance that this operation will modify."""
+        self._element = element
+
+    @property
+    def start(self):
+        """Returns the line, column of the first statement in the cached 
+        code that was affected."""
+        return (self.icached[0], 0)
+
+    @property
+    def curbuffer(self):
+        """Returns the current buffer statement for updating using the cached 
+        execution state for the operation."""
+        if self.state is not None:
+            return self.buffered[self.state[0]]
+        else:
+            return (None, None, None)
+
+    @property
+    def curcached(self):
+        """Returns the current cached statement for updating using the cached 
+        execution state for the operation."""
+        if self.state is not None:
+            return self.cached[self.state[1]]
+        else:
+            return (None, None, None)
+
+    @property
+    def curlength(self):
+        """Returns the character length of the statement currently being run."""
+        if self.state[0] is None:
+            return self.curcached[2]
+        else:
+            return self.curbuffer[2]
+
+    @property
+    def element(self):
+        """Returns the instance of the element who owns the first line
+        number for the operation in the cached source code."""
+        #We assume here that the entire operation is associated with a single
+        #code element. Since the sequence matcher groups operations by contiguous
+        #lines of code to change, this is a safe assumption.
+        if self._element is None:
+            line = self.icached[0]
+            #If we are inserting a new line, the location at the start of the line
+            #that used to be there interferes with the element finder.
+            if self.mode == "insert":
+                line -= 1
+            self._element = self.context.module.get_element(line, 0)
+
+        return self._element
+        
+    def handle(self):
+        """Handles the real time update of some code from the cached representation
+        of the module.
+        """
+        #If we have more statements in the buffer than the cached, it doesn't matter, 
+        #we just run the first few replacements of the cache concurrently and do 
+        #what's left over from the buffer.
+        #REVIEW
+        if self.mode == "insert": #then self.icached[0] == self.icached[1]:
+            #We are inserting the lines from the buffer into the cached version
+            for ib in range(len(self.buffered)):
+                self.state = (ib, None)
+                self.parser.parse(self)
+                self._update_extent()
+
+        elif self.mode == "delete": #then self.ibuffer[0] == self.ibuffer[1]:
+            #We are deleting lines from the cached version
+            for ic in range(len(self.cached)):
+                self.state = (None, ic)
+                self.parser.parse(self)
+                self._update_extent()
+        
+        else: # mode == 'replace'
+            #Need lines from both the buffer and the cached version
+            #First we run all the statements in cached as deletions
+            for ic in range(len(self.cached)):
+                self.state = (None, ic)
+                self.parser.parse(self, "delete")
+                self._update_extent()
+            #Then run all the buffer statements as insertions.
+            for ib in range(len(self.buffered)):
+                self.state = (ib, None)
+                self.parser.parse(self, "insert")
+                self._update_extent()
+
+        self._handle_docstrings()
+        
+    def _handle_docstrings(self):
+        """Searches through the lines affected by this operation to find
+        blocks of adjacent docstrings to parse for the current element.
+        """
+        #Docstrings have to be continuous sets of lines that start with !!
+        #When they change in any way (i.e. any of the three modes), we 
+        #have to reparse the entire block because it has XML dependencies
+        #Because of that, the cached version of the docstrings is actually
+        #pointless and we only need to focus on the buffered.
+        blocks = self._docstring_getblocks()
+
+        if len(blocks) == 0:
+            return
+
+        xmldict = self._docstring_parse(blocks)
+        delta = 0
+
+        if isinstance(self.element, Module):
+            delta += self.parser.docparser.rt_update_module(xmldict, self.element)
+        else:
+            #We just need to handle the type and executable internal defs.
+            if self.element.name in xmldict:
+                docs = self.parser.docparser.to_doc(xmldict[self.element.name][0],
+                                                    self.element.name)
+                self.parser.docparser.process_memberdocs(docs, self.element, False)
+            #Also update the docstrings for any embedded types or executables.
+            if isinstance(self.element, Executable):
+                delta += self.parser.docparser.process_embedded(xmldict, 
+                                                            self.element, False)
+
+        #Finally, we need to handle the overall character length change
+        #that this update caused to the element first and then for the
+        #operation as a whole for updating the module and its children.
+        buffertot = sum([len(self.context.bufferstr[i]) for i in self._doclines])
+        cachedtot = 0
+
+        for i in range(self.icached[0],self.icached[1]):
+            if self.parser.docparser.RE_DOCS.match(self.context.cachedstr[i]):
+                cachedtot += len(self.context.cachedstr[i])
+
+        self.length = buffertot - cachedtot
+
+        if delta == 0:
+            #The update must have been to members variables of the module or the
+            #executables/types. The element who owns the members is going to get
+            #missed when the module updates its children.
+            self.element.end += self.length
+        else:
+            #All the individual elements have been updated already, so just
+            #set the length change for this operation.
+            self.docdelta = delta
+            
+    def _docstring_parse(self, blocks):
+        """Parses the XML from the specified blocks of docstrings."""
         result = {}
-        #We will save the *start* line numbers as the keys and then
-        #the end line numbers and object as a tuple in the values.
-        #We need to look at types and executables.
-        for xkey in module.executables:
-            x = module.executables[xkey]
-            result[x.start] = (x.end, x)
+        for block, docline, doclength, key in blocks:
+            doctext = "<doc>{}</doc>".format(" ".join(block))
+            try:
+                docs = ET.XML(doctext)
+                docstart = self.parser.charindex(docline, 0, self.context)
+                if not key in result:
+                    result[key] = [list(docs), docstart, docstart + doclength]
+                else:
+                    #If there are docblocks separated by whitespace in the
+                    #same element we can't easily keep track of the start and
+                    #end character indices anymore.
+                    result[key][0].extend(list(docs))
+            except ET.ParseError:
+                print doctext
 
-        for tkey in module.types:
-            t = module.types[tkey]
-            result[t.start] = (t.end, t)
+        return result
 
-        self.modlines[module.name] = result
+    def _docstring_getblocks(self):
+        """Gets the longest continuous block of docstrings from the buffer
+        code string if any of those lines are docstring lines.
+        """
+        lines = self.context.bufferstr[self.ibuffer[0]:self.ibuffer[1]]
+        docblock = []
+        result = []
+        self._doclines = []
 
-    def is_decoratable(self, string):
-        """Tests whether the specified string is a decoratable code element. 
-        Uses the docstring decorator regex. Can be a module, type, subroutine
-        function."""
-        return self.docparser.RE_DECOR.match(string)
+        #We need to keep track of the line number for the start of the
+        #documentation strings.
+        docline = 0
+        doclength = 0
 
-    def is_terminator(self, string, match):
-        """Determines whether the specifed string is a terminator for
-        the decorator match."""
-        ftype = match.group("functype")
-        return "end {}".format(ftype) in string
+        first = self.parser.docparser.RE_DOCS.match(lines[0])
+        if first is not None:
+            docblock.append(first.group("docstring"))
+            docline = self.ibuffer[0]
+            self._doclines.append(docline)
+            doclength += len(lines[0]) + 1 # + 1 for \n removed by split.
 
-    def get_terminator(self, match):
-        """Gets an appropriate terminator string based on the decorator
-        match for a code element."""
-        ftype = match.group("functype")
-        name = match.group("name")
-        return "  end {} {}".format(ftype, name)
+            #We need to search backwards in the main buffer string for
+            #additional tags to add to the block
+            i = self.ibuffer[0] - 1
+            while i > 0:
+                current = self.context.bufferstr[i]
+                docmatch = self.parser.docparser.RE_DOCS.match(current)
+                if docmatch is not None:
+                    docblock.append(docmatch.group("docstring"))
+                    docline = i
+                    doclength += len(current) + 1
+                else:
+                    break
+                i -= 1
+
+        #Reverse the docblock list since we were going backwards and appending.
+        if len(docblock) > 0:
+            docblock.reverse()
+
+        #Now handle the lines following the first line. Also handle the
+        #possibility of multiple, separate blocks that are still valid XML.
+        #We have to keep going until we have exceed the operational changes
+        #or found the decorating element.
+        i = self.ibuffer[0] + 1
+        while i < len(self.context.bufferstr):
+            line = self.context.bufferstr[i]
+            docmatch = self.parser.docparser.RE_DOCS.match(line)
+            if docmatch is not None:
+                docblock.append(docmatch.group("docstring"))
+                doclength += len(line)
+                if docline == 0:
+                    docline = i
+                #Only track actual documentation lines that are within the 
+                #operations list of lines.
+                if i < self.ibuffer[1]:
+                    self._doclines.append(i)
+
+            elif len(docblock) > 0:
+                key = self._docstring_key(line)
+                result.append((docblock, docline, doclength, key))
+                docblock = []
+                docline = 0
+                doclength = 0
+
+            #We need to exit the loop if we have exceeded the length of
+            #the operational changes
+            if len(docblock) == 0 and i > self.ibuffer[1]:
+                break
+            i += 1
+
+        return result
+
+    def _docstring_key(self, line):
+        """Returns the key to use for the docblock immediately preceding
+        the specified line."""
+        decormatch = self.parser.docparser.RE_DECOR.match(line)
+        if decormatch is not None:
+            key = "{}.{}".format(self.element.name, decormatch.group("name"))
+        else:
+            key = self.element.name
+
+        return key
+
+    def _update_extent(self):
+        """Updates the extent of the element being altered by this operation
+        to include the code that has changed."""
+        #For new instances, their length is being updated by the module
+        #updater and will include *all* statements, so we don't want to
+        #keep changing the endpoints.
+        if self.bar_extent:
+            return
+            
+        original = self.element.end
+        if self.mode == "insert":
+            #The end value needs to increase by the length of the current
+            #statement being executed.
+            self.element.end += self.curlength
+        elif self.mode == "delete":
+            #Reduce end by statement length
+            self.element.end -= self.curlength
+        elif self.mode == "replace":
+            #Check whether we are currently doing the delete portion of the
+            #replacement or the insert portion.
+            if self.state[0] is None:
+                self.element.end -= self.curlength
+            else:
+                self.element.end += self.curlength
+
+        #Keep track of the total effect of all statements in this operation
+        #so that it is easy to update the module once they are all done.
+        self.length += self.element.end - original
+                
+    def _get_buffered(self):
+        """Gets a list of the statements that are new for the real time update."""
+        lines = self.context.bufferstr[self.ibuffer[0]:self.ibuffer[1]]
+        return self._get_statements(lines, self.ibuffer[0])
+
+    def _get_cached(self):
+        """Gets a list of statements that the operation will affect during the real
+        time update."""
+        lines = self.context.cachedstr[self.icached[0]:self.icached[1]]
+        return self._get_statements(lines, self.icached[0])
+
+    def _get_statements(self, lines, start):
+        """Returns a list of complete Fortran statements for the specified lines by
+        dealing with comments and line continuations. Returns a list of tuples of
+        the form (linenum, statement, orginal character length).
+
+        :arg start: the start index in the overall document for these lines.
+        """
+        result = []
+        statement = []
+        nocomment = [l.split("!")[0] for l in lines]
+        length = 0
+
+        for i in range(len(nocomment)):
+            line = nocomment[i].strip()
+            linenum = start + i
+            length += len(lines[i]) + 1
+
+            if len(line) == 0 or line[-1] != "&":
+                statement.append(line)
+                result.append((linenum-len(statement)+1, 
+                               " ".join(statement), length))
+                statement = []
+                length = 0
+            else:
+                #Append the line without the continuation character.
+                statement.append(line[:len(line)-1])
+
+        return result        
 
 class ModuleUpdater(object):
     """Updates the representations of the fortran modules in memory using
     new source code supplied from the emacs buffer."""
-    def __init__(self, codeparser):
-        self.parser = codeparser
-        self.differ = LiveDiffer(codeparser)
-        self.linep = LineParser(codeparser)
+    def __init__(self):
+        self.parser = LineParser(self)
+        self.matcher = SequenceMatcher()
+        self._operations = []
+        self.unset = True
 
-        self._actions = {
-            "+": self._handle_new,
-            "-": self._handle_kill,
-            "?": self._handle_edit
-        }
-
-    def update(self, source, path):
+    def update(self, context):
         """Updates all references in the cached representation of the module
         with their latest code from the specified source code string that
         was extracted from the emacs buffer.
 
-        :arg source: the string representing the current state of the
-          buffer in emacs that should be diffed with the cached module.
-        :arg path: the full path to the file being edited in the buffer.
+        :arg context: the buffer context information.
         """
-        #First, use the differ to get a list of the changes that need to
-        #be made. Then cycle through the changes and handle each one.
-        module = self._get_module(path)
-        changes = self.differ.diff(source, module.refstring)
-        for change in changes:
-            #Before we can process the change, we need to make sure that
-            #the code is clean. For example, if a subroutine keyword has
-            #been specified to mark the start of the routine, we need to
-            #make sure that it has a matching end subroutine, even if the
-            #user hasn't typed one in yet.
-            self._clean_block(change)
-            
-            #Now we can process the action based on how it changes the
-            #cached representations of the code elements.
-            self._actions[change.action](change, module)
-            
-    def _handle_new(self, change, module):
-        """Handles new code that was added to the code file in the buffer
-        but wasn't in the cached representation of the module."""
-        #The block changes are either a single line to be added or a whole
-        #new code element to insert. If there are decoratables in the block
-        #we will do those separately.
-        elements = []
-        if len(change.decoratables.keys()) > 0:
-            #The executable parser will ignore anything in the text that doesn't
-            #match a subroutine or function. We can just join all the contents
-            #of this block and pass it in as if it were the contents of the module
-            #after the contains keyword.
-            contents = "".join(change.contents)
-            parsed = []
+        #Get a list of all the operations that need to be performed and then
+        #execute them.
+        self._operations = self._get_operations(context)
 
-            #The regex match on the decoratable tells us which parser needs to
-            #be called to do the parsing.
-            for dec in change.decoratables:
-                mtype = change.decoratables[dec].group("element")
-                if mtype is not None and mtype not in parsed:
-                    parser = self._get_parser(mtype)
-                    parser.parse_block(contents, module)
-                    parsed.append(mtype)
-        else:
-            #These are just ad-hoc lines to be added. We need to find out
-            #which code element the line numbers belong to. If there is
-            #more than one line in the change's contents, then the change
-            #forms a contiguous block, so we only need to check the first
-            #line of the set for where it belongs.
-            element = self.linep._get_element(change.start, module)
-            for line in change.contents:
-                parser = self._get_parser(element)
-                if parser is not None:
-                    parser.parse_line(line, element, "+")
+        for i in range(len(self._operations)):
+            self._operations[i].handle()
+            self.update_extent(self._operations[i])
 
-    def _handle_kill(self, change, module):
-        """Handles the removal of some code from the cached representation
-        of the module."""
+        #Last of all, we update the string content of the cached version of
+        #the module to have the latest source code.
+        if len(self._operations) > 0:
+            context.module.update_refstring(context.refstring)
+
+    def update_extent(self, operation):
+        """Updates the extent of the *module* and its elements using the
+        specified operation which has already been executed."""
+        #Operations represent continuous lines of code.
+        #The last operation to be executed is still the current one.
+        line, col = operation.start
+        operation.context.module.update_elements(line, col, operation.length,
+                                                 operation.docdelta)
+
+    def _get_operations(self, context):
+        """Returns a list of operations that need to be performed to turn the
+        cached source code into the one in the buffer."""
+        #Most of the time, the real-time update is going to fire with
+        #incomplete statements that don't result in any changes being made
+        #to the module instances. The SequenceMatches caches hashes for the
+        #second argument. Logically, we want to turn the cached version into
+        #the buffer version; however, the buffer is the string that keeps 
+        #changing.
+
+        #in order to optimize the real-time update, we *switch* the two strings
+        #when we set the sequence and then fix the references on the operations
+        #after the fact.
+        if context.module.changed or self.unset:
+            self.matcher.set_seq2(context.cachedstr)
+            self.unset = False
+            #Set the changed flag back to false now that the sequencer has
+            #reloaded it.
+            context.module.changed = False
+        self.matcher.set_seq1(context.bufferstr)
+
+        opcodes = self.matcher.get_opcodes()
+        result = []
+
+        #Index i keeps track of how many operations were actually added because
+        #they constituted a change we need to take care of.
+        i = 0
+        for code in opcodes:
+            if code[0] != "equal":
+                #Replacements don't have a mode change. All of the operations
+                #switch the order of the line indices for the two strings.
+                if code[0] == "insert":
+                    newcode = ("delete", code[3], code[4], code[1], code[2])
+                elif code[0] == "delete":
+                    newcode = ("insert", code[3], code[4], code[1], code[2])
+                else:
+                    newcode = ("replace", code[3], code[4], code[1], code[2])
+
+                op = Operation(context, self.parser, newcode, i)
+                result.append(op)
+                i += 1
+
+        return result
+
+    def update_instance_extent(self, instance, module, operation):
+        """Updates a new instance that was added to a module to be complete
+        if the end token is present in any remaining, overlapping operations.
+        """
+        #Essentially, we want to look in the rest of the statements that are
+        #part of the current operation to see how many more of them pertain 
+        #to the new instance that was added.
+
+        #New signatures only result in instances being added if mode is "insert"
+        #or "replace". In both cases, the important code is in the buffered
+        #statements, *not* the cached version. Iterate the remaining statements
+        #in the buffer and look for the end_token for the instance. If we don't
+        #find it, check for overlap between the operations' index specifiers.
+        instance.end -= operation.curlength
+        end_token = instance.end_token
+        (ibuffer, length) = self._find_end_token(end_token, operation)
+        cum_length = length
         
-    def _handle_edit(self, change, module):
-        """Handles a line of code in the cached representation that is
-        different in the buffer being edited."""
-        
-    def _get_parser_s(self, element):
-        """Returns the appropriate parser based on the string type of the element."""
-        if element == "subroutine" or element == "function":
-            return self.linep.xparser
-        elif element == "type":
-            return self.linep.tparser
-        elif element == "module":
-            return self.linep.modulep
-        else:
-            return None            
-
-    def _get_parser(self, element):
-        """Returns the appropriate parser based on the type of the element."""
-        #The most common type of addition will be to an executable's contents
-        #then to the parent module and finally to a derived type definition.
-        if type(element) == type(""):
-            return self._get_parser_s(element)
-        elif isinstance(element, Executable):
-            return self.linep.xparser
-        elif isinstance(element, Module):
-            return self.linep.modulep
-        elif isinstance(element, CustomType):
-            return self.linep.tparser
-        else:
-            return None
-
-    def _clean_block(self, block):
-        """Ensures that the specified block is ready to be parsed by
-        inserting missing terminating "end" statements."""
-        hasdecor = []
-        terminates = []
-
-        for i in range(len(block.contents)):
-            l = block.contents[i]
-            m = self.linep.is_decoratable(l)
-            if m is not None:
-                hasdecor.append(m)
-                #We keep track of the decoratable status of the line so we don't
-                #have to test whether it is decoratable again later.
-                block.decoratables[i] = m
-            if len(hasdecor) > len(terminates) and \
-               self.linep.is_terminator(hasdecor[len(terminates)]):
-                terminates.append(True)
-
-        #Now see if we need to append any terminators
-        if len(terminates) < len(hasdecor):
-            for i in range(len(terminates), len(hasdecor)):
-                block.contents.append(self.linep.get_terminator(hasdecor[i]))
-    
-    def _get_module(self, path):
-        """Gets the cached version of the module.
-
-        :arg path: the full path to the file being edited in the buffer.
-        """ 
-        #We need to determine the module from the file name of the path
-        #There could be mappings for the file name to module name.
-        name = path.split("/")[-1]
-        module = None
-
-        for mapkey in self.parser.mappings:
-            if self.parser.mappings[mapkey] == name.lower():
-                module = self.parser.mappings[mapkey]
+        opstack = [operation]
+        while ibuffer is None and opstack[-1].index + 1 < len(self._operations):
+            #We didn't find a natural termination to the new instance. Look for
+            #overlap in the operations
+            noperation = self._operations[opstack[-1].index + 1]
+            #We only want to check the next operation if it is a neighbor
+            #in line numbers in the buffer.
+            if noperation.ibuffer[0] - opstack[-1].ibuffer[1] == 1:
+                (ibuffer, length) = self._find_end_token(end_token, noperation)
+                cum_length += length
+                opstack.append(noperation)
+            else:
                 break
-
-        if module is None:
-            module = name.replace(".f90", "")
             
-        #The parser would already have the module loaded before calling
-        #a differ. We can assume that it is there.
-        if module in self.parser.modules:
-            return self.parser.modules[module]
+        if ibuffer is not None:
+            instance.incomplete = False
+            instance.end += cum_length
+            for op in opstack:
+                op.bar_extent = True
+                op.set_element(instance)
         else:
-            print "ERROR: there is no cached module to diff with."
-            return None
+            #We set the element for the current operation to be the new instance
+            #for the rest of statements in its set.
+            operation.set_element(instance)
+            
+    def _find_end_token(self, end_token, operation):
+        """Looks for a statement in the operation's list that matches the specified
+        end token. Returns the index of the statement in the operation that matches.
+        """
+        ibuffer, icache = operation.state
+        length = operation.buffered[ibuffer][2]
+        result = None
 
+        for i in range(len(operation.buffered) - ibuffer - 1):
+            linenum, statement, charlength = operation.buffered[i + ibuffer + 1]
+            length += charlength
+            
+            if end_token in statement.lower():
+                #We already have the absolute char index for the start of the
+                #instance; we just need to update the end.
+                result = (i + ibuffer + 1, length)
+                break        
+
+        #If we didn't find a terminating statement, the full length of the operation
+        #is a good estimate for the extent of the instance.
+        if result is None:
+            result = (None, length)
+
+        return result

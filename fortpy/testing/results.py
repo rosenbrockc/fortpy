@@ -78,7 +78,7 @@ class DictResult(object):
     
 class ListResult(object):
     """The result of comparing two lists."""
-    def __init__(self, list1, list2, label, outcomes):
+    def __init__(self, list1, list2, label=None, outcomes=None):
         self.common = 0
         self.different = []
         self.label = label
@@ -95,7 +95,7 @@ class ListResult(object):
     @property
     def percent_match(self):
         """Returns a value indicating how similar the two lists are."""
-        if self.outcomes.can_ignore(self.label):
+        if self.outcomes is not None and self.outcomes.can_ignore(self.label):
             return 1
         else:
             total = len(self.list1) + len(self.list2)

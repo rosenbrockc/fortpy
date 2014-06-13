@@ -26,7 +26,7 @@ Filesystem cache
 Parser
 ~~~~~~
 
-.. autodata:: fast_parser
+.. autodata:: real_time_update
 
 Dynamic stuff
 ~~~~~~~~~~~~~
@@ -110,7 +110,7 @@ On Linux, if environment variable ``$XDG_CACHE_HOME`` is set,
 # parser
 # ----------------
 
-fast_parser = True
+real_time_update = True
 """
 Use the fast parser. This means that reparsing is only being done if
 something has been changed e.g. to a function. If this happens, only the

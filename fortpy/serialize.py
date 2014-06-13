@@ -44,6 +44,9 @@ class Serializer(object):
     def load_module(self, path, changed_time, parser):
         """Attempts to load the specified module from a serialized, cached
         version. If that fails, the method returns none."""
+        if settings.use_filesystem_cache == False:
+            return None
+        
         try:
             pickle_changed_time = self._index[path]
         except KeyError:
@@ -72,6 +75,9 @@ class Serializer(object):
         so that it doesn't have to be parsed again unless it has changed."""
         #First, get a list of the module paths that have already been 
         #pickled. We will add to that list of pickling this module.
+        if settings.use_filesystem_cache == False:
+            return 
+
         self.__index = None
         try:
             files = self._index

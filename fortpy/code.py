@@ -172,6 +172,7 @@ class CodeParser(object):
         #module file has changed and needs to be reparsed.
         fname = filepath.split("/")[-1].lower()
         mtime_check = self._check_parse_modtime(filepath, fname)
+
         if mtime_check is None:
             return
 
@@ -183,6 +184,7 @@ class CodeParser(object):
 
         #Check if we can load the file from a pickle instead of doing a time
         #consuming file system parse.
+        pickle_load = False
         if len(mtime_check) == 1:
             #We use the pickler to load the file since a cached version might
             #be good enough.
@@ -192,6 +194,7 @@ class CodeParser(object):
                 for module in pmodules:
                     self.modules[module.name.lower()] = module
                     self._modulefiles[fname].append(module.name.lower())
+                pickle_load = True
             else:
                 #We have to do a full load from the file system.
                 pmodules = self._parse_from_file(filepath, fname,
@@ -203,7 +206,8 @@ class CodeParser(object):
 
         #Add the filename to the list of files that have been parsed.
         self._parsed.append(filepath.lower())
-        self.serialize.save_module(filepath, pmodules)
+        if not pickle_load:
+            self.serialize.save_module(filepath, pmodules)
 
         if self.verbose:
             print "PARSED: {} modules in {} in {}".format(len(pmodules), fname, 

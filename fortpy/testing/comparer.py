@@ -219,7 +219,7 @@ def compare_representations(rep1, rep2, mode = "default"):
     elif rep2.simple:
         #This is a really simple file comparison of straight values.
         #Since all the other comparers need template information, we
-        #will just do a line by line comparison here.
+        #will just do a line by line comparison here.                                                                    
         result = ListResult(rep1.clean, rep2.clean)
         elcount = min([len(rep1.clean), len(rep2.clean)])
         for i in range(elcount):
@@ -551,10 +551,10 @@ class FileComparer(object):
             #We can't get a template with the information we have, stop.
             return None
 
-        if os.path.exists(xmlpath):
-            self.templates[xmlname] = FileTemplate(xmlpath)
-                
         if xmlname in self.templates:
             return self.templates[xmlname]
+
+        if os.path.exists(xmlpath):
+            self.templates[xmlname] = FileTemplate(xmlpath)                
         else:
             return None

@@ -30,6 +30,7 @@ class UserContext(object):
     """
     def __init__(self, source, pos, parser_key="default"):
         """Creates an instance of the UserContext."""
+        self._strsource = source
         self._source = source.splitlines()
         self.pos = pos
         self.parser = cache.parser(parser_key)
@@ -41,6 +42,7 @@ class UserContext(object):
         self._short_full_symbol = None
         self.element = None
         self._call_index = None
+        self._cachedstr = None
 
         #Setup all the regular expressions by grabbing cached versions so
         #we don't have to recompile them the whole time.
@@ -57,6 +59,29 @@ class UserContext(object):
         output.append("EL SECTION: " + self.el_section)
         output.append("CALL :" + self.el_call)
         return "\n".join(output)
+
+    @property
+    def refstring(self):
+        """Returns the *unsplit* source code string for the current code context."""
+        return self._strsource
+
+    @property
+    def bufferstr(self):
+        """Returns the full string of the file's current state in the buffer."""
+        return self._source
+
+    @property
+    def cachedstr(self):
+        """Returns the full string of the file contents from the cache for
+        the file that we are currently providing intellisense for."""
+        if self._cachedstr is None:
+            if self.module is not None:
+                refstring = self.module.refstring
+                self._cachedstr = refstring.splitlines()
+            else:
+                self._cachedstr = []
+
+        return self._cachedstr
 
     @property
     def current_line(self):

@@ -12,7 +12,8 @@ class DocStringParser(object):
     def setup_regex(self):
         """Sets up the patterns and regex objects for parsing the docstrings."""
         #Regex for grabbing out valid XML tags that represent known docstrings that we can work with.
-        self.keywords = [ "summary", "usage", "errors", "member", "group", "local", "comments", "parameter" ]
+        self.keywords = [ "summary", "usage", "errors", "member", "group", "local", 
+                          "comments", "parameter" ]
         #Regex for extracting the contents of docstrings minus the !! and any leading spaces.
         self._RX_DOCS = "^\s*!!(?P<docstring>.+?)$"
         self.RE_DOCS = re.compile(self._RX_DOCS, re.M)
@@ -21,13 +22,15 @@ class DocStringParser(object):
         self.RE_REFS = re.compile(self._RX_REFS)
         #Regex to match first lines of declarations for code elements that can be
         #decorated by docstrings.
-        self._RX_DECOR = r"\s*(?P<functype>[A-Za-z0-9_()]+)?(?P<element>module|type|subroutine|function)" + \
-                         r"\s+(?P<name>[A-Za-z0-9_]+)"
-        self.RE_DECOR = re.compile(self._RX_DECOR, re.M | re.DOTALL | re.I)
+        self._RX_DECOR = (r"((?P<type>character|real|type|logical|integer)?"
+                          r"(?P<kind>\([a-z0-9_]+\))?)?(,?(?P<modifiers>[^\n]+?))?"
+                          r"\s*(?P<codetype>subroutine|function|type|module)\s+(?P<name>[^(]+)")
+        self.RE_DECOR = re.compile(self._RX_DECOR, re.I)
         #Regex for getting the docstrings decorating one or more modules in a code file,
         #Since they aren't contained inside any other code element, we can't just use
         #the normal docblocks routines.
-        self._RX_MODDOCS = r"^\s*(?P<docstring>!!.+?)module\s+(?P<name>[A-Za-z0-9_]+).+?end\s+module(\s+(?P=name))?"
+        self._RX_MODDOCS = (r"^(?P<docstring>\s*!!.+?)module\s+(?P<name>[A-Za-z0-9_]+)"
+                            ".+?end\s+module(\s+(?P=name))?")
         self.RE_MODDOCS = re.compile(self._RX_MODDOCS, re.DOTALL | re.I)
 
     def parse_docs(self, string, container = None):
@@ -35,6 +38,8 @@ class DocStringParser(object):
 
         Returns a dictionary with keys as parent.code_element_name and the values
         a list of XML elements for corresponding docstrings.
+
+        :arg container: the instance of the element who owns the string.
         """
         result = {}
         if container is None:
@@ -49,9 +54,9 @@ class DocStringParser(object):
                     #of XML docstrings to the result.
                     key = module.group("name")
                     if not key in result:
-                        result[key] = list(docs)
+                        result[key] = [list(docs), module.start(), module.end()]
                     else:
-                        result[key].extend(list(docs))
+                        result[key][0].extend(list(docs))
                 except ET.ParseError:
                     print doctext
         else:
@@ -61,11 +66,14 @@ class DocStringParser(object):
             
         return result
         
-    def _process_docgroup(self, group, code_el):
+    def _process_docgroup(self, group, code_el, add=True):
         """Explodes the group members into a list; adds the group to the
         specified code element and updates the group value for each
-        of the docstring elements in the group."""
-        if group.name in code_el.groups:
+        of the docstring elements in the group.
+
+        :arg add: when true, docgroups must be unique in the code element;
+          otherwise, existing groups are overwritten."""
+        if group.name in code_el.groups and add:
             print "WARNING: duplicate group names in code element {}".format(code_el.name)
         else:
             code_el.groups[group.name] = group
@@ -76,7 +84,7 @@ class DocStringParser(object):
 
         return kids
 
-    def process_execdocs(self, docs, anexec, key):
+    def process_execdocs(self, docs, anexec, key, add=True):
         """Associates parameter documentation with parameters for the executable
         and any remaining docs with the executable itself.
 
@@ -88,20 +96,61 @@ class DocStringParser(object):
         for doc in docs:
             if doc.doctype == "parameter":
                 if doc.pointsto is not None and doc.pointsto in anexec.parameters:
-                    anexec.parameters[doc.pointsto].docstring.append(doc)
+                    if add:
+                        anexec.parameters[doc.pointsto].docstring.append(doc)
+                    else:
+                        anexec.parameters[doc.pointsto].overwrite_docs(doc)
                 else: 
                     #the parameter docstring is orphaned, give a warning.
                     msg = "WARNING: the docstring for parameter '{}' had no corresponding " + \
                           "parameter in the executable definition for '{}'."
                     print msg.format(doc.pointsto, anexec)
             elif doc.doctype == "group":
-                anexec.docstring.extend(self._process_docgroup(doc, anexec))
+                kids = self._process_docgroup(doc, anexec)
+                if add:
+                    anexec.docstring.extend(kids)
+                else:
+                    for kid in kids:
+                        anexec.overwrite_docs(kid)
             else:
                 #The docstring must be for the executable
-                anexec.docstring.append(doc)
+                if add:
+                    anexec.docstring.append(doc)
+                else:
+                    anexec.overwrite_docs(doc)
                     
+    def process_embedded(self, xlist, anexec, add=True):
+        """Processes the specified xml list and executable to link *embedded*
+        types and executables to their docstrings.
 
-    def process_memberdocs(self, docs, codeEl):
+        :arg xlist: a list of XML elements returned by parse_docs().
+        :arg add: when true, docstrings are only appended, never overwritten.
+        """
+        #Keep track of the changes that took place in the lengths of the 
+        #docstrings that got added/updated on the elements children.
+        delta = 0
+        for t in anexec.types:
+            key = "{}.{}".format(anexec.name, t)
+            if key in xlist:
+                docs = self.to_doc(xlist[key][0], t)
+                self.process_memberdocs(docs, anexec.types[t], add)
+                anexec.types[t].docstart = xlist[key][1]
+                delta += xlist[key][2] - anexec.types[t].docend
+                anexec.types[t].docend = xlist[key][2]
+
+        for iexec in anexec.executables:
+            key = "{}.{}".format(anexec.name, iexec)
+            if key in xlist:
+                docs = self.to_doc(xlist[key][0], t)
+                self.process_memberdocs(docs, anexec.executables[iexec], add)
+                anexec.executables[iexec].docstart = xlist[key][1]
+                delta += xlist[key][2] - anexec.executables[iexec].docend
+                anexec.executables[iexec].docend = xlist[key][2]
+
+        if not add:
+            return delta
+
+    def process_memberdocs(self, docs, codeEl, add=True):
         """Associates member type DocElements with their corresponding members
         in the specified code element. The element must have a dictionary of
         members already."""        
@@ -114,7 +163,7 @@ class DocStringParser(object):
         #Process any groups that are in the doc list.
         for doc in docs:
             if isinstance(doc, DocGroup):
-                kids = self._process_docgroup(doc, codeEl)
+                kids = self._process_docgroup(doc, codeEl, add)
                 expandeddocs.extend(kids)
             else:
                 expandeddocs.append(doc)
@@ -123,11 +172,11 @@ class DocStringParser(object):
             #Process the docstring, if it doesn't belong to a member
             #we will add it to the list of unassigned docstrings,
             #these most likely point to type declarations.           
-            if not self._process_docstrings(doc, codeEl.members):
+            if not self._process_docstrings(doc, codeEl.members, add):
                 remainingdocs.append(doc)
         return remainingdocs
 
-    def _process_docstrings(self, doc, members):
+    def _process_docstrings(self, doc, members, add=True):
         """Adds the docstrings from the list of DocElements to their
         respective members.
 
@@ -135,7 +184,10 @@ class DocStringParser(object):
         if ((doc.doctype == "member" or doc.doctype == "local") and 
             doc.pointsto is not None and 
             doc.pointsto in members):
-            members[doc.pointsto].docstring.append(doc)
+            if add:
+                members[doc.pointsto].docstring.append(doc)
+            else:
+                members[doc.pointsto].overwrite_docs(doc)
             return True
         else:
             return False
@@ -175,11 +227,18 @@ class DocStringParser(object):
         #that they were decorating (which may or may not be pertinent).
         current = []
         docblocks = {}
+        docstart = 0
 
         for line in string.split("\n"):
             match = self.RE_DOCS.match(line)
             if match is not None:
                 current.append(match.group("docstring"))
+                if len(current) == 1:
+                    #This was the first docstring of a new documentation block.
+                    docend = docstart + len(line) + 1  # +1 for \n removed by split()
+                else:
+                    #We already have some docstrings in the block, update start/end
+                    docend += len(line) + 1
             else:
                 #See if we were previously working on a docstring block or not.
                 if len(current) > 0:
@@ -192,14 +251,23 @@ class DocStringParser(object):
                     try:
                         docs = ET.XML(doctext)
                         if not key in docblocks:
-                            docblocks[key] = list(docs)
+                            #Let the docstart and docend *always* be absolute 
+                            #character references.
+                            absstart, absend = container.module.absolute_charindex(string, 
+                                                                                   docstart,
+                                                                                   docend-len(line))
+                            docblocks[key] = [list(docs), absstart, absend]
                         else:
-                            docblocks[key].extend(list(docs))
+                            docblocks[key][0].extend(list(docs))
                     except ET.ParseError:
                         print doctext
+
                     #Reset the list of current docstrings
                     current = []
-                #else: we don't need to do anything with this line, it is just regular
+                    docstart = docend + len(line) + 1
+                else:
+                    #We need to keep track of the line lengths for docstart/end.
+                    docstart += len(line) + 1
 
         return docblocks
 
@@ -209,9 +277,9 @@ class DocStringParser(object):
         the name of the code element."""
         match = self.RE_DECOR.match(line)
         if match is not None:
-            return "{}.{}".format(container, match.group("name"))
+            return "{}.{}".format(container.name, match.group("name"))
         else:
-            return container
+            return container.name
 
     def parsexml(self, xmlstring, modules):
         """Parses the docstrings out of the specified xml file."""
@@ -264,3 +332,56 @@ class DocStringParser(object):
                         member, modname)
             else:
                 print "WARNING: orphaned docstring from XML docfile for {}".format(kdecor)
+
+    def rt_update_module(self, xmldict, module):
+        """Updates the members, executables and types in the specified module
+        to have the latest docstring information from the xmldict.
+        """
+        #This keeps track of how many character were added/removed by
+        #updating the docstrings in xmldict.
+        delta = 0
+        for kdecor in xmldict:
+            if "." in kdecor:
+                modname, memname = kdecor.split(".")
+            else:
+                modname, memname = module.name, None
+
+            if module.name == modname:
+                #This tag is relevant to the specified module. Continue
+                xlist, docstart, docend = xmldict[kdecor]
+
+                #We only need to check the members, types and executables
+                #For executables and types, we need to update the docstart and
+                #docend attributes since their docstrings must come as a single
+                #block immediately preceding the signature, so that our values
+                #from the updater will be correct.
+                if memname in module.types:
+                    member = module.types[memname]
+                    docs = self.to_doc(xlist, memname)
+                    member.docstring = docs
+                    delta += self._rt_update_docindices(member, docstart, docend)
+                elif memname in module.executables:
+                    member = module.executables[memname]
+                    docs = self.to_doc(xlist, memname)
+                    self.process_execdocs(docs, member, kdecor, False)
+                    delta += self._rt_update_docindices(member, docstart, docend)
+                else:
+                    #Since it didn't point to anything else, it must be for the
+                    #members of the module.
+                    docs = self.to_doc(xlist, modname)
+                    self.process_memberdocs(docs, module, False)               
+                
+        return delta
+
+    def _rt_update_docindices(self, element, docstart, docend):
+        """Updates the docstart, docend, start and end attributes for the 
+        specified element using the new limits for the docstring."""
+        #see how many characters have to be added/removed from the end
+        #of the current doc limits.
+        delta = element.docend - docend
+        element.docstart = docstart
+        element.docend = docend
+        element.start += delta
+        element.end += delta
+
+        return delta

@@ -1,5 +1,5 @@
 import re
-from ..elements import Subroutine, Function, Dependency, Executable
+from ..elements import Subroutine, Function, Dependency, Executable, Module
 import pyparsing
 
 class ExecutableParser(object):
@@ -21,10 +21,17 @@ class ExecutableParser(object):
 
         #Setup a regex that can extract information about both functions and subroutines
         self._RX_EXEC = r"\n\s*((?P<type>character|real|type|logical|integer)?" + \
-                        r"(?P<kind>\([a-z0-9_]+\))?)?(,(?P<modifiers>[^\n]+?))?\s*" + \
+                        r"(?P<kind>\([a-z0-9_]+\))?)?((?P<modifiers>[\w,\s]+?))?\s*" + \
                         r"(?P<codetype>subroutine|function)\s+(?P<name>[^(]+)" + \
-                        r"\s*\((?P<parameters>[^)]+)\)(?P<contents>.+?)end\s*(?P=codetype)"
+                        r"\s*\((?P<parameters>[^)]+)\)(?P<contents>.+?)end\s*(?P=codetype)\s+(?P=name)"
         self.RE_EXEC = re.compile(self._RX_EXEC, re.DOTALL | re.I)
+        #Regex for the signature is almost identical to the full executable, but it doesn't
+        #look for any contents after the parameter list.
+        self._RX_SIG =  r"((?P<type>character|real|type|logical|integer)?" + \
+                        r"(?P<kind>\([a-z0-9_]+\))?)?(,?(?P<modifiers>[^\n]+?))?\s*" + \
+                        r"(?P<codetype>subroutine|function)\s+(?P<name>[^(]+)" + \
+                        r"\s*\((?P<parameters>[^)]+)\)"
+        self.RE_SIG = re.compile(self._RX_SIG, re.I)
 
         #The contents of the executable already have any & line continuations
         #removed, so we can use a simple multiline regex.
@@ -37,83 +44,161 @@ class ExecutableParser(object):
         self._RX_COMMENTS = r'\s*![^\n"]+?\n'
         self.RE_COMMENTS = re.compile(self._RX_COMMENTS)
 
-    def parse_line(self, line, element, mode):
+    def parse_signature(self, statement, element, module=None):
+        """Parses the specified line as a new version of the signature for 'element'.
+
+        :arg statement: the string that has the new signature.
+        :arg element: the code element whose signature will be changed.
+        """
+        #If the signature changes, the user might not have had a chance to add the
+        #detailed member information for it yet. Here
+        #we will just update the modifiers and attributes. Also, since all the mods
+        #etc. will be overwritten, we don't need to handle replace separately.
+        smatch = self.RE_SIG.match(statement)
+        result = (None, None, None)
+        eresult = None
+
+        if smatch is not None:
+            name = smatch.group("name").strip()
+            modifiers = smatch.group("modifiers") or []
+            codetype = smatch.group("codetype")
+
+            #If the exec is a function, we also may have a type and kind specified.
+            if codetype == "function":
+                dtype = smatch.group("type")
+                kind = smatch.group("kind")
+                if module is None:
+                    element.update(name, modifiers, dtype, kind)
+                else:
+                    eresult = Function(name, modifiers, dtype, kind, module)
+            else:
+                if module is None:
+                    element.update(name, modifiers)
+                else:
+                    eresult = Subroutine(name, modifiers, module)
+
+            #The parameter sets are actually driven by the body of the executable 
+            #rather than the call signature. However, the declarations will be
+            #interpreted as members if we don't add the parameters to the ordered
+            #list of parameter names. Overwrite that list with the new names.
+            params = re.split("[\s,]+", smatch.group("parameters").lower())
+            if eresult is None:
+                element.paramorder = params
+            else:
+                eresult.paramorder = params
+
+            result = (eresult, smatch.start(), smatch.end())
+
+        return result
+                        
+    def parse_line(self, statement, element, mode):
         """Parses the contents of the specified line and adds its representation
         to the specified element (if applicable).
 
-        :arg line: the new line of code that was added/removed/changed on the 
-          element after it had alread been parsed.
+        :arg statement: the lines of code that was added/removed/changed on the 
+          element after it had alread been parsed. The lines together form a single
+          continuous code statement.
         :arg element: the Subroutine or Function instance to update.
-        :arg mode: +, -, or ? for add/remove/edit.
+        :arg mode: 'insert', or 'delete'.
         """
+        if element.incomplete:
+            #We need to check for the end_token so we can close up the incomplete
+            #status for the instance.
+            if element.end_token in statement:
+                element.incomplete = False
+                return
+
         #The line can either be related to an assignment or a dependency since
         #those are the only relevant contents that aren't local variable definitions
         #However if it is a local var definition, we need to process it with any
-        #doctags etc that it used.
+        #doctags etc that it used. NOTE: doctags are parsed separately by the line
+        #parser at a higher level because of the XML.
+        self._process_assignments(element, statement, mode)
+        self._process_dependencies(element, statement, mode)
+        self._parse_members(statement, element, element.paramorder, mode)
 
     def parse(self, module):
         """Extracts all the subroutine and function definitions from the specified module."""
-        #We only want to look after the contains statement for executables
-        #Determine the index of the last type that was extracted in the module
-        lastindex = 0
-        for custkey in module.types:
-            if module.types[custkey].end > lastindex:
-                lastindex = module.types[custkey].end
+        #Because of embedded types, we have to examine the entire module for
+        #executable definitions.
+        self.parse_block(module.refstring, module, module, 0)
 
-        #Find all the contains statements in the module and then get the first
-        #one that is after all the custom type declarations
-        match = None
-        for rcontains in self.RE_CONTAINS.finditer(module.refstring):
-            if rcontains.end() > lastindex:
-                match = rcontains
-                break
+        #Now we can set the value of module.contains as the text after the start of
+        #the *first* non-embedded executable.
+        min_start = len(module.refstring)
+        for x in module.executables:
+            if module.executables[x].start < min_start:
+                min_start = module.executables[x].start
 
-        if match is not None:
-            module.contains = module.refstring[match.end()::]
-            self.parse_block(module.contains, module)
+        module.contains = module.refstring[min_start::]
 
-    def parse_block(self, contents, module):
+    def parse_block(self, contents, parent, module, depth):
         """Extracts all executable definitions from the specified string and adds
-        them to the module."""
-        #Before we start processing the executables, we need to extract their
-        #docstrings from the module text's body.
-        docblocks = self.docparser.parse_docs(contents, module.name)
-            
-        #Now we can process the execs and let them use the docblocks
+        them to the specified parent."""
         for anexec in self.RE_EXEC.finditer(contents):
-            x = self._process_execs(anexec, docblocks, module)
-            module.executables[x.name] = x
-            if "public" in x.modifiers:
-                module.publics[x.name] = 1
+            x = self._process_execs(anexec, parent, module)
+            parent.executables[x.name] = x
+            if  isinstance(parent, Module) and "public" in x.modifiers:
+                parent.publics[x.name] = 1
+            
+            #To handle the embedded executables, run this method recursively
+            self.parse_block(x.contents, x, module, depth + 1)
 
-    def _process_execs(self, execmatch, docblocks, module):
+        #Now that we have the executables, we can use them to compile a string
+        #that includes only documentation *external* to the executable definitions
+        #Because we enforce adding the name to 'end subroutine' statements etc.
+        #all the embedded executables haven't been parsed yet.
+        if len(parent.executables) > 0:
+            remove = []
+            for x in parent.executables:
+                remove.append((parent.executables[x].start, parent.executables[x].end))
+
+            remove.sort(key=lambda tup: tup[0])
+            retain = []
+            cur_end = 0
+            for rem in remove:
+                if "\n" in contents[rem[0]+1:rem[1]]:
+                    signature = contents[rem[0]+1:rem[1]].index("\n") + 2
+                    keep = contents[cur_end:rem[0] + signature]
+                    cur_end = rem[1]
+                    retain.append(keep)
+
+            #Now we have a string of documentation segments and the signatures they
+            #decorate that only applies to the non-embedded subroutines
+            docsearch = "".join(retain)
+            docblocks = self.docparser.parse_docs(docsearch, parent)
+
+            #Process the decorating documentation for the executables including the
+            #parameter definitions.
+            for x in parent.executables:
+                self._process_docs(parent.executables[x], docblocks, 
+                                   parent, module, docsearch)
+
+    def _process_execs(self, execmatch, parent, module):
         """Processes the regex match of an executable from the match object."""
         #Get the matches that must be present for every executable.
         name = execmatch.group("name").strip()
         modifiers = execmatch.group("modifiers")
         codetype = execmatch.group("codetype")
         params = re.split("[\s,]+", execmatch.group("parameters"))
-
         contents = execmatch.group("contents")
 
         #If the exec is a function, we also may have a type and kind specified.
         if codetype == "function":
             dtype = execmatch.group("type")
             kind = execmatch.group("kind")
-            result = Function(name, modifiers, dtype, kind, module)
+            result = Function(name, modifiers, dtype, kind, parent)
         else:
-            result = Subroutine(name, modifiers, module)
+            result = Subroutine(name, modifiers, parent)
 
         #Set the regex start and end char indices
         result.start, result.end = module.absolute_charindex(execmatch.string, execmatch.start(),
                                                              execmatch.end())
+        result.contents = contents
 
         #Now we can handle the rest which is common to both types of executable
         #Extract a list of local variables
         self._parse_members(contents, result, params)
-        #Process the decorating documentation for the executable including the
-        #parameter definitions.
-        self._process_docs(result, docblocks, module.name)
         
         #Fortran allows lines to be continued using &. The easiest way
         #to deal with this is to remove all of those before processing
@@ -128,8 +213,11 @@ class ExecutableParser(object):
         
         return result
 
-    def _process_assignments(self, anexec, contents):
-        """Extracts all variable assignments from the body of the executable."""
+    def _process_assignments(self, anexec, contents, mode="insert"):
+        """Extracts all variable assignments from the body of the executable.
+
+        :arg mode: for real-time update; either 'insert', 'delete' or 'replace'.
+        """
         for assign in self.RE_ASSIGN.finditer(contents):
             assignee = assign.group("assignee").strip()
             target = re.split("[(%]", assignee)[0]
@@ -138,12 +226,24 @@ class ExecutableParser(object):
             if target in anexec.members or \
                target in anexec.parameters or \
                (isinstance(anexec, Function) and target.lower() == anexec.name.lower()):
-                trunc = assignee.split("(")[0]
-                anexec.add_assignment(trunc)
+                if mode == "insert":
+                    anexec.add_assignment(target)
+                elif mode == "delete":
+                    #Remove the first instance of this assignment from the list
+                    try:
+                        index = element.assignments.index(assign)
+                        del element.assignments[index]
+                    except ValueError:
+                        #We didn't have anything to remove, but python
+                        pass                    
 
-    def _process_dependencies(self, anexec, contents):
+    def _process_dependencies(self, anexec, contents, mode="insert"):
         """Extracts a list of subroutines and functions that are called from
-        within this executable."""
+        within this executable.
+
+        :arg mode: specifies whether the matches should be added, removed
+          or merged into the specified executable.
+        """
         #At this point we don't necessarily know which module the executables are
         #in, so we just extract the names. Once all the modules in the library
         #have been parsed, we can do the associations at that level for linking.
@@ -161,9 +261,9 @@ class ExecutableParser(object):
                 #Sometimes the parameter passed to a subroutine or function is 
                 #itself a function call. These are always the first elements in
                 #their nested lists.
-                self._process_dependlist(dependent, anexec, isSubroutine)
+                self._process_dependlist(dependent, anexec, isSubroutine, mode)
 
-    def _process_dependlist(self, dependlist, anexec, isSubroutine):
+    def _process_dependlist(self, dependlist, anexec, isSubroutine, mode="insert"):
         """Processes a list of nested dependencies recursively."""
         for i in range(len(dependlist)):
             #Since we are looping over all the elements and some will
@@ -181,13 +281,35 @@ class ExecutableParser(object):
             if key not in ["then", ",", "", "elseif"] and has_params \
                and not "=" in key and not ">" in key:
                 if key in ["if", "do"]:
-                    self._process_dependlist(dependlist[i + 1], anexec, False)
+                    self._process_dependlist(dependlist[i + 1], anexec, False, mode)
                 else:
                     #This must be valid call to an executable, add it to the list
                     #with its parameters and then process its parameters list
                     #to see if there are more nested executables
-                    self._add_dependency(key, dependlist, i, isSubroutine, anexec)
-                    self._process_dependlist(dependlist[i + 1], anexec, False)
+                    if mode == "insert":
+                        self._add_dependency(key, dependlist, i, isSubroutine, anexec)
+                    elif mode == "delete":
+                        #Try and find a dependency already in the executable that 
+                        #has the same call signature; then remove it.
+                        self._remove_dependency(dependlist, i, isSubroutine, anexec)
+
+                    self._process_dependlist(dependlist[i + 1], anexec, False, mode)
+
+    def _remove_dependency(self, dependlist, i, isSubroutine, anexec):
+        """Removes the specified dependency from the executable if it exists
+        and matches the call signature."""
+        if dependlist[i] in anexec.dependencies:
+            all_depends = anexec.dependencies[dependlist[i]]
+            if len(all_depends) > 0:
+                clean_args = all_depends[0].clean(dependlist[i + 1])
+                for idepend in range(len(all_depends)):
+                    #Make sure we match across all relevant parameters
+                    if (all_depends[idepend].argslist == clean_args
+                        and all_depends[idepend].isSubroutine == isSubroutine):
+                        del anexec.dependencies[dependlist[i]][idepend]
+                        #We only need to delete one, even if there are multiple
+                        #identical calls from elsewhere in the body.
+                        break
 
     def _add_dependency(self, key, dependlist, i, isSubroutine, anexec):
         """Determines whether the item in the dependency list is a valid function
@@ -218,17 +340,18 @@ class ExecutableParser(object):
                 anexec.add_dependency(d)
                 
 
-    def _process_docs(self, anexec, docblocks, modulename):
+    def _process_docs(self, anexec, docblocks, parent, module, docsearch):
         """Associates the docstrings from the docblocks with their parameters."""
         #The documentation for the parameters is stored outside of the executable
-        #We need to get hold of them from docblocks from the module text
-        key = "{}.{}".format(modulename, anexec.name)
+        #We need to get hold of them from docblocks from the parent text
+        key = "{}.{}".format(parent.name, anexec.name)
         if key in docblocks:
-            docs = self.docparser.to_doc(docblocks[key], anexec.name)
+            docs = self.docparser.to_doc(docblocks[key][0], anexec.name)
+            anexec.docstart, anexec.docend = (docblocks[key][1], docblocks[key][2])
             self.docparser.process_execdocs(docs, anexec, key)
         #else: the module didn't have any docstrings for this executable...
 
-    def _parse_members(self, contents, anexec, params):
+    def _parse_members(self, contents, anexec, params, mode="insert"):
         """Parses the local variables for the contents of the specified executable."""
         #First get the variables declared in the body of the executable, these can
         #be either locals or parameter declarations.
@@ -237,18 +360,29 @@ class ExecutableParser(object):
         #If the name matches one in the parameter list, we can connect them
         for param in params:
             if param in members:
-                anexec.add_parameter(members[param])
+                if mode == "insert":
+                    anexec.add_parameter(members[param])
+                elif mode == "delete":
+                    anexec.remove_parameter(members[param])
             
         #The remaining members that aren't in parameters are the local variables
         for key in members:
-            if not key.lower() in anexec.parameters:
-                anexec.members[key] = members[key]
+            if mode == "insert":
+                if not key.lower() in anexec.parameters:
+                    anexec.members[key] = members[key]
+            elif mode == "delete" and key in anexec.members:
+                del anexec.members[key]
 
         #Next we need to get hold of the docstrings for these members
-        memdocs = self.docparser.parse_docs(contents, anexec.name)
-        if anexec.name in memdocs:
-            docs = self.docparser.to_doc(memdocs[anexec.name], anexec.name)
-            self.docparser.process_memberdocs(docs, anexec)
+        if mode == "insert":
+            memdocs = self.docparser.parse_docs(contents, anexec)
+            if anexec.name in memdocs:
+                docs = self.docparser.to_doc(memdocs[anexec.name][0], anexec.name)
+                self.docparser.process_memberdocs(docs, anexec)
+
+            #Also process the embedded types and executables who may have
+            #docstrings just like regular executables/types do.
+            self.docparser.process_embedded(memdocs, anexec)
 
     def _intrinsic_functions(self):
         """Returns a list of fortran intrinsic functions."""

@@ -27,7 +27,19 @@ class CodeElement(object):
         if self.modifiers is None:
             self.modifiers = []
         else:
-            self._clean_mods()
+            self.clean_mods(self.modifiers)
+        
+    def overwrite_docs(self, doc):
+        """Adds the specified DocElement to the docstring list. However, if an
+        element with the same xml tag and pointsto value already exists, it
+        will be overwritten."""
+        for i in range(len(self.docstring)):
+            if (self.docstring[i].doctype == doc.doctype and
+                self.docstring[i].pointsto == doc.pointsto):
+                del self.docstring[i]
+                break
+
+        self.docstring.append(doc)
 
     def __getstate__(self):
         """Cleans up the object so that it can be pickled without any pointer
@@ -56,6 +68,21 @@ class CodeElement(object):
         """Sets the parent pointer references for the type executable."""
         self.parent = parent
         self.unpickle_docs()
+
+    @property
+    def embedded(self):
+        """Value indicates whether this type declaration is embedded in an executable
+        rather than the module, which is the natural default."""
+        return not isinstance(self.parent, Module)
+
+    @property
+    def absstart(self):
+        """Returns the absolute start of the element by including docstrings
+        outside of the element definition if applicable."""
+        if hasattr(self, "docstart") and self.docstart > 0:
+            return self.docstart
+        else:
+            return self.start
 
     @property
     def module(self):
@@ -126,10 +153,10 @@ class CodeElement(object):
         if not self.has_docstring():
             collection.append("WARNING: no docstring on code element {}".format(self.name))
 
-    def _clean_mods(self):
+    def clean_mods(self, modifiers):
         """Cleans the modifiers to remove empty entries."""
-        if "" in self.modifiers and type(self.modifiers) == type([]):
-            self.modifiers.remove("")
+        if "" in modifiers and type(modifiers) == type([]):
+            modifiers.remove("")
 
 class ValueElement(CodeElement):
     """Represents a code element that can hold a value."""
@@ -168,7 +195,7 @@ class Dependency(object):
     thus making one executable dependent on the others."""
     def __init__(self, name, argslist, isSubroutine, parent):
         self._name = name
-        self.argslist = self._clean(argslist)
+        self.argslist = self.clean(argslist)
         self.parent = parent
         self.isSubroutine = isSubroutine
         
@@ -214,13 +241,13 @@ class Dependency(object):
 
         return self._module
 
-    def _clean(self, argslist):
+    def clean(self, argslist):
         """Cleans the argslist."""
         result = []
         for arg in argslist:
             if type(arg) == type([]):
                 if len(result) > 0:
-                    result[-1] = result[-1] + "(*{})".format(len(self._clean(arg)))
+                    result[-1] = result[-1] + "(*{})".format(len(self.clean(arg)))
                 elif "/" not in arg[0]:
                     print "WARNING: argument to function call unrecognized. {}".format(arg)
             else:
@@ -230,16 +257,53 @@ class Dependency(object):
         
         return result
 
-class Executable(ValueElement):
+class Decoratable(object):
+    """Represents a class that can have an *external* docstring attached."""
+    def __init__(self):
+        #The start and end characters for the docstring that decorates this code element
+        self.docstart = 0
+        self.docend = 0
+
+    def find_section(self, charindex):
+        """Returns a value indicating whether the specified character index
+        is owned by the current object."""
+        #All objects instances of decorable also inherit from CodeElement,
+        #so we should have no problem accessing the start and end attributes.
+        result = None
+        if hasattr(self, "start") and hasattr(self, "end"):
+            #The 8 seems arbitrary, but it is the length of type::b\n for a
+            #really short type declaration with one character name.
+            if charindex > self.docend and charindex - self.start < 8:
+                result = "signature"
+            elif charindex >= self.start and charindex <= self.end:
+                result = "body"
+
+        if (result is None and charindex >= self.docstart 
+            and charindex <= self.docend):
+            result = "docstring"
+            
+        return result
+    
+class Executable(ValueElement, Decoratable):
     """Represents a function or subroutine that can be executed with parameters."""
     def __init__(self, name, modifiers, dtype, kind, default, dimension, parent):
         super(Executable, self).__init__(name, modifiers, dtype, kind, 
                                          default, dimension, parent)
+        Decoratable.__init__(self)
         self.members = {}
         self.dependencies = {}
+        #Initialize dicts for the embedded types and executables.
+        self.types = {}
+        self.executables = {}
 
         #The order in which the parameters are presented to the function
-        self._paramorder = []
+        self.paramorder = []
+        #The string between the end of the signature and the start of the end
+        #token for this executable.
+        self.contents = None
+        #When an instance is add from just a signature and doesn't have an 
+        #end_token, this is set to True
+        self.incomplete = False
         self._parameters = {}
         self._assignments = []
 
@@ -249,6 +313,8 @@ class Executable(ValueElement):
         self.parent = parent
         self._unpickle_collection(self.members)
         self._unpickle_collection(self.dependencies)
+        self._unpickle_collection(self.types)
+        self._unpickle_collection(self.executables)
         self._unpickle_collection(self._parameters)
         self.unpickle_docs()
         
@@ -260,6 +326,34 @@ class Executable(ValueElement):
                     item.unpickle(self)
             else:
                 collection[mkey].unpickle(self)
+
+    def rt_update(self, statement, linenum, mode, xparser):
+        """Uses the specified line parser to parse the given line.
+
+        :arg statement: a string of lines that are part of a single statement.
+        :arg linenum: the line number of the first line in the list relative to
+          the entire module contents.
+        arg mode: either 'insert', 'replace' or 'delete'
+        :arg xparser: an instance of the executable parser from the real
+          time update module's line parser.
+        """
+        section = self.find_section(self.module.charindex(linenum, 1))
+
+        if section == "body":
+            xparser.parse_line(statement, self, mode)
+        elif section == "signature":
+            if mode == "insert":
+                xparser.parse_signature(statement, self)
+        #NOTE: docstrings are handled at a higher level by the line parser
+        #because of the XML dependence.
+
+    def update_name(self, name):
+        """Changes the name of this executable and the reference to it in the
+        parent module."""
+        if name != self.name:
+            self.parent.executables[name] = self
+            del self.parent.executables[self.name]
+            self.name = name
 
     @property
     def refstring(self):
@@ -335,7 +429,7 @@ class Executable(ValueElement):
     @property
     def ordered_parameters(self):
         """Returns a list of the ordered parameters."""
-        return [ self._parameters[k] for k in self._paramorder]
+        return [ self._parameters[k] for k in self.paramorder]
 
     @property
     def parameters(self):
@@ -345,13 +439,22 @@ class Executable(ValueElement):
     def get_parameter(self, index):
         """Returns the ValueElement corresponding to the parameter
         at the specified index."""
-        key = self._paramorder[index]
+        key = self.paramorder[index]
         return self._parameters[key]
 
     def add_parameter(self, parameter):
         """Adds the specified parameter value to the list."""
-        self._paramorder.append(parameter.name.lower())
+        self.paramorder.append(parameter.name.lower())
         self._parameters[parameter.name.lower()] = parameter
+
+    def remove_parameter(self, parameter_name):
+        """Removes the specified parameter from the list."""
+        if parameter_name in self.paramorder:
+            index = self.paramorder.index(parameter_name)
+            del self.paramorder[index]
+
+        if parameter_name in self._parameters:
+            del self._parameters[parameter_name]
 
     def parameters_as_string(self):
         """Returns a comma-separated list of the parameters in the executable definition."""
@@ -394,6 +497,19 @@ class Function(Executable):
                                                     params, info)
 
     @property
+    def end_token(self):
+        """Gets the end [code type] token for this instance."""
+        return "end function"
+
+    def update(self, name, modifiers, dtype, kind):
+        """Updates the attributes for the function instance, handles name changes
+        in the parent module as well."""
+        self.update_name(name)
+        self.modifiers = modifiers
+        self.dtype = dtype
+        self.kind = kind
+
+    @property
     def returns(self):
         """Gets a string showing the return type and modifiers for the
         function in a nice display format."""
@@ -424,6 +540,17 @@ class Subroutine(Executable):
 
         return "{} SUBROUTINE {}({}){}".format(mods, self.name, params, info)
 
+    @property
+    def end_token(self):
+        """Gets the end [code type] token for this instance."""
+        return "end subroutine"
+
+    def update(self, name, modifiers):
+        """Updates the attributes for the subroutine instance, handles name changes
+        in the parent module as well."""
+        self.update_name(name)
+        self.modifiers = modifiers
+
 class TypeExecutable(CodeElement):
     """Represents a function or subroutine declared in a type that can be executed."""
     
@@ -435,6 +562,10 @@ class TypeExecutable(CodeElement):
         mods = ", ".join(self.modifiers)
         pointsto = " => {}".format(self.pointsto) if self.pointsto is not None else ""
         return "{} {}{}".format(mods, self.name, pointsto)
+
+    def parseline(self, line, lineparser):
+        """Uses the specified line parser to parse the given line."""
+        lineparser.tparser.parseline(self, line)
 
     def unpickle(self, parent):
         """Sets the parent pointer references for the type executable."""
@@ -453,15 +584,19 @@ class TypeExecutable(CodeElement):
             fullname = "{}.{}".format(self.module.name, self.name)
             return self.module.parent.get_executable(fullname.lower())
 
-class CustomType(CodeElement):
+class CustomType(CodeElement, Decoratable):
     """Represents a custom defined type in a fortran module."""
     
-    def __init__(self, name, modifiers, members, executables, parent):
+    def __init__(self, name, modifiers, members, parent):
         super(CustomType, self).__init__(name, modifiers, parent)
+        Decoratable.__init__(self)
         #A list of ValueElements() that were declared in the body of the type.
         self.members = members
         #A list of Executable() declared within the contains section of the type.        
-        self.executables = executables
+        self.executables = {}
+        #When an instance is add from just a signature and doesn't have an 
+        #end_token, this is set to True
+        self.incomplete = False
 
     def __str__(self):
         execs = "\n\t  - ".join([ x.__str__() for x in self.executables ])
@@ -469,6 +604,38 @@ class CustomType(CodeElement):
         allexecs = "\n\t  - {}".format(execs) if len(self.executables) > 0 else ""
         mems = "\n\t - ".join([x.__str__() for x in self.members ])
         return "TYPE {} ({}){}\nMEMBERS\n\t{}".format(self.name, mods, allexecs, mems)
+
+    @property
+    def end_token(self):
+        """Gets the end [code type] token for this instance."""
+        return "end type"
+
+    def update_name(self, name):
+        """Updates the name of the custom type in this instance and its
+        parent reference."""
+        if name != self.name:
+            self.parent.types[name] = self
+            del self.parent.types[self.name]
+            self.name = name
+
+    def rt_update(self, statement, linenum, mode, tparser):
+        """Uses the specified line parser to parse the given line.
+
+        :arg statement: a string of lines that are part of a single statement.
+        :arg linenum: the line number of the first line in the statement relative to
+          the entire module contents.
+        arg mode: either 'insert', 'replace' or 'delete'
+        :arg tparser: an instance of the type parser from the real
+          time update module's line parser.
+        """
+        section = self.find_section(self.module.charindex(linenum, 1))
+        if section == "body":
+            tparser.parse_line(statement, self, mode)
+        elif section == "signature":
+            if mode == "insert":
+                tparser.parse_signature(statement, self)
+        #NOTE: docstrings are handled at a higher level by the line parser
+        #because of the XML dependence.
 
     def unpickle(self, parent):
         """Sets the parent pointer references for the type *and* all of its
@@ -491,11 +658,12 @@ class CustomType(CodeElement):
         else:
             return ""
 
-class Module(CodeElement):
+class Module(CodeElement, Decoratable):
     """Represents a fortran module."""
     
     def __init__(self, name, modifiers, dependencies, publics, contents, parent):
         super(Module, self).__init__(name, modifiers, parent)
+        Decoratable.__init__(self)
         #Dependencies is a list of strings in the format module.member that
         #this module requires to operate correctly.
         self.dependencies = dependencies
@@ -516,17 +684,45 @@ class Module(CodeElement):
         self.predocs = {}
         #The section in the module after CONTAINS keyword
         self.contains = ""
+        #The original string that contains all the members and types before CONTAINS.
+        self.preamble = ""
         #The string from which the module was parsed
         self.refstring = ""
         #The path to the library where this module was parsed from.
         self.filepath = None
         #The datetime that the file was last modified.
         self.change_time = None
+        #changed keeps track of whether the module has had its refstring updated
+        #via a real-time update since the sequencer last analyzed it.
+        self.changed = False
 
         #Lines and character counts for finding where matches fit in the file
         self._lines = []
         self._chars = []
         self._contains_index = None
+
+    def rt_update(self, statement, linenum, mode, modulep, lineparser):
+        """Uses the specified line parser to parse the given statement.
+
+        :arg statement: a string of lines that are part of a single statement.
+        :arg linenum: the line number of the first line in the statement relative to
+          the entire module contents.
+        :arg mode: either 'insert', 'replace' or 'delete'
+        :arg modulep: an instance of ModuleParser for handling the changes
+          to the instance of the module.
+        :arg lineparser: a line parser instance for dealing with new instances
+          of types or executables that are add using only a signature.
+        """
+        #Most of the module is body, since that includes everything inside
+        #of the module ... end module keywords. Since docstrings are handled
+        #at a higher level by line parser, we only need to deal with the body
+        #Changes of module name are so rare that we aren't going to bother with them.
+        section = self.find_section(self.module.charindex(linenum, 1))
+        if section == "body":
+            modulep.rt_update(statement, self, mode, linenum, lineparser)
+
+        #NOTE: docstrings are handled at a higher level by the line parser
+        #because of the XML dependence.
 
     def unpickle(self, parent):
         """Sets the parent pointer references for the module *and* all of its
@@ -607,17 +803,34 @@ class Module(CodeElement):
         return possible
 
     @property
+    def end_token(self):
+        """Gets the end [code type] token for this instance."""
+        return "end module"
+
+    @property
     def contains_index(self):
         """Returns the *line number* that has the CONTAINS keyword separating the
         member and type definitions from the subroutines and functions."""
         if self._contains_index is None:
             max_t = 0
             for tkey in self.types:
-                if self.types[tkey].end > max_t:
+                if self.types[tkey].end > max_t and not self.types[tkey].embedded:
                     max_t = self.types[tkey].end
 
-            self._contains_index = self.linenum(max_t)[0] + 1
-        
+            #Now we have a good first guess. Continue to iterate the next few lines
+            #of the the refstring until we find a solid "CONTAINS" keyword. If there
+            #are no types in the module, then max_t will be zero and we don't have
+            #the danger of running into a contains keyword as part of a type. In that
+            #case we can just keep going until we find it.
+            i = 0
+            start = self.linenum(max_t)[0]
+            max_i = 10 if max_t > 0 else len(self._lines)
+
+            while self._contains_index is None and i < max_i:
+                if "contains" in self._lines[start + i].lower():
+                    self._contains_index = start + i
+                i += 1
+
         return self._contains_index
 
     @property
@@ -685,6 +898,77 @@ class Module(CodeElement):
             "executables": self.executables
         }[attribute]
 
+    def update_refstring(self, string):
+        """Updates the refstring that represents the original string that
+        the module was parsed from. Also updates any properties or attributes
+        that are derived from the refstring."""
+        self.refstring = string
+        self._lines = []
+        self._contains_index = None
+        self.changed = True
+
+        #The only other references that become out of date are the contains
+        #and preamble attributes which are determined by the parsers.
+        #Assuming we did everything right with the rt update, we should be
+        #able to just use the new contains index to update those.
+        icontains = self.contains_index
+        ichar = self.charindex(icontains, 0)
+        self.preamble = string[:ichar]
+        self.contains = string[ichar + 9:]
+
+    def update_elements(self, line, column, charcount, docdelta=0):
+        """Updates all the element instances that are children of this module
+        to have new start and end charindex values based on an operation that
+        was performed on the module source code.
+
+        :arg line: the line number of the *start* of the operation.
+        :arg column: the column number of the start of the operation.
+        :arg charcount: the total character length change from the operation.
+        :arg docdelta: the character length of changes made to types/execs
+          that are children of the module whose docstrings external to their
+          definitions were changed.
+        """
+        target = self.charindex(line, column) + charcount
+
+        #We are looking for all the instances whose *start* attribute lies
+        #after this target. Then we update them all by that amount.
+        #However, we need to be careful because of docdelta. If an elements
+        #docstring contains the target, we don't want to update it.
+        if line < self.contains_index:
+            for t in self.types:
+                if self._update_char_check(self.types[t], target, docdelta):
+                    self._element_charfix(self.types[t], charcount)
+
+            for m in self.members:
+                if self.members[m].start > target:
+                    self.members[m].start += charcount
+                    self.members[m].end += charcount
+
+            self._contains_index = None
+        else:
+            for iexec in self.executables:
+                if self._update_char_check(self.executables[iexec], target, docdelta):
+                    self._element_charfix(self.executables[iexec], charcount)
+
+    def _update_char_check(self, element, target, docdelta):
+        """Checks whether the specified element should have its character indices
+        updated as part of real-time updating."""
+        if docdelta != 0:
+            if (element.docstart <= target and 
+                element.docend >= target - docdelta):
+                return True
+            else:
+                return element.absstart > target
+        else:
+            return element.absstart > target
+
+    def _element_charfix(self, element, charcount):
+        """Updates the start and end attributes by charcount for the element."""
+        element.start += charcount
+        element.docstart += charcount
+        element.end += charcount
+        element.docend += charcount
+
     def get_element(self, line, column):
         """Gets the instance of the element who owns the specified line
         and column."""
@@ -694,25 +978,41 @@ class Module(CodeElement):
 
         if line < icontains:
             #We only need to search through the types and members.
+            maxstart = 0
+            tempresult = None
             for t in self.types:
-                if (ichar >= self.types[t].start and 
-                    ichar <= self.types[t].end):
-                    result = t
-                    break
+                if ichar >= self.types[t].start:
+                    if self.types[t].start > maxstart:
+                        maxstart = self.types[t].start
+                        tempresult = self.types[t]
+
+            #This takes the possibility of an incomplete type into account
+            if (tempresult is not None and (ichar <= tempresult.end or 
+                                            tempresult.incomplete)):
+                result = tempresult
 
             if not result:
+                #Members only span a single line usually and don't get added
+                #without an end token.
                 for m in self.members:
-                    if (ichar >= self.members[m].start and ichar <= 
-                        self.members[m].end):
-                        result = m
+                    if (ichar >= self.members[m].start and 
+                        ichar <= self.members[m].end):
+                        result = self.members[m]
                         break
         else:
             #We only need to search through the executables
+            tempresult = None
+            maxstart = 0
+
             for iexec in self.executables:
-                if (ichar >= self.executables[iexec].start and 
-                    ichar <= self.executables[iexec].end):
-                    result = self.executables[iexec]
-                    break
+                if (ichar >= self.executables[iexec].start):
+                    if self.executables[iexec].start > maxstart:
+                        maxstart = self.executables[iexec].start
+                        tempresult = self.executables[iexec]
+
+            if tempresult is not None and (ichar <= tempresult.end or
+                                           tempresult.incomplete):
+                result = tempresult
 
         if result is None:
             #We must be in the text of the module, return the module
@@ -720,15 +1020,63 @@ class Module(CodeElement):
         else:
             return result
 
+    def update_embedded(self, attribute):
+        """Updates the elements in the module 'result' that have character indices
+        that are a subset of another element. These correspond to cases where the
+        type or subroutine is declared within another subroutine.
+
+        :attr attribute: the name of the collection to update over.
+        """
+        #The parser doesn't handle embeddings deeper than two levels.
+        coll = self.collection(attribute)
+        keys = coll.keys()
+        for key in keys:
+            element = coll[key]
+            new_parent = self.find_embedded_parent(element)
+            if new_parent is not None:
+                #Update the parent of the embedded element, add it to the collection
+                #of the parent element and then delete it from the module's collection.
+                element.parent = new_parent
+                if attribute == "types":
+                    new_parent.types[key] = element
+                else:
+                    new_parent.executables[key] = element
+                del coll[key]
+
+    def find_embedded_parent(self, element):
+        """Finds the parent (if any) of the embedded element by seeing
+        if the start and end indices of the element are a subset of 
+        any type or executable in this module.
+        """
+        result = None
+        for t in self.types:
+            if (element.start > self.types[t].start and
+                element.end < self.types[t].end):
+                result = self.types[t]
+                break
+        else:
+            for iexec in self.executables:
+                if (element.start > self.executables[iexec].start and
+                    element.end < self.executables[iexec].end):
+                    result = self.executables[iexec]
+                    break
+
+        return result
+
     def charindex(self, line, column):
         """Gets the absolute character index of the line and column
         in the continuous string."""
+        #Make sure that we have chars and lines to work from if this
+        #gets called before linenum() does.
+        if len(self._lines) == 0:
+            self.linenum(1)
+
         return self._chars[line - 1] + column
 
     def linenum(self, index):
         """Gets the line number of the character at the specified index.
         If the result is unknown, -1 is returned."""
-        if len(self._lines) == 0 and not self.refstring == "":
+        if len(self._lines) == 0 and self.refstring != "":
             self._lines = self.refstring.split("\n")
             #Add one for the \n that we split on for each line
             self._chars = [ len(x) + 1 for x in self._lines ]
@@ -742,14 +1090,14 @@ class Module(CodeElement):
             for i in range(len(self._chars)):
                 total += self._chars[i]
                 self._chars[i] = total
-                
+
         if len(self._lines) > 0:
             #Now, find the first index where the character value is >= index
             result = -1
             i = 0
             while result == -1 and i < len(self._chars):
-                if index >= self._chars[i]:
-                    result = [ i, index - self._chars[i]]
+                if index <= self._chars[i]:
+                    result = [ i, self._chars[i] - index]
                 i += 1
 
             return result

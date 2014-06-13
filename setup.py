@@ -4,21 +4,21 @@ try:
     args = {}
 except ImportError:
     from distutils.core import setup
-    args = dict(scripts=['jediepcserver.py'])
     print("""\
 *** WARNING: setuptools is not found.  Using distutils...
 """)
 
 setup(name='Fortpy',
-      version='1.0',
+      version='1.0.3',
       description='Fortran Parsing, Unit Testing and Intellisense',
       author='Conrad W Rosenbrock',
       author_email='rosenbrockc@gmail.com',
       url='',
-      # install_requires=[
-      #     "argparse",
-      #     "pyparsing",
-      # ],
+      install_requires=[
+          "argparse",
+          "pyparsing",
+          "paramiko",
+      ],
       packages=['fortpy', 'fortpy.parsers', 'fortpy.isense', 'fortpy.testing',
             ],
      )

@@ -1,0 +1,9 @@
+python-environment not installed in emacs.
+epc
+auto-complete
+- make sure load file is after the other packages to load
+- set variable fortpy-config
+- put config.xml in .emacs.d
+- create installer for the pre-reqs in emacs
+- update all pre-reqs in emacs
+- python path needs to include the install directory for fortpy
