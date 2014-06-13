@@ -33,15 +33,15 @@ Screenshots
 
 Here are some of the things you can do once Fortpy is integrated with Emacs using fortpy.el:
 
-![Automatic Signature Suggestions](../docs/screeshots/signature.png "Help with call signatures of functions and subroutines.")
+![Automatic Signature Suggestions](../master/docs/screeshots/signature.png "Help with call signatures of functions and subroutines.")
 
 Help with call signatures of functions and subroutines.
 
-![Embedded Member Suggestions](../docs/screenshots/completion.png "Completion suggestions for both methods and variables embedded in user-defined types.")
+![Embedded Member Suggestions](../master/docs/screenshots/completion.png "Completion suggestions for both methods and variables embedded in user-defined types.")
 
 Completion suggestions for both methods and variables embedded in user-defined types.
 
-![Bracket Complete Embedded Methods](../docs/screenshots/bracket_complete.png "Documentation strings for methods embedded in user-defined types")
+![Bracket Complete Embedded Methods](../master/docs/screenshots/bracket_complete.png "Documentation strings for methods embedded in user-defined types")
 
 Documentation strings for methods embedded in user-defined types.
 
@@ -56,7 +56,7 @@ Features
 
 Fortpy uses an XML documentation standard that is derived from the Microsoft XML code documentation standard. As such, many of the same tags and attributes are available for decorating the methods, types and variables in a Fortran module. Because the parsers were designed to work with Fortran 2003, they understand embedded methods in user types that point to other methods in the module. See the wiki page on documenting your code to work with Fortpy.
 
-![XML Documentation Example](../docs/screenshots/xml_docs.png "XML documentation standard allows for complex documentation strings and structures.")
+![XML Documentation Example](../master/docs/screenshots/xml_docs.png "XML documentation standard allows for complex documentation strings and structures.")
 
 ### Automated Unit Testing
 
