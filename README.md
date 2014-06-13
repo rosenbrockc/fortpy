@@ -6,15 +6,62 @@ Python Emacs Intellisense and Unit Testing Support for Fortran
 
 Fortpy is a python based parsing, unit testing and auto-complete framework for supporting Fortran 2003 including object oriented constructs. Auto-completion integration currently only available for emacs. Here are some of the features:
 
+### Python Package Installation
+
+Fortpy requires the following python packages:
+- [python-epc](https://github.com/tkf/python-epc)
+- argparse (for Python 2.6)
+- [paramiko](https://github.com/paramiko/paramiko) if you will be editing over SSH using tramp in emacs and still want auto-complete support.
+- pyparsing
+
+If you install Fortpy using `pip install` the dependencies will automatically get installed. In order to have Fortpy on the python package index, you need to include a windows installer; since I don't care about Windows for Fortpy, you can instead install it straight from github:
+
+    pip install git+https://github.com/rosenbrockc/fortpy.git
+
+Unfortunately, one of the packages that paramiko depends on breaks on an automated install because of some changes in the latest version of xcode. Manually installing paramiko with this command will fix that:
+
+    sudo ARCHFLAGS=-Wno-error=unused-command-line-argument-hard-error-in-future easy_install ./
+
+You run this command from within the paramiko repo that you have cloned to your computer. You can [download the repo](https://github.com/paramiko/paramiko).
+
+### Emacs Lisp Package Installation
+
+
+
+Screenshots
+------
+
+Here are some of the things you can do once Fortpy is integrated with Emacs using fortpy.el:
+
+![Automatic Signature Suggestions](../docs/screeshots/signature.png "Help with call signatures of functions and subroutines.")
+
+Help with call signatures of functions and subroutines.
+
+![Embedded Member Suggestions](../docs/screenshots/completion.png "Completion suggestions for both methods and variables embedded in user-defined types.")
+
+Completion suggestions for both methods and variables embedded in user-defined types.
+
+![Bracket Complete Embedded Methods](../docs/screenshots/bracket_complete.png "Documentation strings for methods embedded in user-defined types")
+
+Documentation strings for methods embedded in user-defined types.
+
+Features
+------
+
 ### Auto-complete Support
 - Integration with emacs using virtualenv, epc and auto-complete.
-- Completion suggestions for both methods and variables embedded in user-defined types.
-- Signature prompts when calling functions or subroutines.
 - Context-specific suggestions for variable names and available executables.
 
 ### XML Documentation Standard
 
 Fortpy uses an XML documentation standard that is derived from the Microsoft XML code documentation standard. As such, many of the same tags and attributes are available for decorating the methods, types and variables in a Fortran module. Because the parsers were designed to work with Fortran 2003, they understand embedded methods in user types that point to other methods in the module. See the wiki page on documenting your code to work with Fortpy.
 
+![XML Documentation Example](../docs/screenshots/xml_docs.png "XML documentation standard allows for complex documentation strings and structures.")
+
 ### Automated Unit Testing
 
+Because Fortpy is aware of the structure and dependencies between modules, it can generate automated unit tests for individual functions. You can specify the tests to run in some XML documentation decorating the method to test. When the unit testing scripts are run, a fortran program gets generated and all the necessary dependencies are automatically included. After running the program, the framework tests the output and generates a similarity score. See the full documentation.
+
+### Code Version Suppart
+
+Fortpy's unit testing framework makes use of XML templates that specify the structure of input/output files to run and test. Using these same templates, the interoperability package allows input and ouput files to be converted between versions of the Fortran program. Since most Fortran programs run on simple text files for input, the interop package also gives support for XML input files to be used; scripts convert the XML input files to the correct plain-text format at run-time.
