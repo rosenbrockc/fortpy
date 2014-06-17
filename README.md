@@ -52,16 +52,18 @@ Features
 - Integration with emacs using virtualenv, epc and auto-complete.
 - Context-specific suggestions for variable names and available executables.
 
+See the [isense package documentation](https://github.com/rosenbrockc/fortpy/wiki/Intellisense-Package)
+
 ### XML Documentation Standard
 
-Fortpy uses an XML documentation standard that is derived from the Microsoft XML code documentation standard. As such, many of the same tags and attributes are available for decorating the methods, types and variables in a Fortran module. Because the parsers were designed to work with Fortran 2003, they understand embedded methods in user types that point to other methods in the module. See the wiki page on documenting your code to work with Fortpy.
+Fortpy uses an [XML documentation standard](https://github.com/rosenbrockc/fortpy/wiki/XML-Documentation-Standard) that is derived from the Microsoft XML code documentation standard. As such, many of the same tags and attributes are available for decorating the methods, types and variables in a Fortran module. Because the parsers were designed to work with Fortran 2003, they understand embedded methods in user types that point to other methods in the module. See the wiki page on documenting your code to work with Fortpy.
 
 ![XML Documentation Example](../master/docs/screenshots/xml_docs.png "XML documentation standard allows for complex documentation strings and structures.")
 
 ### Automated Unit Testing
 
-Because Fortpy is aware of the structure and dependencies between modules, it can generate automated unit tests for individual functions. You can specify the tests to run in some XML documentation decorating the method to test. When the unit testing scripts are run, a fortran program gets generated and all the necessary dependencies are automatically included. After running the program, the framework tests the output and generates a similarity score. See the full documentation.
+Because Fortpy is aware of the structure and dependencies between modules, it can generate automated unit tests for individual functions. You can specify the tests to run in some XML documentation decorating the method to test. When the unit testing scripts are run, a fortran program gets generated and all the necessary dependencies are automatically included. After running the program, the framework tests the output and generates a similarity score. [See the full documentation](https://github.com/rosenbrockc/fortpy/wiki/Unit-Testing-Package).
 
-### Code Version Suppart
+### Code Version Support
 
 Fortpy's unit testing framework makes use of XML templates that specify the structure of input/output files to run and test. Using these same templates, the interoperability package allows input and ouput files to be converted between versions of the Fortran program. Since most Fortran programs run on simple text files for input, the interop package also gives support for XML input files to be used; scripts convert the XML input files to the correct plain-text format at run-time.

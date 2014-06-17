@@ -12,7 +12,7 @@ def initialize():
             converter.convert(path, args["version"])
 
 #Create a parser so that the script can receive arguments
-parser = argparse.ArgumentParser(description="Fortpy File Comparison Tool")
+parser = argparse.ArgumentParser(description="Fortpy File Conversion Tool")
 
 #Add arguments to decide which of the systems and penalties to process.
 parser.add_argument("source", help="Specify the path(s) to the source XML input file.", nargs="+")

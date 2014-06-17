@@ -442,24 +442,30 @@ class FileComparer(object):
     def __init__(self, template_folder = ""):
         self.templates = {}
         self.folder = template_folder
+        #This is the main template used for all the versions of the files that
+        #will be compared.
+        self.template = None
     
-    def compare(self, source, target, mode = "default"):
+    def compare(self, source, target):
         """Compares the two files using an XML template if one exists.
 
         :arg source: the path to the first file to compare.
         :arg target: the path to the other file to compare.
         """
+        svalues = self.get_representation(source)
+        tvalues = self.get_representation(target)
+
+        return compare_representations(svalues, tvalues, mode)
+
+    def get_representation(self, path):
+        """Creates a file representation for the specified file path."""
+        source = os.path.expanduser(path)
         if not os.path.exists(source):
-            print "ERROR: can't compare {}. File does not exist.\n".format(source)            
-            return None
-        if not os.path.exists(target):
-            print "\nERROR: can't compare {}. File does not exist.\n".format(target)
+            print "ERROR: can't create representation for {}. File does not exist.\n".format(source)            
             return None
 
         with open(source) as f:
             slines = f.readlines()
-        with open(target) as f:
-            tlines = f.readlines()
 
         #The first line in a file to be compared contains version information
         sf = self._get_fortpy(slines[0])
@@ -467,12 +473,9 @@ class FileComparer(object):
 
         #By convention, if the two files have different filenames, we only
         #load a template based on the source name and use it for both
-        template = self._load_template(source, sf)
-        stemplate = self._get_file_template(template, sv)
-
-        tf = self._get_fortpy(tlines[0])
-        tv = self._get_file_version(tf)
-        ttemplate = self._get_file_template(template, tv)
+        if self.template is None:
+            self.template = self._load_template(source, sf)
+        stemplate = self._get_file_template(self.template, sv)
 
         #Get python-valued representations and compare them. If the first line
         #doesn't have a comment, we obviously have data starting the very first
@@ -482,19 +485,11 @@ class FileComparer(object):
         else:
             svalues = FileRepresentation(slines, stemplate, sv, source)
 
-        if "#" in tlines[0]:
-            tvalues = FileRepresentation(tlines[1::], ttemplate, tv, target)
-        else:
-            tvalues = FileRepresentation(tlines, ttemplate, tv, target)
-
         if not svalues.extracted:
             print "\nERROR: ouput file does not have the same format as template.\n{}".format(source)
             return None
-        if not tvalues.extracted:
-            print "\nERROR: ouput file does not have the same format as template.\n{}".format(target)
-            return None
-
-        return compare_representations(svalues, tvalues, mode)
+        else:
+            return svalues
 
     def _get_file_template(self, template, version):
         """Gets the file template for the specified file version if it exists."""
@@ -555,6 +550,7 @@ class FileComparer(object):
             return self.templates[xmlname]
 
         if os.path.exists(xmlpath):
-            self.templates[xmlname] = FileTemplate(xmlpath)                
+            self.templates[xmlname] = FileTemplate(xmlpath)    
+            return self.templates[xmlname]
         else:
             return None

@@ -20,5 +20,6 @@ setup(name='Fortpy',
           "paramiko",
       ],
       packages=['fortpy', 'fortpy.parsers', 'fortpy.isense', 'fortpy.testing',
-            ],
+                'fortpy.templates', 'fortpy.interop', 'fortpy.scripts',
+                'fortpy.printing' ],
      )

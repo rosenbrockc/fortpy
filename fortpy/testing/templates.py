@@ -23,7 +23,7 @@ class TemplateContents(object):
         self.outcomes = {}
         self.key = None
 
-        #The actuald specification in the template for how many times to
+        #The actual specification in the template for how many times to
         #repeat the body block read. Can be a number or a variable name.
         self._count = None
         #The parsed count value. If it was a number, this will be a valid
@@ -110,10 +110,17 @@ class FileLine(object):
     def __init__(self, element):
         self.xml = element
         self.compatibility = {}
+        self.defaults = {}
+
+        #Overwrite makes the default values get used *even if* a value was
+        #specified in the dictionary for write mode.
+        self.overwrite = False
 
         #The names that should be used for the parsed values of
         #a particular line in the file being compared.
         self._names = None
+        self._raw_names = None
+
         #The names that should be used for 'global' variables whose values
         #will be available to the entire block/file.
         self._stores = None
@@ -141,6 +148,105 @@ class FileLine(object):
 
         return self._pcount
 
+    def write(self, valuedict, version, stored):
+        """Creates a string representation for this line template using the
+        specified values as part of output file conversion.
+
+        :arg valuedict: the dictionary of values from the version being 
+          converted.
+        :arg version: the version number of the values from the version
+          being converted.
+        """
+        result = []
+        count = self.count
+        if type(count) == type("") and count in stored:
+            try:
+                count = int(stored[count])
+            except ValueError:
+                print "Can't understand how to use {} for count".format(count)
+                return
+        else:
+            count = 1
+
+        if self.identifier in valuedict and not self.overwrite:
+            values = valuedict[self.identifier]
+
+            for i in range(count):
+                outvals = []
+                if self._raw_names is None:
+                    #There aren't any named variables, so we just write the
+                    #values directly to the line.
+                    outvals.append(self._write_values(values[i].values))
+                else:
+                    outvals.extend(self._write_values_generic(values[i].named, version))
+
+                result.append(" ".join(outvals))
+
+        elif self.identifier in self.defaults:
+            #We are going to use defaults. If there need to be multiple entries
+            #use the same default value for all of them
+            if type(self.defaults[self.identifier]) == type({}):
+                value = " ".join(self._write_values_generic(self.defaults[self.identifier],
+                                                           version))                    
+            else:
+                value = self.defaults[self.identifier]
+
+            for i in range(count):
+                result.append(value)
+    
+        return "\n".join(result)
+
+    def _write_values_generic(self, values, version):
+        """Creates a list of elements to write for this line using a generic
+        dict of values to work from."""
+        result = []
+        for name in self._raw_names:
+            sname = name.split("*")[0]
+            value = self._write_find_values(sname, values)
+            if value is None and version in self.compatibility:
+                value = self._write_compat_values(sname, version, values)
+            if value is not None:
+                result.append(value)
+
+        return result
+
+    def _write_compat_values(self, name, version, values):
+        """Returns a string representing the values obtained when compatibility
+        is taken into account between versions.
+        """
+        usename = None
+        for oldname in self.compatibility[version]:
+            if self.compatibility[version][oldname] == name:
+                usename = oldname
+                break
+
+        if usename is not None:
+            return self._write_find_values(usename, values)
+
+    def _write_find_values(self, name, values):
+        """Searches for the value to use for the specified variable; first looks
+        in 'values', then in defaults for this line.
+        """
+        if name in values:
+            if hasattr(values[name], "values"):
+                return self._write_values(values[name].values)
+            else:
+                return self._write_values(values[name])
+        elif name in self.defaults:
+            return self._write_values(self.defaults[name])
+        elif (self.identifier in self.defaults and 
+              name in self.defaults[self.identifier]):
+            return self._write_values(self.defaults[self.identifier][name])
+        else:
+            return None
+        
+    def _write_values(self, values):
+        """Returns a string representing the specified values."""
+        if type(values) == type([]):
+            return " ".join([str(v) for v in values])
+        else:
+            return str(values)
+
     def _load_xml(self):
         """Examines XML element to extract file line info."""        
         #We can handle multiple lines with the same class and template info.
@@ -153,7 +259,23 @@ class FileLine(object):
         self.dtypes = re.split(",\s*", self.xml.attrib["type"])
         self.values = re.split(",\s*", self.xml.attrib["values"])
 
+        #Handle default value specifiers for the output conversion capability
+        if "default" in self.xml.attrib:
+            defaults = re.split(",\s*", self.xml.attrib["default"])
+            innerdict = {}
+            for d in defaults:
+                if "=" in d:
+                    name, value = d.split("=")
+                    innerdict[name] = value
+
+            if len(innerdict.keys()) == 0:
+                self.defaults[self.identifier] = d
+            else:
+                self.defaults[self.identifier] = innerdict
+
         #See which of the optional attribs are in the element
+        if "overwrite" in self.xml.attrib:
+            self.overwrite = self.xml.attrib["overwrite"] == "true"
         if "store" in self.xml.attrib:
              self._stores = re.split(",\s*", self.xml.attrib["store"])
         if "names" in self.xml.attrib:
@@ -161,8 +283,9 @@ class FileLine(object):
             #If the same name appears multiple times, the values are grouped
             #into a single liste under that name when values are extracted.
             self._names = []
-            tnames = re.split(",\s*", self.xml.attrib["names"])
-            for n in tnames:
+            self._raw_names = re.split(",\s*", self.xml.attrib["names"])
+
+            for n in self._raw_names:
                 if "*" in n:
                     name, times = n.split("*")
                     for t in range(int(times)):
@@ -241,10 +364,12 @@ class FileLine(object):
                             if type(result.named[self._names[k]]) == type([]):
                                 result.named[self._names[k]].append(current[j])
                             else:
-                                result.named[self._names[k]] = [ result.named[self._names[k]], current[j] ] 
+                                result.named[self._names[k]] = [ result.named[self._names[k]], 
+                                                                 current[j] ] 
                 k += 1
             
-            #Now that the look is over, if we were naming variables, we want to save the rest of the current
+            #Now that the look is over, if we were naming variables, we want 
+            #to save the rest of the current
             #values list under the name.
             result.values = current
 

@@ -1,9 +1,10 @@
 import os
 import re
 import xml.etree.ElementTree as ET
+from fortpy.testing.comparer import FileComparer
 
 class TemplateLine(object):
-    """Represents a single line in the input file and how to format it.
+    """Represents a single line in the template file and how to format it.
 
     :arg element: the XML element that defines this line in the file.
     :arg group: the [group] that this line belongs to.
@@ -18,6 +19,7 @@ class TemplateLine(object):
             print "WARNING: no type specified for {}. Assuming string.".format(self.identifier)
             self.dtype = [ "string" ]
 
+        #Values specifies how many variable values are present in the file
         if "values" in element.attrib:
             self.values = re.split(",\s*", element.attrib["values"])
             i = 0
@@ -43,10 +45,16 @@ class TemplateLine(object):
             self.default = eval(element.attrib["default"])
         else:
             self.default = None
+        #How from works: if an element has a from attribute, it is included in
+        #the plaintext file after conversion but does *not* appear in the XML
+        #file that is being converted. It grabs its value from another group
+        #or line whose id is the from attribute's value.
         if "from" in element.attrib:
             self.fromtag = element.attrib["from"]
         else:
             self.fromtag = None
+        #Related to from, this operator specifies how the value should be generated
+        #using the line/group whose id is the from attribute's value.
         if "operator" in element.attrib:
             self.operator = element.attrib["operator"]
         else:
@@ -161,7 +169,10 @@ class TemplateLine(object):
 class TemplateGroup(object):
     """Represents a logical grouping of line templates.
 
-    :arg element: the XML group element to parse."""
+    :arg element: the XML group element to parse.
+    :arg commentchar: the character(s) that specify comment lines. Used when
+      inserting comments beside lines in the plaintext file.
+    """
     def __init__(self, element, commentchar):
         self.identifier = element.attrib["name"]
         self.order = []
@@ -211,7 +222,7 @@ class TemplateGroup(object):
         if self.comment != "":
             result.append(self.comment)
 
-        if self.repeat is not None and type(result) == type([]):
+        if self.repeat is not None and type(values) == type([]):
             if self.repeat.isdigit():
                 for i in range(int(self.repeat)):  
                     result.extend(self._write_iterate(values[i]))
@@ -220,7 +231,7 @@ class TemplateGroup(object):
                 #entry for the group in the dictionary.
                 for value in values:
                     result.extend(self._write_iterate(value))
-        elif type(result) == type({}):
+        elif type(values) == type({}):
             #This group doesn't get repeated, so the values variable must
             #be a dictionary, just run it once.
             result = self._write_iterate(values)
@@ -239,31 +250,40 @@ class TemplateGroup(object):
             return result[0]
         
 class TemplateContents(object):
-    """The contents of an XML input template."""
+    """The contents of an XML input template.
+
+    :attr order: a list of id attributes from the lines in the template file
+      that preserves the order in which the lines showed up in the file.
+    :attr entries: a dictionary of TemplateLine and TemplateGroup instances
+      for the corresponding lines and groups in the template. Dict keys are
+      the identifiers in the order list.
+    :attr comment: the character(s) at the start of a line that specify it as
+      a comment line."""
     def __init__(self):
         self.order = []
         self.entries = {}
         self.comment = "#"
 
-class InputTemplate(object):
-    """Represents an XML template that specifies how to format an input
+class FileTemplate(object):
+    """Represents an XML template that specifies how to format an input/output
     file using a dictionary of keyed values.
 
     :arg path: the full path to the XML template file to load.
     """
-    def __init__(self, path, name):
+    def __init__(self, path, name, direction="input"):
         self.name = name
         self.path = os.path.expanduser(path)
         self.versions = {}
+        self.direction = direction
         self._load()
         
     def _load(self):
         """Extracts the XML template data from the file."""
         if os.path.exists(self.path):
             root = ET.parse(self.path).getroot()
-            if root.tag == "fortpy" and "mode" in root.attrib and \
-               root.attrib["mode"] == "template" and "direction" in root.attrib and \
-               root.attrib["direction"] == "input":
+            if (root.tag == "fortpy" and "mode" in root.attrib and
+                root.attrib["mode"] == "template" and "direction" in root.attrib and
+                root.attrib["direction"] == self.direction):
                 #First, we need instances of the template contents for each of the
                 #versions listed in the fortpy tag.
                 for v in _get_xml_version(root):
@@ -285,7 +305,9 @@ class InputTemplate(object):
 
     def parse(self, root):
         """Returns a dictionary of values extracted from the root of the
-        specified XML file."""
+        specified XML file. It is assumed that the file is an input/output
+        file to be converted into plaintext. As such the file should only
+        specify a single version number."""
         #Use the first element in the versions list since there should only be one.
         v = _get_xml_version(root)[0]
         result = {}
@@ -363,8 +385,8 @@ def _get_xml_version(element):
 
     return result
 
-class InputConverter(object):
-    """Converts XML-based input files into non-keyword based ones.
+class FileConverter(object):
+    """Converts XML-based input/output files into non-keyword based ones.
     
     :arg template_dir: the path to the directory containing input file templates.
     """
@@ -401,6 +423,34 @@ class InputConverter(object):
 
         return (values, template)
         
+class OutputConverter(object):
+    """Converts plain-text output files between versions."""
+    def __init__(self, template_dir):
+        self.comparer = FileComparer(os.path.expanduser(template_dir))
+
+    def convert(self, path, version, target):
+        """Converts the specified source file to a new version number."""
+        source = self.comparer.get_representation(path)
+        lines = [ '# <fortpy version="{}"></fortpy>\n'.format(version) ]
+
+        for line in self.comparer.template.contents[version].preamble:
+            lines.append(line.write(source.preamble, source.version, source.stored) + "\n")
+
+        for line in self.comparer.template.contents[version].body:
+            for valueset in source.body:
+                lines.append(line.write(valueset, source.version, source.stored) + "\n")
+
+        with open(os.path.expanduser(target), 'w') as f:
+            f.writelines(lines)
+
+class InputConverter(FileConverter):
+    """Converts XML-based input files into non-keyword based ones.
+    
+    :arg template_dir: the path to the directory containing input file templates.
+    """
+    def __init__(self, template_dir):
+        super(InputConverter, self).__init__(template_dir)
+
     def _load_template(self, path):
         #First we extract the file name for the template or look for it
         #in the root element. The naming convention is to use .xin.xml
@@ -418,7 +468,7 @@ class InputConverter(object):
 
             tpath = os.path.join(self.template_dir, template)
             name = template.replace(".xml","")
-            self.templates[template] = InputTemplate(tpath, name)
+            self.templates[template] = FileTemplate(tpath, name)
             return (expath, self.templates[template], root)
         else:
             print "WARNING: the input file {} is missing the mode attribute.".format(path)

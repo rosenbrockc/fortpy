@@ -11,7 +11,7 @@ class VariableParser(object):
         #Regex for finding members of a type
         self._RX_MEMBERS = r"^\s*(?P<type>character|real|type|logical|integer|class)" + \
                            r"(?P<kind>\([A-Za-z0-9_]+\))?" + \
-                           r",?(?P<modifiers>[^:]+)?\s*::\s+(?P<names>[^\n]+)$"
+                           r",?(?P<modifiers>[^:]+)?\s*::\s+(?P<names>[^\n!]+)" #Removed $ from end.
         self.RE_MEMBERS = re.compile(self._RX_MEMBERS, re.M | re.I)
 
         self._RX_MULTIDEF = r"(?P<name>[^(,=]+)(?P<dimension>\([^)]+\))?(\s?=\s*(?P<default>.+))?"
