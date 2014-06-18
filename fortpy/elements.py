@@ -249,7 +249,7 @@ class Dependency(object):
                 if len(result) > 0:
                     result[-1] = result[-1] + "(*{})".format(len(self.clean(arg)))
                 elif "/" not in arg[0]:
-                    print "WARNING: argument to function call unrecognized. {}".format(arg)
+                    print("WARNING: argument to function call unrecognized. {}".format(arg))
             else:
                 cleaner = re.sub("[:,]+", "", arg).strip()
                 if len(cleaner) > 0:
@@ -488,8 +488,8 @@ class Function(Executable):
     def __str__(self):
         params = self.parameters_as_string()
         
-        depend = "{} dependencies ".format(len(self.dependencies.keys()))
-        if len(self.dependencies.keys()) == 0:
+        depend = "{} dependencies ".format(len(list(self.dependencies.keys())))
+        if len(list(self.dependencies.keys())) == 0:
             depend = ""
         assign = "{} assignments".format(len(self.external_assignments()))
         if len(self.external_assignments()) == 0:
@@ -533,8 +533,8 @@ class Subroutine(Executable):
         params = self.parameters_as_string()
         mods = ", ".join(self.modifiers)
 
-        depend = "{} dependencies ".format(len(self.dependencies.keys()))
-        if len(self.dependencies.keys()) == 0:
+        depend = "{} dependencies ".format(len(list(self.dependencies.keys())))
+        if len(list(self.dependencies.keys())) == 0:
             depend = ""
         assign = "{} assignments".format(len(self.external_assignments()))
         if len(self.external_assignments()) == 0:
@@ -751,11 +751,11 @@ class Module(CodeElement, Decoratable):
         uses = "\n\t".join(self.sorted_collection("dependencies"))
         output.append("USES:\n\t{}\n\n".format(uses))
 
-        types = "\n\t".join([ t[1].__str__() for t in self.types.items() ])
+        types = "\n\t".join([ t[1].__str__() for t in list(self.types.items()) ])
         output.append("TYPES:\n\t{}\n\n".format(types))
 
-        functions = "\n\t".join([ x[1].__str__() for x in self.functions().items() ])
-        subroutines = "\n\t".join([ x[1].__str__() for x in self.subroutines().items() ])
+        functions = "\n\t".join([ x[1].__str__() for x in list(self.functions().items()) ])
+        subroutines = "\n\t".join([ x[1].__str__() for x in list(self.subroutines().items()) ])
         output.append("EXECUTABLES:\n\t{}\n\n\t{}\n\n".format(functions, subroutines))
 
         return "".join(output)
@@ -792,7 +792,7 @@ class Module(CodeElement, Decoratable):
         :arg result: the possible completions collected so far in the search.
         """
         possible = []
-        print [symbol, attribute]
+        print([symbol, attribute])
         for ekey in self.collection(attribute):
             if symbol in ekey:
                 possible.append(ekey)
@@ -1039,7 +1039,7 @@ class Module(CodeElement, Decoratable):
         """
         #The parser doesn't handle embeddings deeper than two levels.
         coll = self.collection(attribute)
-        keys = coll.keys()
+        keys = list(coll.keys())
         for key in keys:
             element = coll[key]
             new_parent = self.find_embedded_parent(element)
@@ -1124,7 +1124,7 @@ class DocGroup(object):
         self.doctype = "group"
 
         #Extract all the attributes of the group into a dictionary
-        for key in self.xml.keys():
+        for key in list(self.xml.keys()):
             self.attributes[key] = self.xml.get(key)
             
     def __str__(self):
@@ -1202,7 +1202,7 @@ class DocElement(object):
                     self.references.append(match.group("reference"))
 
         #We also need to get all the XML attributes into the element
-        for key in xml.keys():
+        for key in list(xml.keys()):
             self.attributes[key] = xml.get(key)
             
     def __str__(self):

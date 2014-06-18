@@ -110,7 +110,7 @@ class OutcomeTester(object):
         #The corresponding entries in the compare attribute must be either files
         #or values too.
         if "target" not in doc.attributes or "compare" not in doc.attributes:
-            print "WARNING: either targets or model output files were missing for {}".format(doc)
+            print("WARNING: either targets or model output files were missing for {}".format(doc))
             self.targets = []
             self.models = []
         else:
@@ -273,7 +273,7 @@ class TestResult(object):
                     if result is not None:
                         total += result.common_match
 
-        return float(total) / (len(self.cases.keys()) + self.failure_count)
+        return float(total) / (len(list(self.cases.keys())) + self.failure_count)
             
     @property
     def failure_count(self):
@@ -347,7 +347,7 @@ class UnitTester(object):
 
             return result
         else:
-            print "WARNING: you can't run tests until the executables have been written. Exiting."
+            print("WARNING: you can't run tests until the executables have been written. Exiting.")
             return None
        
     def _run_single(self, identifier):
@@ -367,9 +367,9 @@ class UnitTester(object):
         #Find the target folder that has the executables etc then run
         #make and check the exit code.
         target = path.join(self.libraryroot, identifier)
-        print "\n\n"
+        print("\n\n")
         code = system("cd {}; make F90=ifort".format(target))
-        print "\n"
+        print("\n")
         return code == 0
 
     def _run_exec(self, identifier, result):
@@ -452,7 +452,7 @@ class UnitTester(object):
                         else:
                             copy(f, casepath)
 
-                    print "Executing run.x for case {}".format(caseid)
+                    print("Executing run.x for case {}".format(caseid))
 
                     #We need to time the execution as one of the possible outcome tests.
                     start_time = clock()                    
@@ -460,14 +460,14 @@ class UnitTester(object):
                     result.cases[caseid] = ExecutionResult(casepath, code, 
                                                            clock() - start_time, tester, case)
                     #Add some whitespace for readability between tests
-                    print ""
+                    print("")
                 else:
                     result.warnings.append("Duplicate CASES specified for unit testing: {}".format(caseid))
         else:
-            print "Executing run.x in explicit folder {}".format(target)
+            print("Executing run.x in explicit folder {}".format(target))
             start_time = clock()                    
             code = system("cd {}; {}".format(testsfolder, exepath))
             result.cases[doc.attributes["sourcepath"].replace(".","")] = ExecutionResult(
                 testsfolder, code, clock() - start_time, tester)
             #Add some whitespace for readability between tests
-            print ""        
+            print("")        

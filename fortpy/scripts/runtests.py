@@ -9,7 +9,7 @@ def initialize():
     result = t.runall()
 
     for idk in result:
-        print "RESULT: {0} = {1:.2%} successful".format(idk, result[idk].percent)
+        print("RESULT: {0} = {1:.2%} successful".format(idk, result[idk].percent))
 
 #Create a parser so that the script can receive arguments
 parser = argparse.ArgumentParser(description="Fortpy File Comparison Tool")

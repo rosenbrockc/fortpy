@@ -66,7 +66,7 @@ class ExecutableGenerator(object):
                 newi = result.index(modn)
                 self._process_module_needs(modn, newi, result)
         else:
-            print "FATAL: unable to find module {}.".format(module)
+            print("FATAL: unable to find module {}.".format(module))
             exit(1)
 
     def reset(self, identifier, libraryroot, rerun = False):
@@ -79,7 +79,7 @@ class ExecutableGenerator(object):
 
         #Create the directory for the executable files to be copied and written to.
         if not path.exists(self.folder):
-            print "EXEC DIR: create {}".format(self.folder)
+            print("EXEC DIR: create {}".format(self.folder))
             mkdir(self.folder)
 
         #If re-run is specified, delete the fortpy.f90 file to force

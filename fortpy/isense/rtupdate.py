@@ -339,7 +339,7 @@ class Operation(object):
                     #end character indices anymore.
                     result[key][0].extend(list(docs))
             except ET.ParseError:
-                print doctext
+                print(doctext)
 
         return result
 

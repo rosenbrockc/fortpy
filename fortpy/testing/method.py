@@ -101,8 +101,8 @@ class GlobalDeclaration(object):
         """Returns the fortran declaration that defines a global variable."""
         result = []
         if "type" not in self.attributes or "name" not in self.attributes:
-            print "FATAL: required variable for execution missing some attributes. {}".format(
-                self.attributes)
+            print("FATAL: required variable for execution missing some attributes. {}".format(
+                self.attributes))
             exit(1)
 
         result.append(self.attributes["type"])
@@ -277,8 +277,8 @@ class MethodFinder(object):
                         identify = "{}.{}".format(ptype, test.attributes["method"])
                         self.methods.append(MethodFinder(identify, self._parser, test, self._fatal))
                     elif self._fatal:
-                        print "FATAL: the parameter {} for instance method {} execution missing.".format(
-                            param, test.attributes["method"])
+                        print("FATAL: the parameter {} for instance method {} execution missing.".format(
+                            param, test.attributes["method"]))
                 elif "value" in test.attributes or "conditionals" in test.attributes:
                     #This is a variable assignment. Sometimes variable values are changed
                     #between calls to functions. The order in which prereq/instance elements
@@ -307,8 +307,8 @@ class MethodFinder(object):
                 if self.identifiers[1] in self._module.executables:
                     result = self._module.executables[self.identifiers[1]]
                 elif self._fatal:
-                    print "FATAL: a specified executable was not found in the module: {}".format(
-                        self.identifiers[1])
+                    print("FATAL: a specified executable was not found in the module: {}".format(
+                        self.identifiers[1]))
                     
         #If we have a result, get a pointer to the tests so we don't have to go one level
         #deep all the time.
@@ -329,8 +329,8 @@ class MethodFinder(object):
                 if self.identifiers[0] in self._parser.modules:
                     self._module = self._parser.modules[self.identifiers[0]]
                 elif self._fatal:
-                    print "FATAL: the module for a pre-requisite method could not be located: {}".format(
-                        self.identifiers[0])
+                    print("FATAL: the module for a pre-requisite method could not be located: {}".format(
+                        self.identifiers[0]))
                     exit -1
                     
             if self.identifiers[0] in self._parser.modules:
@@ -389,7 +389,7 @@ class MethodWriter(object):
         uses clauses of the fortran program."""
         #This dictionary has module names as keys and a list of module executables
         #as the value.
-        if len(self._uses.keys()) == 0:     
+        if len(list(self._uses.keys())) == 0:     
             for methodk in self._method_dict:
                 if not isinstance(self._method_dict[methodk], Assignment):
                     executable = self._method_dict[methodk].executable
@@ -563,8 +563,8 @@ class MethodWriter(object):
             #to add it again.
             existing = self._globals[name]
             if not existing.compare(doc):
-                print "FATAL: variables in the calling namespace have the same name," + \
-                    " but different types: \n{}{}".format(existing.element, doc)
+                print("FATAL: variables in the calling namespace have the same name," + \
+                    " but different types: \n{}{}".format(existing.element, doc))
                 exit(1)
     
     def _order_dependencies(self, method):

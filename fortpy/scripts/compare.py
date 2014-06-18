@@ -15,7 +15,7 @@ def initialize():
         with open(args["save"], "w") as f:
             f.write(print_compare_result(result, args["verbose"]))
     else:
-        print print_compare_result(result, args["verbose"])
+        print(print_compare_result(result, args["verbose"]))
 
 #Create a parser so that the script can receive arguments
 parser = argparse.ArgumentParser(description="Fortpy File Comparison Tool")

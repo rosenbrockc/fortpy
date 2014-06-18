@@ -58,7 +58,7 @@ class DocStringParser(object):
                     else:
                         result[key][0].extend(list(docs))
                 except ET.ParseError:
-                    print doctext
+                    print(doctext)
         else:
             #This is the text content of a code element that was buried inside of the module.
             #Get all the docblocks and the items they decorate from this parent.
@@ -74,7 +74,7 @@ class DocStringParser(object):
         :arg add: when true, docgroups must be unique in the code element;
           otherwise, existing groups are overwritten."""
         if group.name in code_el.groups and add:
-            print "WARNING: duplicate group names in code element {}".format(code_el.name)
+            print("WARNING: duplicate group names in code element {}".format(code_el.name))
         else:
             code_el.groups[group.name] = group
 
@@ -104,7 +104,7 @@ class DocStringParser(object):
                     #the parameter docstring is orphaned, give a warning.
                     msg = "WARNING: the docstring for parameter '{}' had no corresponding " + \
                           "parameter in the executable definition for '{}'."
-                    print msg.format(doc.pointsto, anexec)
+                    print(msg.format(doc.pointsto, anexec))
             elif doc.doctype == "group":
                 kids = self._process_docgroup(doc, anexec)
                 if add:
@@ -199,7 +199,7 @@ class DocStringParser(object):
             if xitem.tag != "group":
                 #The docstring allows a single string to point to multiple
                 #names in a comma-separated list in the names attribute.
-                if "name" in xitem.keys():
+                if "name" in list(xitem.keys()):
                     names = re.split("[\s,]+", xitem.get("name"))
                     for name in names:                        
                         #Once we have created the DocElement, we need to override
@@ -260,7 +260,7 @@ class DocStringParser(object):
                         else:
                             docblocks[key][0].extend(list(docs))
                     except ET.ParseError:
-                        print doctext
+                        print(doctext)
 
                     #Reset the list of current docstrings
                     current = []
@@ -328,10 +328,10 @@ class DocStringParser(object):
                     docs = self.to_doc(xmldict[kdecor], memname)
                     self.process_execdocs(docs, member, kdecor)
                 else:
-                    print "WARNING: orphaned docstring. No member {} in module {}.".format(
-                        member, modname)
+                    print("WARNING: orphaned docstring. No member {} in module {}.".format(
+                        member, modname))
             else:
-                print "WARNING: orphaned docstring from XML docfile for {}".format(kdecor)
+                print("WARNING: orphaned docstring from XML docfile for {}".format(kdecor))
 
     def rt_update_module(self, xmldict, module):
         """Updates the members, executables and types in the specified module

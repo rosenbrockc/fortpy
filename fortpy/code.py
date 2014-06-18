@@ -4,10 +4,11 @@ import os
 from time import clock
 import xml.etree.ElementTree as ET
 import fortpy.config
-from serialize import Serializer
+from .serialize import Serializer
 import sys
-import tramp
-import settings
+from . import tramp
+from . import settings
+from functools import reduce
 
 config = sys.modules["config"]
 
@@ -65,7 +66,7 @@ class CodeParser(object):
         self.rescan()
 
     def __iter__(self):
-        for key in self.modules.keys():
+        for key in list(self.modules.keys()):
             yield self.modules[key]
 
     def list_dependencies(self, module, result):
@@ -103,7 +104,7 @@ class CodeParser(object):
                 for depend in self.modules[key].collection("dependencies"):
                     base = depend.split(".")[0]
                     if self.verbose and base.lower() not in self.modules:
-                        print "DEPENDENCY: {}".format(base)
+                        print("DEPENDENCY: {}".format(base))
                     self.load_dependency(base, dependencies and recursive, recursive, greedy)
 
     def _parse_docstrings(self, filepath):
@@ -205,7 +206,7 @@ class CodeParser(object):
         #Keep track of parsing times if we are running in verbose mode.
         if self.verbose:
             start_time = clock()
-            print "WORKING on {0}".format(abspath)
+            print("WORKING on {0}".format(abspath))
 
         if fname not in self._modulefiles:
             self._modulefiles[fname] = []
@@ -238,12 +239,12 @@ class CodeParser(object):
             self.serialize.save_module(abspath, pmodules)
 
         if self.verbose:
-            print "PARSED: {} modules in {} in {}".format(len(pmodules), fname, 
-                                                          secondsToStr(clock() - start_time))
+            print("PARSED: {} modules in {} in {}".format(len(pmodules), fname, 
+                                                          secondsToStr(clock() - start_time)))
             for module in pmodules:
-                print "\t{}".format(module.name)
+                print("\t{}".format(module.name))
             if len(pmodules) > 0:
-                print ""
+                print("")
 
         self._parse_dependencies(pmodules, dependencies, recursive, greedy)
 
@@ -268,11 +269,11 @@ class CodeParser(object):
             elif key in self.mappings and self.mappings[key] in self._pathfiles:
                 #See if they have a mapping specified to a code file for this module name.
                 if self.verbose:
-                    print "MAPPING: using {} as the file name for module {}".format(self.mappings[key], key)
+                    print("MAPPING: using {} as the file name for module {}".format(self.mappings[key], key))
                 self.parse(self._pathfiles[self.mappings[key]], dependencies, recursive)
             else:
-                print ("FATAL: could not find module {}. Enable greedy search or"
-                       " add a module filename mapping.".format(key))
+                print(("FATAL: could not find module {}. Enable greedy search or"
+                       " add a module filename mapping.".format(key)))
                 if self.austere:
                     exit(1)
 
@@ -280,7 +281,7 @@ class CodeParser(object):
         """Keeps loading modules in the filepaths dictionary until all have
         been loaded or the module is found."""
         found = module_name in self.modules
-        allmodules = self._pathfiles.keys()
+        allmodules = list(self._pathfiles.keys())
         i = 0
 
         while not found and i < len(allmodules):

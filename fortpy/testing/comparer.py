@@ -171,8 +171,8 @@ class FileRepresentation(object):
             if line.count in store:
                 count = store[line.count]
             else:
-                print "\nFATAL: reference to stored value that does not exist '{}'".format(line.count)
-                print "STORE: {}".format(store.keys())
+                print("\nFATAL: reference to stored value that does not exist '{}'".format(line.count))
+                print("STORE: {}".format(list(store.keys())))
                 exit(1)
 
         return count
@@ -230,15 +230,15 @@ def compare_representations(rep1, rep2, mode = "default"):
 
         return result
     else:
-        print "FATAL: a templated representation cannot be compared to a simple one."
+        print("FATAL: a templated representation cannot be compared to a simple one.")
         
 def _compare_validate(rep, mode):
     """Validates the contents of the representation."""
     if not mode in rep.template.comparisons:
-        print "FATAL: the mode '{}' specified for comparisons does not exist.".format(mode)
+        print("FATAL: the mode '{}' specified for comparisons does not exist.".format(mode))
         exit(1)
     if not mode in rep.template.outcomes:
-        print "FATAL: the mode '{}' specified for outcomes does not exist.".format(mode)
+        print("FATAL: the mode '{}' specified for outcomes does not exist.".format(mode))
         exit(1)
 
 def _compare_preamble(rep1, rep2, mode):
@@ -323,13 +323,13 @@ def _compare_block(rep1, rep2, thisb, thatb, mode, bkey = None, index = None, is
         if thatv is not None:
             if len(thisv) != len(thatv):
                 loop = min([len(thisv), len(thatv)])
-                print """WARNING: line values extracted for key '{}' in the two files
-have different numbers of elements: {} vs. {}.""".format(key, len(thisv), len(thatv))
+                print("""WARNING: line values extracted for key '{}' in the two files
+have different numbers of elements: {} vs. {}.""".format(key, len(thisv), len(thatv)))
             else:
                 loop = len(thisv)
 
             for j in range(loop):
-                if len(thisv[j].named.keys()) != 0:
+                if len(list(thisv[j].named.keys())) != 0:
                     res = rep1.template.comparisons[mode].compare_d(thisv[j].named,
                                                                     thatv[j].named, key,
                                                                     rep1.template.outcomes[mode])
@@ -428,7 +428,7 @@ def _get_key_value(template, bodyblock):
             result = bodyblock[template.key].values[0]
 
     if result is None:
-        print "FATAL: block {} did not return a valid key value for '{}'.".format(bodyblock, template.key)
+        print("FATAL: block {} did not return a valid key value for '{}'.".format(bodyblock, template.key))
         exit(1)
 
     return result    
@@ -461,7 +461,7 @@ class FileComparer(object):
         """Creates a file representation for the specified file path."""
         source = os.path.expanduser(path)
         if not os.path.exists(source):
-            print "ERROR: can't create representation for {}. File does not exist.\n".format(source)            
+            print("ERROR: can't create representation for {}. File does not exist.\n".format(source))            
             return None
 
         with open(source) as f:
@@ -486,7 +486,7 @@ class FileComparer(object):
             svalues = FileRepresentation(slines, stemplate, sv, source)
 
         if not svalues.extracted:
-            print "\nERROR: ouput file does not have the same format as template.\n{}".format(source)
+            print("\nERROR: ouput file does not have the same format as template.\n{}".format(source))
             return None
         else:
             return svalues
@@ -508,10 +508,10 @@ class FileComparer(object):
                 else:
                     return None
             except ET.ParseError:
-                print "WARNING: no version information found in the file. Assuming version 1."
+                print("WARNING: no version information found in the file. Assuming version 1.")
                 return None
         else:
-            print "WARNING: no version information found in the file. Assuming version 1."
+            print("WARNING: no version information found in the file. Assuming version 1.")
             return None
 
     def _get_file_version(self, fortpyxml):

@@ -51,7 +51,7 @@ class TestGenerator(object):
         #We need to enumerate over a *copy* of the keys list since the list of 
         #modules is likely to change during the execution as dependencies
         #are found and loaded.
-        currentlist = self.parser.modules.keys()
+        currentlist = list(self.parser.modules.keys())
         for mkey in currentlist:
             self._write_module(self.parser.modules[mkey])
         
@@ -107,7 +107,7 @@ class TestGenerator(object):
             if needed.filepath not in previous or \
                (needed.filepath in previous and previous[needed.filepath] < moddate) or \
                not os.path.exists(target):
-                print "COPY {}".format(needed.filepath)
+                print("COPY {}".format(needed.filepath))
                 copy(needed.filepath, self.xgenerator.folder)
                 different = True
             files[needed.filepath] = moddate
@@ -118,14 +118,14 @@ class TestGenerator(object):
             target = os.path.join(self.xgenerator.folder, dfile)
             if not os.path.exists(target):
                 source = os.path.join(self._fortpy, dfile)
-                print "COPY: {}".format(source)
+                print("COPY: {}".format(source))
                 copy(source, self.xgenerator.folder)
                 different = True
 
         #All the code files needed for compilation are now in the directory.
         #Create the executable file and the makefile for compilation
         if different:
-            print "\nUNITTEST: writing executable for {}".format(executable)
+            print("\nUNITTEST: writing executable for {}".format(executable))
             self.xgenerator.write()
             self.xgenerator.makefile()
             self._changed.append(identifier)
@@ -136,7 +136,7 @@ class TestGenerator(object):
             self.archive[identifier] = files
             self._xml_save()
         else:            
-            print "\nUNITTEST: ignored '{}' because code hasn't changed.".format(executable.name)
+            print("\nUNITTEST: ignored '{}' because code hasn't changed.".format(executable.name))
 
     def _xml_get(self):
         """Returns an XML tree for the documont that tracks dates for code

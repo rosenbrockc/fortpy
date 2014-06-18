@@ -148,9 +148,9 @@ class TypeParser(object):
                                                              match.end())
 
         #Update the parent for embedded members and executables
-        for key in t.members.keys():
+        for key in list(t.members.keys()):
             t.members[key].parent = t
-        for key in t.executables.keys():
+        for key in list(t.executables.keys()):
             t.executables[key].parent = t
 
         #Extract the docstrings from the type body and associate them with their members

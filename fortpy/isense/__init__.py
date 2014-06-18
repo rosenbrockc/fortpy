@@ -1,7 +1,7 @@
-import cache
+from . import cache
 import fortpy.debug as debug
-import context
-import evaluator
+from . import context
+from . import evaluator
 import re
 import os
 import fortpy.settings as settings

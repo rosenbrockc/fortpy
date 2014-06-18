@@ -2,7 +2,7 @@ from fortpy.code import CodeParser
 import time
 import re
 import pyparsing
-import rtupdate
+from . import rtupdate
 
 #Time cache has expiration on the items inside that get used only
 #temporarily during code completion

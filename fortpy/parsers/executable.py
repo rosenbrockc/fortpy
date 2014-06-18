@@ -255,8 +255,8 @@ class ExecutableParser(object):
                 try:
                     dependent = self.nester.parseString(execline).asList()[0]           
                 except:
-                    print "PARSING ERROR: executable dependency call {}".format(anexec.name)
-                    print "\t" + execline
+                    print("PARSING ERROR: executable dependency call {}".format(anexec.name))
+                    print("\t" + execline)
             
                 #Sometimes the parameter passed to a subroutine or function is 
                 #itself a function call. These are always the first elements in

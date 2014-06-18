@@ -1,5 +1,5 @@
 __all__ = ["code","elements", "parsers"]
 
-import elements
+from . import elements
 import fortpy.parsers
-import code
+from . import code

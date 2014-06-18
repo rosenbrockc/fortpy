@@ -1,6 +1,6 @@
 import os
 import sys
-import settings
+from . import settings
 import hashlib
 from stat import S_ISDIR
 import errno
@@ -97,7 +97,7 @@ class FileSupport(object):
             remotepath = self._get_remote(filepath)
             try:
                 self.ftp.stat(remotepath)
-            except IOError, e:
+            except IOError as e:
                 if e.errno == errno.ENOENT:
                     return False
             else:

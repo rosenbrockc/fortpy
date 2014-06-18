@@ -1,4 +1,4 @@
-import cache
+from . import cache
 from fortpy.elements import Function, Subroutine, ValueElement, Executable, TypeExecutable
 
 class BaseDefinition(object):

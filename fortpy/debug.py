@@ -80,4 +80,4 @@ def print_to_stdout(level, str_out):
         col = Fore.YELLOW
     if not is_py3:
         str_out = str_out.encode(encoding, 'replace')
-    print(col + str_out + Fore.RESET)
+    print((col + str_out + Fore.RESET))

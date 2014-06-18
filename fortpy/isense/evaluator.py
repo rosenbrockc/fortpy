@@ -1,6 +1,6 @@
 from fortpy.elements import Function, Subroutine, CustomType, ValueElement, Module, Executable
-import cache
-from classes import Completion
+from . import cache
+from .classes import Completion
 
 class Evaluator(object):
     """Uses the user context and code parsers to perform code

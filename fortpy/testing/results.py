@@ -193,7 +193,7 @@ class BlockResult(object):
     @property 
     def has_results(self):
         """Returns True if this block result has any child results."""
-        return len(self.results.keys()) > 0
+        return len(list(self.results.keys())) > 0
 
     @property
     def percent_match(self):
@@ -224,8 +224,8 @@ class BodyResult(object):
         body from its constituent results."""
         #We need to reduce the match based on how many blocks actually
         #overlapped in the body.
-        overlap = len(self.blocks.keys())
-        total = overlap + len(self.only1.keys()) + len(self.only2.keys())
+        overlap = len(list(self.blocks.keys()))
+        total = overlap + len(list(self.only1.keys())) + len(list(self.only2.keys()))
         return accumulate_matches(self.blocks) * float(overlap) / total
 
     @property
@@ -375,7 +375,7 @@ def print_dict_result(result, label = "", verbose = False, ignored = False):
     if verbose:
         lines.append("\t{}/{} matches, {} keys vs. {} keys".format(
             result.common, result.common + len(result.different),
-            len(result.dict1.keys()), len(result.dict2.keys())))
+            len(list(result.dict1.keys())), len(list(result.dict2.keys()))))
         lines.append("\tDIFF: " + result.different.__str__())
     return "\n".join(lines)
     

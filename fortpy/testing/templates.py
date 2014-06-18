@@ -163,7 +163,7 @@ class FileLine(object):
             try:
                 count = int(stored[count])
             except ValueError:
-                print "Can't understand how to use {} for count".format(count)
+                print("Can't understand how to use {} for count".format(count))
                 return
         else:
             count = 1
@@ -268,7 +268,7 @@ class FileLine(object):
                     name, value = d.split("=")
                     innerdict[name] = value
 
-            if len(innerdict.keys()) == 0:
+            if len(list(innerdict.keys())) == 0:
                 self.defaults[self.identifier] = d
             else:
                 self.defaults[self.identifier] = innerdict
@@ -330,10 +330,10 @@ class FileLine(object):
             #If there are a variable number of entries for this value
             #just use up all the rest
             if self.values[i] == "*":
-                loop = range(k, len(raw))
+                loop = list(range(k, len(raw)))
                 namek = k
             else:
-                loop = range(int(self.values[i]))
+                loop = list(range(int(self.values[i])))
             #If there are a variable number of entries, they would be stored together
             #as a list under a certain name. Use this as a clearing house. After we have
             #stored the values, we can extend the results list.
@@ -350,8 +350,8 @@ class FileLine(object):
                     else:
                         current.append(val)
                 except ValueError:
-                    print "\nFATAL: [{}] could not parse value '{}' of type '{}'.\n".format(
-                        self.identifier, val, dtype)
+                    print("\nFATAL: [{}] could not parse value '{}' of type '{}'.\n".format(
+                        self.identifier, val, dtype))
                     exit(1)
 
                 #If names were specified for the values, we need to populate the dict
@@ -416,8 +416,8 @@ class LineComparer(object):
                     self.tolerance = eval(self.tolerance)
                     self.numeric = True
                 except ValueError:
-                    print """WARNING: tolerance for comparison {} should be a number but can't
-be evaluated.""".format(element.attrib["id"])
+                    print("""WARNING: tolerance for comparison {} should be a number but can't
+be evaluated.""".format(element.attrib["id"]))
                     self.tolerance = None
         else:
             self.tolerance = None
@@ -472,8 +472,8 @@ be evaluated.""".format(element.attrib["id"])
                     s1 = eval(self.tolerance.replace("$", "value1"))
                     return value1[self.name] - value2[self.name] <= s1
                 except ValueError:
-                    print """WARNING: could not generate dynamic tolerance for comparison
-{} and tolerance {}""".format(self.name, self.tolerance)
+                    print("""WARNING: could not generate dynamic tolerance for comparison
+{} and tolerance {}""".format(self.name, self.tolerance))
                     return False
         #We can't perform a finite difference calculation unless a tolerance
         #was specified.
@@ -681,8 +681,8 @@ class FileTemplate(object):
                     self.contents[v] = TemplateContents()                    
             self._xml_load_versions(root)
         else:
-            print "The XML template {} is not a valid fortpy template file.".format(
-                self.filepath)
+            print("The XML template {} is not a valid fortpy template file.".format(
+                self.filepath))
 
     def _xml_load_versions(self, root):
         """Loads the template from XML tracking important version information."""
@@ -758,7 +758,7 @@ class FileTemplate(object):
             if (child.tag == "line" or child.tag == "lines") and "id" in child.attrib:
                 fline = FileLine(child)
             else:
-                print "WARNING: non line-type tag in preamble/body {}".format(element)
+                print("WARNING: non line-type tag in preamble/body {}".format(element))
 
             for v in versions:
                 if element.tag == "preamble":
