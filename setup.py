@@ -27,6 +27,7 @@ setup(name='Fortpy',
       install_requires=[
           "argparse",
           "pyparsing",
+          "python-dateutil",
           "paramiko",
       ],
       packages=['fortpy', 'fortpy.parsers', 'fortpy.isense', 'fortpy.testing',

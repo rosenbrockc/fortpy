@@ -48,6 +48,14 @@ class FileSupport(object):
         accessing a file over SSH."""
         return filepath[:4] == "/ssh"
 
+    def abspath(self, path):
+        """Returns the absolute path to the specified relative or user-relative
+        path. For ssh paths, just return the full ssh path."""
+        if self.is_ssh(path):
+            return path
+        else:
+            return os.path.abspath(path)
+
     def dirname(self, path):
         """Returns the full path to the parent directory of the specified
         file path."""

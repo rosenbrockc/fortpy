@@ -294,10 +294,10 @@ class UnitTester(object):
     """
     def __init__(self, libraryroot, verbose = False, compare_templates = None, 
                  fortpy_templates = "~/pythonpkg/fortpy/templates", rerun = False):
-        self.libraryroot = path.expanduser(libraryroot)
+        self.libraryroot = path.abspath(libraryroot)
         self.parser = CodeParser()
         self.parser.verbose = verbose
-        self.fortpy_templates = path.expanduser(fortpy_templates)
+        self.fortpy_templates = path.abspath(fortpy_templates)
         self.tgenerator = TestGenerator(self.parser, self.libraryroot, self.fortpy_templates,
                                         rerun)
         
@@ -314,9 +314,9 @@ class UnitTester(object):
         #parser and does all the heavy-lifting. We need to pre-load any
         #modules that we are interested in testing. Only those loaded
         #when write() is first called will have their tests processed.
-        self._codefolder = path.expanduser(codefolder)
+        self._codefolder = path.abspath(codefolder)
         if self._compare_templates is not None:
-            self.compare_templates = path.expanduser(self._compare_templates)
+            self.compare_templates = path.abspath(self._compare_templates)
         else:
             self.compare_templates = path.join(self._codefolder, "templates/")
 

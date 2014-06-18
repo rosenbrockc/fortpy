@@ -1,4 +1,3 @@
-import cache
 import re
 from difflib import SequenceMatcher
 from fortpy.elements import Executable, CustomType, Module
@@ -12,13 +11,6 @@ class LineParser(object):
     :attr parent: the ModuleUpdater instance that owns this line parser.
     """
     def __init__(self, parent):
-        #The parsers are agnostic to whether the file came from SSH or the
-        #local file system. We can just use the default parser to get at
-        #the regex definitions for line parsing.
-        self.modulep = cache.parser().modulep
-        self.docparser = self.modulep.docparser
-        self.tparser = self.modulep.tparser
-        self.xparser = self.modulep.xparser
         self.parent = parent
         self.additions = []
 
@@ -61,11 +53,14 @@ class LineParser(object):
             #We are dealing with pure code, decide what type the owner is and run
             #their method for real time updating.
             if isinstance(op.element, Executable):
-                op.element.rt_update(statement, linenum, nmode, self.xparser)
+                op.element.rt_update(statement, linenum, nmode, 
+                                     op.context.parser.modulep.xparser)
             elif isinstance(op.element, CustomType):
-                op.element.rt_update(statement, linenum, nmode, self.tparser)
+                op.element.rt_update(statement, linenum, nmode, 
+                                     op.context.parser.modulep.tparser)
             elif isinstance(op.element, Module):
-                op.element.rt_update(statement, linenum, nmode, self.modulep, self)
+                op.element.rt_update(statement, linenum, nmode, 
+                                     op.context.parser.modulep, self)
 
         if len(self.additions) > 0:
             #Some new instances were created from a single line signature.
@@ -124,6 +119,7 @@ class Operation(object):
     def __init__(self, context, parser, operation, index):
         self.context = context
         self.parser = parser
+        self.docparser = self.context.parser.modulep.docparser
         self.mode = operation[0]
         self.icached = operation[1:3]
         self.ibuffer = operation[3:5]
@@ -293,17 +289,17 @@ class Operation(object):
         delta = 0
 
         if isinstance(self.docelement, Module):
-            delta += self.parser.docparser.rt_update_module(xmldict, self.docelement)
+            delta += self.docparser.rt_update_module(xmldict, self.docelement)
         else:
             #We just need to handle the type and executable internal defs.
             if self.docelement.name in xmldict:
-                docs = self.parser.docparser.to_doc(xmldict[self.docelement.name][0],
-                                                    self.docelement.name)
-                self.parser.docparser.process_memberdocs(docs, self.docelement, False)
+                docs = self.docparser.to_doc(xmldict[self.docelement.name][0],
+                                             self.docelement.name)
+                self.docparser.process_memberdocs(docs, self.docelement, False)
             #Also update the docstrings for any embedded types or executables.
             if isinstance(self.docelement, Executable):
-                delta += self.parser.docparser.process_embedded(xmldict, 
-                                                            self.docelement, False)
+                delta += self.docparser.process_embedded(xmldict, 
+                                                         self.docelement, False)
 
         #Finally, we need to handle the overall character length change
         #that this update caused to the element first and then for the
@@ -312,7 +308,7 @@ class Operation(object):
         cachedtot = 0
     
         for i in range(self.icached[0],self.icached[1]):
-            if self.parser.docparser.RE_DOCS.match(self.context.cachedstr[i]):
+            if self.docparser.RE_DOCS.match(self.context.cachedstr[i]):
                 cachedtot += len(self.context.cachedstr[i])
 
         self.length = buffertot - cachedtot
@@ -365,7 +361,7 @@ class Operation(object):
         docline = 0
         doclength = 0
 
-        first = self.parser.docparser.RE_DOCS.match(lines[0])
+        first = self.docparser.RE_DOCS.match(lines[0])
         if first is not None:
             docblock.append(first.group("docstring"))
             docline = self.ibuffer[0]
@@ -377,7 +373,7 @@ class Operation(object):
             i = self.ibuffer[0] - 1
             while i > 0:
                 current = self.context.bufferstr[i]
-                docmatch = self.parser.docparser.RE_DOCS.match(current)
+                docmatch = self.docparser.RE_DOCS.match(current)
                 if docmatch is not None:
                     docblock.append(docmatch.group("docstring"))
                     docline = i
@@ -398,7 +394,7 @@ class Operation(object):
         while (i < len(self.context.bufferstr) and 
                (i < self.ibuffer[1] or len(docblock) > 0)):
             line = self.context.bufferstr[i]
-            docmatch = self.parser.docparser.RE_DOCS.match(line)
+            docmatch = self.docparser.RE_DOCS.match(line)
             if docmatch is not None:
                 docblock.append(docmatch.group("docstring"))
                 doclength += len(line)
@@ -427,7 +423,7 @@ class Operation(object):
     def _docstring_key(self, line):
         """Returns the key to use for the docblock immediately preceding
         the specified line."""
-        decormatch = self.parser.docparser.RE_DECOR.match(line)
+        decormatch = self.docparser.RE_DECOR.match(line)
         if decormatch is not None:
             key = "{}.{}".format(self.docelement.name, decormatch.group("name"))
         else:

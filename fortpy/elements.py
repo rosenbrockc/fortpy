@@ -837,6 +837,10 @@ class Module(CodeElement, Decoratable):
                     self._contains_index = start + i
                 i += 1
 
+            if self._contains_index is None:
+                #There must not be a CONTAINS keyword in the module
+                self._contains_index = len(self._lines)-1
+
         return self._contains_index
 
     @property

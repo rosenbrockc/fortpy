@@ -113,7 +113,7 @@ class CodeParser(object):
         segs.pop()
         xmlpath = ".".join(segs) + ".xml"
         if self.tramp.exists(xmlpath):
-            xmlstring = self.tramp.readlines(xmlpath)
+            xmlstring = self.tramp.read(xmlpath)
             self.modulep.docparser.parsexml(xmlstring, self.modules)
             
     def _parse_from_file(self, filepath, fname,
@@ -194,9 +194,10 @@ class CodeParser(object):
         of module_name.f90, all modules in all folders are searched."""
         #If we have already parsed this file path, we should check to see if the
         #module file has changed and needs to be reparsed.
-        self._add_current_codedir(filepath)
+        abspath = self.tramp.abspath(filepath)
+        self._add_current_codedir(abspath)
         fname = filepath.split("/")[-1].lower()
-        mtime_check = self._check_parse_modtime(filepath, fname)
+        mtime_check = self._check_parse_modtime(abspath, fname)
 
         if mtime_check is None:
             return
@@ -204,6 +205,8 @@ class CodeParser(object):
         #Keep track of parsing times if we are running in verbose mode.
         if self.verbose:
             start_time = clock()
+            print "WORKING on {0}".format(abspath)
+
         if fname not in self._modulefiles:
             self._modulefiles[fname] = []
 
@@ -213,7 +216,7 @@ class CodeParser(object):
         if len(mtime_check) == 1:
             #We use the pickler to load the file since a cached version might
             #be good enough.
-            pmodules = self.serialize.load_module(filepath, mtime_check[0], self)
+            pmodules = self.serialize.load_module(abspath, mtime_check[0], self)
             
             if pmodules is not None:
                 for module in pmodules:
@@ -222,17 +225,17 @@ class CodeParser(object):
                 pickle_load = True
             else:
                 #We have to do a full load from the file system.
-                pmodules = self._parse_from_file(filepath, fname,
+                pmodules = self._parse_from_file(abspath, fname,
                                                  dependencies, recursive, greedy)
         else:
             #We have to do a full load from the file system.
-            pmodules = self._parse_from_file(filepath, fname,
+            pmodules = self._parse_from_file(abspath, fname,
                                   dependencies, recursive, greedy)
 
         #Add the filename to the list of files that have been parsed.
-        self._parsed.append(filepath.lower())
-        if not pickle_load:
-            self.serialize.save_module(filepath, pmodules)
+        self._parsed.append(abspath.lower())
+        if not pickle_load and len(pmodules) > 0:
+            self.serialize.save_module(abspath, pmodules)
 
         if self.verbose:
             print "PARSED: {} modules in {} in {}".format(len(pmodules), fname, 
