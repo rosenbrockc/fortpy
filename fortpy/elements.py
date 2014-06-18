@@ -439,12 +439,18 @@ class Executable(ValueElement, Decoratable):
     def get_parameter(self, index):
         """Returns the ValueElement corresponding to the parameter
         at the specified index."""
-        key = self.paramorder[index]
-        return self._parameters[key]
+        result = None
+        if index > 0 and index < len(self.paramorder):
+            key = self.paramorder[index]
+            if key in self._parameters:
+                result = self._parameters[key]
+
+        return result
 
     def add_parameter(self, parameter):
         """Adds the specified parameter value to the list."""
-        self.paramorder.append(parameter.name.lower())
+        if parameter.name.lower() not in self.paramorder:
+            self.paramorder.append(parameter.name.lower())
         self._parameters[parameter.name.lower()] = parameter
 
     def remove_parameter(self, parameter_name):
@@ -981,9 +987,9 @@ class Module(CodeElement, Decoratable):
             maxstart = 0
             tempresult = None
             for t in self.types:
-                if ichar >= self.types[t].start:
-                    if self.types[t].start > maxstart:
-                        maxstart = self.types[t].start
+                if ichar >= self.types[t].absstart:
+                    if self.types[t].absstart > maxstart:
+                        maxstart = self.types[t].absstart
                         tempresult = self.types[t]
 
             #This takes the possibility of an incomplete type into account
@@ -1005,9 +1011,9 @@ class Module(CodeElement, Decoratable):
             maxstart = 0
 
             for iexec in self.executables:
-                if (ichar >= self.executables[iexec].start):
-                    if self.executables[iexec].start > maxstart:
-                        maxstart = self.executables[iexec].start
+                if (ichar >= self.executables[iexec].absstart):
+                    if self.executables[iexec].absstart > maxstart:
+                        maxstart = self.executables[iexec].absstart
                         tempresult = self.executables[iexec]
 
             if tempresult is not None and (ichar <= tempresult.end or

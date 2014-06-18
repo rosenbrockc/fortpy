@@ -138,6 +138,7 @@ class Operation(object):
         self.bar_extent = False
 
         self._element = None
+        self._docelement = None
         #This variable will hold a list of the lines that actually participated
         #in a real-time docstring update (buffer lines).
         self._doclines = None
@@ -215,6 +216,27 @@ class Operation(object):
             self._element = self.context.module.get_element(line, 0)
 
         return self._element
+
+    @property
+    def docelement(self):
+        """Returns the instance of the element whose body owns the docstring
+        in the current operation.
+        """
+        #This is needed since the decorating documentation
+        #for types and executables is in the body of the module, but when they
+        #get edited, the edit belongs to the type/executable because the character
+        #falls within the absstart and end attributes.
+        if self._docelement is None:
+            if isinstance(self.element, Module):
+                self._docelement = self.element
+            else:
+                ichar = self.element.module.charindex(self.icached[0], 1)
+                if (ichar > self.element.docstart and ichar <= self.element.docend):
+                    self._docelement = self.element.parent
+                else:
+                    self._docelement = self.element
+
+        return self._docelement
         
     def handle(self):
         """Handles the real time update of some code from the cached representation
@@ -270,25 +292,25 @@ class Operation(object):
         xmldict = self._docstring_parse(blocks)
         delta = 0
 
-        if isinstance(self.element, Module):
-            delta += self.parser.docparser.rt_update_module(xmldict, self.element)
+        if isinstance(self.docelement, Module):
+            delta += self.parser.docparser.rt_update_module(xmldict, self.docelement)
         else:
             #We just need to handle the type and executable internal defs.
-            if self.element.name in xmldict:
-                docs = self.parser.docparser.to_doc(xmldict[self.element.name][0],
-                                                    self.element.name)
-                self.parser.docparser.process_memberdocs(docs, self.element, False)
+            if self.docelement.name in xmldict:
+                docs = self.parser.docparser.to_doc(xmldict[self.docelement.name][0],
+                                                    self.docelement.name)
+                self.parser.docparser.process_memberdocs(docs, self.docelement, False)
             #Also update the docstrings for any embedded types or executables.
-            if isinstance(self.element, Executable):
+            if isinstance(self.docelement, Executable):
                 delta += self.parser.docparser.process_embedded(xmldict, 
-                                                            self.element, False)
+                                                            self.docelement, False)
 
         #Finally, we need to handle the overall character length change
         #that this update caused to the element first and then for the
         #operation as a whole for updating the module and its children.
         buffertot = sum([len(self.context.bufferstr[i]) for i in self._doclines])
         cachedtot = 0
-
+    
         for i in range(self.icached[0],self.icached[1]):
             if self.parser.docparser.RE_DOCS.match(self.context.cachedstr[i]):
                 cachedtot += len(self.context.cachedstr[i])
@@ -299,7 +321,7 @@ class Operation(object):
             #The update must have been to members variables of the module or the
             #executables/types. The element who owns the members is going to get
             #missed when the module updates its children.
-            self.element.end += self.length
+            self.docelement.end += self.length
         else:
             #All the individual elements have been updated already, so just
             #set the length change for this operation.
@@ -329,6 +351,10 @@ class Operation(object):
         """Gets the longest continuous block of docstrings from the buffer
         code string if any of those lines are docstring lines.
         """
+        #If there are no lines to look at, we have nothing to do here.
+        if self.ibuffer[0] == self.ibuffer[1]:
+            return []
+
         lines = self.context.bufferstr[self.ibuffer[0]:self.ibuffer[1]]
         docblock = []
         result = []
@@ -369,7 +395,8 @@ class Operation(object):
         #We have to keep going until we have exceed the operational changes
         #or found the decorating element.
         i = self.ibuffer[0] + 1
-        while i < len(self.context.bufferstr):
+        while (i < len(self.context.bufferstr) and 
+               (i < self.ibuffer[1] or len(docblock) > 0)):
             line = self.context.bufferstr[i]
             docmatch = self.parser.docparser.RE_DOCS.match(line)
             if docmatch is not None:
@@ -402,7 +429,7 @@ class Operation(object):
         the specified line."""
         decormatch = self.parser.docparser.RE_DECOR.match(line)
         if decormatch is not None:
-            key = "{}.{}".format(self.element.name, decormatch.group("name"))
+            key = "{}.{}".format(self.docelement.name, decormatch.group("name"))
         else:
             key = self.element.name
 

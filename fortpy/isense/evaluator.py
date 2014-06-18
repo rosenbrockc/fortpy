@@ -212,14 +212,17 @@ class Evaluator(object):
             paramlist = [ p.name for p in iexec.ordered_parameters ]
             paramlist[call_index] = "*{}*".format(paramlist[call_index])
 
-            #Write a nice description that includes the parameter type and
-            #intent as well as dimension.
-            summary = "{} | {}".format(str(param), param.summary)
-            #We also want to determine if this parameter has its value changed
-            #by the function we are completing on.
-            changedby = iexec.changed(param.name)
-            if changedby is not None:
-                summary += " *MODIFIED*"
+            if param is not None:
+                #Write a nice description that includes the parameter type and
+                #intent as well as dimension.
+                summary = "{} | {}".format(str(param), param.summary)
+                #We also want to determine if this parameter has its value changed
+                #by the function we are completing on.
+                changedby = iexec.changed(param.name)
+                if changedby is not None:
+                    summary += " *MODIFIED*"
+            else:
+                summary = "No matching variable definition."
 
             return dict(
                 params=paramlist,

@@ -25,13 +25,13 @@ class _config(types.ModuleType):
     @property    
     def codes(self):
         """Returns a list of additional code folders to look in for files."""
-        return self.property_get("codes")
+        return self.property_get("codes", [])
 
     @property
     def mappings(self):
         """Returns a list of module mappings for modules that aren't named the
         same as the files they are in."""
-        return self.property_get("mappings")
+        return self.property_get("mappings", {})
 
     @property
     def server(self):
@@ -43,19 +43,19 @@ class _config(types.ModuleType):
     def ssh_codes(self):
         """Returns a list of additional code folders to monitor on the SSH
         server that houses the file being edited with tramp."""
-        return self.property_get("ssh.codes")
+        return self.property_get("ssh.codes", [])
 
     @property
     def ssh_mappings(self):
         """Returns a list of module mappings for modules that aren't named the
         same as the files they are in on the SSH server."""
-        return self.property_get("ssh.mappings")
+        return self.property_get("ssh.mappings", {})
 
-    def property_get(self, key):
+    def property_get(self, key, default=None):
         if key in self._vardict:
             return self._vardict[key]
         else:
-            return None
+            return default
 
     def getenvar(self, envar):
         from os import getenv

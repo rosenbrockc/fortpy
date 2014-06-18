@@ -358,9 +358,9 @@ class ExecutableParser(object):
         members = self.vparser.parse(contents, anexec)
         
         #If the name matches one in the parameter list, we can connect them
-        for param in params:
+        for param in list(params):
             if param in members:
-                if mode == "insert":
+                if mode == "insert" and not param in anexec.parameters:
                     anexec.add_parameter(members[param])
                 elif mode == "delete":
                     anexec.remove_parameter(members[param])

@@ -48,6 +48,16 @@ class FileSupport(object):
         accessing a file over SSH."""
         return filepath[:4] == "/ssh"
 
+    def dirname(self, path):
+        """Returns the full path to the parent directory of the specified
+        file path."""
+        if self.is_ssh(path):
+            remotepath = self._get_remote(path)
+            remotedir = os.path.dirname(remotepath)
+            return self._get_tramp_path(remotedir)
+        else:
+            return os.path.dirname(path)
+        
     def touch(self, filepath):
         """Touches the specified file so that its modified time changes."""
         if self.is_ssh(filepath):

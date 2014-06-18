@@ -7,6 +7,7 @@ import fortpy.config
 from serialize import Serializer
 import sys
 import tramp
+import settings
 
 config = sys.modules["config"]
 
@@ -33,17 +34,23 @@ class CodeParser(object):
        
         self.tramp = tramp.FileSupport()
         self.serialize = Serializer()
-
-        if self.ssh:
-            self.basepaths = config.ssh_codes
+        
+        if not settings.unit_testing_mode:
+            if self.ssh:
+                self.basepaths = config.ssh_codes
+            else:
+                self.basepaths = config.codes
+            self.basepaths = [ self.tramp.expanduser(p, self.ssh) for p in self.basepaths ]
         else:
-            self.basepaths = config.codes
-        self.basepaths = [ self.tramp.expanduser(p, self.ssh) for p in self.basepaths ]
+            self.basepaths = []
 
-        if self.ssh:
-            self.mappings = config.ssh_mappings
+        if not settings.unit_testing_mode:
+            if self.ssh:
+                self.mappings = config.ssh_mappings
+            else:
+                self.mappings = config.mappings
         else:
-            self.mappings = config.mappings
+            self.mappings = {}
 
         #A dictionary of filenames and the modules that they correspond
         #to if loaded
@@ -169,6 +176,15 @@ class CodeParser(object):
         self.tramp.touch(filepath)
         self.parse(filepath)
 
+    def _add_current_codedir(self, path):
+        """Adds the directory of the file at the specified path as a base
+        path to find other files in.
+        """
+        dirpath = self.tramp.dirname(path)
+        if dirpath not in self.basepaths:
+            self.basepaths.append(dirpath)
+            self.rescan()
+
     def parse(self, filepath, dependencies=False, recursive=False, greedy=False):
         """Parses the fortran code in the specified file.
 
@@ -178,6 +194,7 @@ class CodeParser(object):
         of module_name.f90, all modules in all folders are searched."""
         #If we have already parsed this file path, we should check to see if the
         #module file has changed and needs to be reparsed.
+        self._add_current_codedir(filepath)
         fname = filepath.split("/")[-1].lower()
         mtime_check = self._check_parse_modtime(filepath, fname)
 

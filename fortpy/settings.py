@@ -53,6 +53,11 @@ Caching
 
 .. autodata:: call_signatures_validity
 
+Testing
+~~~~~~~
+
+.. autodata:: unit_testing_mode
+
 """
 import os
 import platform
@@ -166,4 +171,10 @@ call_signatures_validity = 3.0
 """
 Finding function calls might be slow (0.1-0.5s). This is not acceptible for
 normal writing. Therefore cache it for a short time.
+"""
+
+unit_testing_mode = False
+"""Specifies that the parsers should run in unit test mode, which means that
+the config.xml file is not loaded by the code parser. It makes the parsers
+function more like they would on a regular system that hasn't been configured yet.
 """

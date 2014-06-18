@@ -1,0 +1,3 @@
+recursive-include docs *.*
+include *.md LICENSE
+exclude tests
