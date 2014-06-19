@@ -10,23 +10,14 @@ Fortpy is a python based parsing, unit testing and auto-complete framework for s
 
 Fortpy requires the following python packages:
 - [python-epc](https://github.com/tkf/python-epc)
-- argparse (for Python 2.6)
+- argparse
 - [paramiko](https://github.com/paramiko/paramiko) if you will be editing over SSH using tramp in emacs and still want auto-complete support.
 - pyparsing
+- dateutil
 
-If you install Fortpy using `pip install` the dependencies will automatically get installed. In order to have Fortpy on the python package index, you need to include a windows installer; since I don't care about Windows for Fortpy, you can instead install it straight from github:
+If you install Fortpy using `pip install` the dependencies will automatically get installed.
 
-    pip install git+https://github.com/rosenbrockc/fortpy.git
-
-Unfortunately, one of the packages that paramiko depends on breaks on an automated install because of some changes in the latest version of xcode. Manually installing paramiko with this command will fix that:
-
-    sudo ARCHFLAGS=-Wno-error=unused-command-line-argument-hard-error-in-future easy_install ./
-
-You run this command from within the paramiko repo that you have cloned to your computer. You can [download the repo](https://github.com/paramiko/paramiko).
-
-### Emacs Lisp Package Installation
-
-
+    pip install fortpy
 
 Screenshots
 ------

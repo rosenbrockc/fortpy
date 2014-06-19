@@ -67,7 +67,8 @@ class Script(object):
             parser_key = "ssh"
         else:
             parser_key = "default"
-        self._user_context = context.UserContext(source, self._pos, parser_key)
+        self._user_context = context.UserContext(source, self._pos,
+                                                 self._orig_path, parser_key)
         self._evaluator = evaluator.Evaluator(self._user_context, self._pos)
 
         #Time how long all that parsing took.
