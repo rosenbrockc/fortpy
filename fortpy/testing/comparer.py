@@ -405,17 +405,39 @@ def _get_keyed_dict(template, body):
     """Returns a dictionary of body block dictionaries set by key value."""
     result = {}
     for block in body:
-        keyval = _get_key_value(template, block)
+        if isinstance(template.key, list):
+            keyval = _get_key_value_list(template, block)
+        else:
+            keyval = _get_key_value_single(template, block)
         if keyval is not None:
             result[keyval] = block
     return result
 
-def _get_key_value(template, bodyblock):
+def _get_key_value_list(template, bodyblock):
+    """Extracts a multi-valued key hash from the body block."""
+    #If we don't find a value to list the key by, we return none.
+    result = None
+    values = [_get_key_value_single(k, bodyblock) for k in template.key]
+
+    #We are going to string join the values in a bar-separated list and then
+    #compute a hash on the string is the value to return.
+    svalues = []
+    for oneval in values:
+        if isinstance(oneval, list):
+            strval = ",".join([str(o) for o in oneval])
+        else:
+            strval = str(oneval)
+        svalues.append(strval)
+
+    result = hash("|".join(svalues))
+    return result    
+
+def _get_key_value_single(key, bodyblock):
     """Extracts the value of the key from the specified body block."""
     #If we don't find a value to list the key by, we return none.
     result = None
-    if "." in template.key:
-        keys = template.key.split(".")
+    if "." in key:
+        keys = key.split(".")
         if len(keys) == 2 and keys[0] in bodyblock:
             #The lineval will be a list of line values. In the case where a lines
             #tag specifies multiple values for the same identifier, we will only
@@ -424,8 +446,8 @@ def _get_key_value(template, bodyblock):
             if keys[1] in lineval.named:
                 result = lineval.named[keys[1]]
     else:
-        if template.key in bodyblock:
-            result = bodyblock[template.key].values[0]
+        if key in bodyblock:
+            result = bodyblock[key].values[0]
 
     if result is None:
         print("FATAL: block {} did not return a valid key value for '{}'.".format(bodyblock, template.key))

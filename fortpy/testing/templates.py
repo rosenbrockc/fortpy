@@ -742,6 +742,8 @@ class FileTemplate(object):
                 self.contents[v]._count = element.attrib["count"]
             if "key" in element.attrib:
                 self.contents[v].key = element.attrib["key"]
+                if "," in self.contents[v].key:
+                    self.contents[k].key = re.split(",\s*", self.contents[v].key)
             
         self._xml_v_lineparent(element)
             
