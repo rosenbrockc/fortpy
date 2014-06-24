@@ -300,6 +300,7 @@ class UnitTester(object):
         self.fortpy_templates = path.abspath(fortpy_templates)
         self.tgenerator = TestGenerator(self.parser, self.libraryroot, self.fortpy_templates,
                                         rerun)
+        self.compiler = "ifort"
         
         #A flag to track whether the generator has already written
         #the executables.
@@ -368,7 +369,7 @@ class UnitTester(object):
         #make and check the exit code.
         target = path.join(self.libraryroot, identifier)
         print("\n\n")
-        code = system("cd {}; make F90=ifort".format(target))
+        code = system("cd {}; make F90={}".format(target, self.compiler))
         print("\n")
         return code == 0
 

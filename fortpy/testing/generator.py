@@ -30,7 +30,8 @@ class TestGenerator(object):
         self.xgenerator = ExecutableGenerator(parser, libraryroot)
         self.rerun = rerun
 
-        self.dependfiles = [ "timing.c", "timing.h", "timing.o", "fortpy.f90", "Makefile.ifort" ]
+        self.dependfiles = [ "timing.c", "timing.h", "timing.o", "fortpy.f90", 
+                             "Makefile.ifort", "Makefile.gfortran" ]
         self._fortpy = fortpy_templates
 
         #Stores the identifiers of unit tests whose files changed so they

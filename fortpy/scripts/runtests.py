@@ -5,6 +5,8 @@ import argparse
 def initialize():
     t = UnitTester(args["stagedir"], args["verbose"], args["templates"], args["fortpy"],
                    args["rerun"])
+    if args["compiler"]:
+        t.compiler = args["compiler"]
     t.writeall(args["codedir"])
     result = t.runall()
 
@@ -25,6 +27,7 @@ parser.add_argument("-fortpy", help="The path to the fortpy templates directory.
                     default="~/pythonpkg/fortpy/templates")
 parser.add_argument("-rerun", help="If specified, the tests are re-run with minimal compilation.",
                     action="store_true")
+parser.add_argument("-compiler", help="Specify the compiler to use for the unit testing")
 
 #Parse the args from the commandline that ran the script, call initialize
 args = vars(parser.parse_args())

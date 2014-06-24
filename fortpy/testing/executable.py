@@ -149,7 +149,7 @@ class ExecutableGenerator(object):
 
         #Now the standard entries for ifort. We will just have the ifort include
         #file so that the MPI and other options can be tested to.
-        lines.append("include Makefile.ifort")
+        lines.append(self._make_compiler_include())
         lines.append(".SILENT:")
         lines.append("")
 
@@ -181,6 +181,18 @@ class ExecutableGenerator(object):
         makepath = path.join(self.folder, "Makefile")
         with open(makepath, 'w') as f:
             f.writelines("\n".join(lines))
+
+    def _make_compiler_include(self):
+        """Returns the include statement for the compiler to use."""
+        return """ifeq ($(F90),ifort)
+  include Makefile.ifort
+else
+ifeq ($(F90),gfortran)
+  include Makefile.gfortran
+else
+  include Makefile.error
+endif
+endif"""
 
     def _make_error(self):
         """Generates script for compile-time error handling."""
