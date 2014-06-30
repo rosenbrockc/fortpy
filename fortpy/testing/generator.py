@@ -46,19 +46,29 @@ class TestGenerator(object):
         needed to be recreated because of code changes."""
         return self._changed
 
-    def write(self):
+    def write(self, codefolder):
         """Creates a fortran program for each subroutine in the code parsers
-        modules lists that tests the subroutine/function."""
+        modules lists that tests the subroutine/function.
+
+        :arg codefolder: the full path to the folder in which the code files
+          reside that tests will be run for.
+        """
         #We need to enumerate over a *copy* of the keys list since the list of 
         #modules is likely to change during the execution as dependencies
         #are found and loaded.
         currentlist = list(self.parser.modules.keys())
+        lcoderoot = codefolder.lower()
+
         for mkey in currentlist:
-            self._write_module(self.parser.modules[mkey])
+            #We only want to perform unit tests for executables that are in the
+            #same code folder as the one being executed by the unit tester.
+            module = self.parser.modules[mkey]
+            if lcoderoot in module.filepath.lower():
+                self._write_module(module)
         
     def _write_module(self, module):
         """Generates the fortran programs for all executables in the module
-        code element specified."""
+        code element specified."""      
         for execkey in module.executables:
             anexec = module.executables[execkey]
             #We need to check whether this executable has any outcomes defined
@@ -66,12 +76,7 @@ class TestGenerator(object):
             found = False
             i = 0
 
-            while not found and i < len(anexec.tests):
-                if anexec.tests[i].doctype == "outcome":
-                    found = True
-                i += 1
-
-            if found:
+            if anexec.test_group is not None:
                 self._write_executable(module, anexec)
 
     def _write_executable(self, module, executable):
@@ -123,13 +128,29 @@ class TestGenerator(object):
                 copy(source, self.xgenerator.folder)
                 different = True
 
+        #We also need to rewrite the files if the user deleted the testid.f90
+        #or testid.x files from the directories to force a re-write.
+        if not different:
+            for testid in self.xgenerator.writer.tests:
+                codefile = os.path.join(self.libraryroot, "{}.f90".format(testid))
+                xfile = os.path.join(self.libraryroot, "{}.x".format(testid))
+                if not os.path.exists(codefile) or not os.path.exists(xfile):
+                    different = True
+                    break
+
         #All the code files needed for compilation are now in the directory.
         #Create the executable file and the makefile for compilation
         if different:
-            print("\nUNITTEST: writing executable for {}".format(executable))
-            self.xgenerator.write()
-            self.xgenerator.makefile()
-            self._changed.append(identifier)
+            print("UNITTEST: writing executable(s) for {}".format(type(executable).__name__) + 
+                  " {}".format(executable.name))
+            #It is possible that multiple tests were defined for the executable
+            #being unit tested. We need to write a *.f90 PROGRAM file for each
+            #test scenario *and* a separate makefile for the executable.
+            for testid in self.xgenerator.writer.tests:
+                self.xgenerator.write(testid)
+                self.xgenerator.makefile(testid)
+                self._changed.append("{}|{}".format(identifier, testid))
+                print("\tWROTE TEST: {}\n".format(testid))
 
             #Overwrite the file date values for this executable in the archive
             #Also, save the archive in case something goes wrong in the next

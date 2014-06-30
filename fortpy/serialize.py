@@ -41,7 +41,7 @@ class Serializer(object):
         .. todo:: Detect interpreter (e.g., PyPy).
         """
 
-    def load_module(self, path, changed_time, parser):
+    def load_module(self, path, changed_time, parser=None):
         """Attempts to load the specified module from a serialized, cached
         version. If that fails, the method returns none."""
         if settings.use_filesystem_cache == False:
@@ -62,15 +62,16 @@ class Serializer(object):
             try:
                 gc.disable()
                 cache_module = pickle.load(f)
-                for mod in cache_module:
-                    mod.unpickle(parser)
+                if parser is not None:
+                    for mod in cache_module:
+                        mod.unpickle(parser)
             finally:
                 gc.enable()
 
         debug.dbg('pickle loaded: %s', path)
         return cache_module
 
-    def save_module(self, path, module):
+    def save_module(self, path, module, change_time=None):
         """Saves the specified module and its contents to the file system
         so that it doesn't have to be parsed again unless it has changed."""
         #First, get a list of the module paths that have already been 
@@ -88,7 +89,10 @@ class Serializer(object):
         target_path = self._get_hashed_path(path)
         with open(target_path, 'wb') as f:
             pickle.dump(module, f, pickle.HIGHEST_PROTOCOL)
-            files[path] = module[0].change_time
+            if change_time is None:
+                files[path] = module[0].change_time
+            else:
+                files[path] = change_time
 
         #Save the list back to the disk
         self._flush_index()

@@ -3,7 +3,7 @@
 module fortpy
   implicit none
   private
-  public pysave, dp, sp, si, li
+  public pysave, dp, sp, si, li, fpy_linevalue_count, fpy_newunit, pysave_integer_li
 
   !!<member name="fileunit">I/O unit for the file to write the output to.</member>
   integer :: fileunit
@@ -21,6 +21,7 @@ module fortpy
   !!logical type variables.</summary>
   interface pysave
      module procedure pysave_integer, pysave_integer_1d, pysave_integer_2d, &
+          pysave_integer_li, pysave_integer_1d_li, pysave_integer_2d_li, &
           pysave_real, pysave_real_1d, pysave_real_2d, pysave_logical
   end interface pysave
 
@@ -151,7 +152,7 @@ contains
 
   !!<summary>Initializes the seed of the random number generator.</summary>
   subroutine random_init(seed)
-    integer, intent(in), optional, dimension(1) :: seed
+    integer, intent(in), optional :: seed(:)
     if (.not. seeded) then
        if (present(seed)) then
           call random_seed(PUT=seed)
@@ -162,23 +163,25 @@ contains
     end if
   end subroutine random_init
 
-  subroutine pysave_integer(variable, filename)
+  subroutine pysave_integer(variable, filename, n)
     integer, intent(in) :: variable
-    character(80), intent(in) :: filename
+    integer, intent(in) :: n
+    character(n), intent(in) :: filename
 
-    call file_open(filename, 'integer')
+    call file_open(filename, n, 'integer')
     write(fileunit, '(i12)') variable
 
     call file_close()
   end subroutine pysave_integer
 
-  subroutine pysave_integer_1d(variable, filename)
+  subroutine pysave_integer_1d(variable, filename, n)
     integer, intent(in) :: variable(:)
-    character(80), intent(in) :: filename
+    integer, intent(in) :: n
+    character(n), intent(in) :: filename
     integer :: c, i
 
     c = size(variable, 1)
-    call file_open(filename, 'integer')
+    call file_open(filename, n, 'integer')
 
     do i = 1, c
        write(fileunit, '(i12)') variable(c)
@@ -187,66 +190,121 @@ contains
     call file_close()
   end subroutine pysave_integer_1d
 
-  subroutine pysave_integer_2d(variable, filename)
+  subroutine pysave_integer_2d(variable, filename, n)
     integer, intent(in) :: variable(:,:)
-    character(80), intent(in) :: filename
+    integer, intent(in) :: n
+    character(n), intent(in) :: filename
+    character(20) :: FMT
     integer :: r, c, i
 
     r = size(variable, 1)
     c = size(variable, 2)
+    write(FMT, *)
 
-    call file_open(filename, 'integer')
+    call file_open(filename, n, 'integer')
     do i = 1, r
-       write(fileunit, '(<c>i12)') variable(r, :)
+       write(fileunit, '('// adjustl(FMT) // 'i12)') variable(r, :)
     end do
 
     call file_close()
   end subroutine pysave_integer_2d
 
-  subroutine pysave_real(variable, filename)
-    real(dp), intent(in) :: variable
-    character(80), intent(in) :: filename
+  subroutine pysave_integer_li(variable, filename, n)
+    integer(li), intent(in) :: variable
+    integer, intent(in) :: n
+    character(n), intent(in) :: filename
 
-    call file_open(filename, 'float')
+    call file_open(filename, n, 'integer')
+    write(fileunit, '(i25)') variable
+
+    call file_close()
+  end subroutine pysave_integer_li
+
+  subroutine pysave_integer_1d_li(variable, filename, n)
+    integer(li), intent(in) :: variable(:)
+    integer, intent(in) :: n
+    character(n), intent(in) :: filename
+    integer :: c, i
+
+    c = size(variable, 1)
+    call file_open(filename, n, 'integer')
+
+    do i = 1, c
+       write(fileunit, '(i25)') variable(c)
+    end do
+
+    call file_close()
+  end subroutine pysave_integer_1d_li
+
+  subroutine pysave_integer_2d_li(variable, filename, n)
+    integer(li), intent(in) :: variable(:,:)
+    integer, intent(in) :: n
+    character(n), intent(in) :: filename
+    character(20) :: FMT
+    integer :: r, c, i
+
+    r = size(variable, 1)
+    c = size(variable, 2)
+    write(FMT, *)
+
+    call file_open(filename, n, 'integer')
+    do i = 1, r
+       write(fileunit, '('// adjustl(FMT) // 'i25)') variable(r, :)
+    end do
+
+    call file_close()
+  end subroutine pysave_integer_2d_li
+
+  subroutine pysave_real(variable, filename, n)
+    real(dp), intent(in) :: variable
+    integer, intent(in) :: n
+    character(n), intent(in) :: filename
+
+    call file_open(filename, n, 'float')
     write(fileunit, '(f12.7)') variable
 
     call file_close()
   end subroutine pysave_real
 
-  subroutine pysave_real_1d(variable, filename)
+  subroutine pysave_real_1d(variable, filename, n)
     real(dp), intent(in) :: variable(:)
-    character(80), intent(in) :: filename
+    integer, intent(in) :: n
+    character(n), intent(in) :: filename
     integer :: c, i
 
     c = size(variable, 1)
-    call file_open(filename, 'float')
+    call file_open(filename, n, 'float')
     do i = 1, c
        write(fileunit, '(f12.7)') variable(c)
     end do
     call file_close()
   end subroutine pysave_real_1d
 
-  subroutine pysave_real_2d(variable, filename)
+  subroutine pysave_real_2d(variable, filename, n)
     real(dp), intent(in) :: variable(:,:)
-    character(80), intent(in) :: filename
+    integer, intent(in) :: n
+    character(n), intent(in) :: filename
+    character(20) :: FMT
     integer :: r, c, i
 
     r = size(variable, 1)
     c = size(variable, 2)
+    write(FMT, *)
 
-    call file_open(filename, 'float')
+    call file_open(filename, n, 'float')
     do i = 1, r
-       write(fileunit, '(<c>f12.7)') variable(r, :)
+       write(fileunit, '(' // adjustl(FMT) // 'f12.7)') variable(r, :)
     end do
 
     call file_close()
   end subroutine pysave_real_2d
 
-  subroutine pysave_logical(variable, filename)
+  subroutine pysave_logical(variable, filename, n)
     logical, intent(in) :: variable
-    character(80), intent(in) :: filename
+    integer, intent(in) :: n
+    character(n), intent(in) :: filename
 
-    call file_open(filename, 'logical')
+    call file_open(filename, n, 'logical')
     if (variable) then
        write(fileunit, *) 'true'
     else
@@ -262,32 +320,113 @@ contains
     close(fileunit)
   end subroutine file_close
  
-  subroutine file_open(filename, template_name)
-    character(80), intent(in) :: filename    
+  subroutine file_open(filename, n, template_name)
+    integer, intent(in) :: n
+    character(n), intent(in) :: filename    
     character(*), intent(in) :: template_name
     integer :: ioerr
-    open(newunit(fileunit), file=filename, status='replace', iostat=ioerr)
+    logical :: exist
+
+    inquire(file=filename, exist=exist)
+    if (exist) then
+       open(fpy_newunit(fileunit), file=filename, status="old", position="append",  &
+            action="write", iostat=ioerr)
+    else
+       open(fpy_newunit(fileunit), file=filename, status="new", action="write", iostat=ioerr)
+       if (ioerr == 0) write(fileunit, *) '# <fortpy version="1" template="', template_name, '"></fortpy>'
+    end if
+
     if (ioerr /= 0) then
        print *, "ERROR opening file for pysave in fortpy", ioerr
-    else
-       write(fileunit, *) '# <fortpy version="1" template="', template_name, '"></fortpy>'
     end if
   end subroutine file_open
 
-  !<summary>Returns lowest i/o unit number not in use.</summary>
-  !<parameter name="unit">Out parameter that will contain the lowest i/o number.</parameter>
-  integer function newunit(unit) result(n)
+  !!<summary>Returns the number of values in the specified line assuming
+  !!that they are separated by spaces or tabs.</summary>
+  !!<parameter name="length">The number of characters in line.</parameter>
+  !!<parameter name="line">The string for the line to count values in.</parameter>
+  integer function fpy_value_count(line, length)
+    integer, intent(in) :: length
+    character(length), intent(in) :: line
+    character(2) :: whitespace
+    integer           :: success, i, indx, prev = 1, beginning = 1
+    real              :: value
+
+    !Initialize the whitespace array. We will cycle through all the characters
+    !in the specified line looking for whitespace. Each time we find it, if the
+    !character immediately preceding it was not whitespace, we have a value.
+    whitespace = '  ' // char(9)
+    fpy_value_count = 0
+
+    do i = 1, length
+       !indx will be zero if the current character is not a whitespace character.
+       indx = index(whitespace, line(i:i))
+
+       if (indx > 0 .and. prev == 0) then
+          !We found the first whitespace after the end of a value we want.
+          fpy_value_count = fpy_value_count + 1
+       end if
+
+       prev = indx
+    end do
+  end function fpy_value_count
+
+  !!<summary>Returns the number of lines in the file that aren't comments and
+  !!the number of whitespace-separated values on the first non-comment line.</summary>
+  !!<parameter name="filename">The name of the file to pass to open.</parameter>
+  !!<parameter name="commentchar">A single character which, when present at the start
+  !!of a line designates it as a comment.</parameter>
+  subroutine fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    character(len=:), allocatable, intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer, intent(out) :: nlines, nvalues
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit, i
+    character(500) :: line
+
+    !Initialize the value for the result; if we get an error during the read, we
+    !end the loop. It can be caused by badly formatted data or the EOF marker.
+    nlines = 0
+    nvalues = 0
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+       do
+          read(funit, *, iostat=ioerr) line
+          if (ioerr == 0) then
+             cleaned = trim(adjustl(line))
+             if (len(cleaned) .gt. 0 .and. cleaned(1:1) /= commentchar) then
+                nlines = nlines + 1
+                !We only need to get the number of values present in a line once.
+                !We restrict the file structure to have rectangular arrays.
+                if (nvalues == 0) then
+                   nvalues = fpy_value_count(line, len(line))
+                end if
+             end if
+          else
+             exit
+          end if
+       end do
+    end if
+  end subroutine fpy_linevalue_count
+
+  !!<summary>Returns lowest i/o unit number not in use.</summary>
+  !!<parameter name="unit">Out parameter that will contain the lowest i/o number.</parameter>
+  integer function fpy_newunit(unit)
     integer, intent(out), optional :: unit
     logical inuse
     integer, parameter :: nmin=10   ! avoid lower numbers which are sometimes reserved
     integer, parameter :: nmax=999  ! may be system-dependent
+    integer :: n
+
     do n = nmin, nmax
        inquire(unit=n, opened=inuse)
        if (.not. inuse) then
           if (present(unit)) unit=n
+          fpy_newunit = n
           return
        end if
     end do
     stop "newunit ERROR: available unit not found."
-  end function newunit
+  end function fpy_newunit
 end module fortpy

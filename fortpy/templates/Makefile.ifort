@@ -55,5 +55,3 @@ endif
 ifeq ($(UNCLE_SVML),true)
    LDFLAGS  += -lsvml
 endif
-
-FFLAGS	+= -I$(LBD1) -I$(LBD2) -I$(LBD3) -fPIC

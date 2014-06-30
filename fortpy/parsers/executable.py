@@ -64,7 +64,7 @@ class ExecutableParser(object):
             codetype = smatch.group("codetype")
 
             #If the exec is a function, we also may have a type and kind specified.
-            if codetype == "function":
+            if codetype.lower() == "function":
                 dtype = smatch.group("type")
                 kind = smatch.group("kind")
                 if module is None:
@@ -184,7 +184,7 @@ class ExecutableParser(object):
         contents = execmatch.group("contents")
 
         #If the exec is a function, we also may have a type and kind specified.
-        if codetype == "function":
+        if codetype.lower() == "function":
             dtype = execmatch.group("type")
             kind = execmatch.group("kind")
             result = Function(name, modifiers, dtype, kind, parent)
@@ -199,6 +199,8 @@ class ExecutableParser(object):
         #Now we can handle the rest which is common to both types of executable
         #Extract a list of local variables
         self._parse_members(contents, result, params)
+        if isinstance(result, Function):
+            result.update_dtype()
         
         #Fortran allows lines to be continued using &. The easiest way
         #to deal with this is to remove all of those before processing
@@ -359,11 +361,12 @@ class ExecutableParser(object):
         
         #If the name matches one in the parameter list, we can connect them
         for param in list(params):
-            if param in members:
-                if mode == "insert" and not param in anexec.parameters:
-                    anexec.add_parameter(members[param])
+            lparam = param.lower()
+            if lparam in members:
+                if mode == "insert" and not lparam in anexec.parameters:
+                    anexec.add_parameter(members[lparam])
                 elif mode == "delete":
-                    anexec.remove_parameter(members[param])
+                    anexec.remove_parameter(members[lparam])
             
         #The remaining members that aren't in parameters are the local variables
         for key in members:

@@ -1,4 +1,5 @@
 import re
+from fortpy.testing.elements import TestingGroup
 
 #This module has all the classes for holding the structure of a fortran
 #code file and its docstrings.
@@ -19,8 +20,10 @@ class CodeElement(object):
         self.end = 0
 
         self._tests = None
+        self._testgroup = None
         self._module = None
         self._full_name = None
+        self._summary = None
 
         #If the modifiers passed in is None, set it to an empty list
         #sometimes when there is no regex match on the modifiers we get None
@@ -47,22 +50,26 @@ class CodeElement(object):
         restored once the unpickling is completed."""
         odict = self.__dict__.copy() # copy the dict since we change it
         del odict['_tests']
+        del odict['_testgroup']
         del odict['_module']
         del odict['parent']
+        del odict['_summary']
         return odict
 
     def __setstate__(self, dict):
         self._tests = None
+        self._testgroup = None
         self._module = None
+        self._summary = None
         self.parent = None
         self.__dict__.update(dict)
 
     def unpickle_docs(self):
         """Sets the pointers for the docstrings that have groups."""
         for doc in self.docstring:
-            if (doc._parent_name is not None and 
-                doc._parent_name in self.groups):
-                doc.group = self.groups[doc._parent_name]                
+            if (doc.parent_name is not None and 
+                doc.parent_name in self.groups):
+                doc.group = self.groups[doc.parent_name]                
 
     def unpickle(self, parent):
         """Sets the parent pointer references for the type executable."""
@@ -100,18 +107,24 @@ class CodeElement(object):
     @property
     def summary(self):
         """Returns the docstring summary for the code element if it exists."""
-        result = ""
-        for doc in self.docstring:
-            if doc.doctype == "summary":
-                result = doc.contents
-                break
+        if self._summary is None:
+            self._summary = ""
+            for doc in self.docstring:
+                if doc.doctype == "summary":
+                    self._summary = doc.contents
+                    break
 
-        #Some of the code elements don't have summary tags (e.g. parameters)
-        #but then they would only have a single docstring anyway.
-        if result == "" and len(self.docstring) > 0:
-            result = self.docstring[0].contents
+            #If a parameter, member or local tag has dimensions or other children,
+            #then the inner-text is not the right thing to use; find a grand-child
+            #summary tag instead.
+            if self._summary == "" and len(self.docstring) > 0:
+                summary = self.doc_children("summary")
+                if len(summary) > 0:
+                    self._summary = summary[0].contents
+                else:
+                    self._summary = self.docstring[0].contents
 
-        return result
+        return self._summary
 
     @property
     def full_name(self):
@@ -133,20 +146,42 @@ class CodeElement(object):
         """Returns a the contents of a group with purpose="testing" if it exists."""
         if self._tests is None:
             self._tests = []
+            docgrp = self.test_group
+            if docgrp is not None:
+                for docel in self.docstring:
+                    if docel.group == docgrp.name:
+                        self._tests.append(docel)
+
+        return self._tests
+
+    @property 
+    def test_group(self):
+        """Returns the doc group with purpose="testing" if it exists."""
+        if self._testgroup is None:
             for gkey in self.groups:
                 docgrp = self.groups[gkey]
                 if "purpose" in docgrp.attributes and \
                    docgrp.attributes["purpose"].lower() == "testing":
-                    for docel in self.docstring:
-                        if docel.group == docgrp.name:
-                            self._tests.append(docel)
+                    self._testgroup = TestingGroup(docgrp, self)
 
-        return self._tests
+        return self._testgroup
 
     @property
     def has_docstring(self):
         """Specifies whether this code element has a docstring."""
         return type(self.docstring) != type(None)        
+
+    def doc_children(self, doctype, limiters=[]):
+        """Finds all grand-children of this element's docstrings that match
+        the specified doctype. If 'limiters' is specified, only docstrings
+        with those doctypes are searched.
+        """
+        result = []
+        for doc in self.docstring:
+            if len(limiters) == 0 or doc.doctype in limiters:
+                result.extend(doc.children(doctype))
+
+        return result
 
     def warn(self, collection):
         """Checks this code element for documentation related problems."""
@@ -169,6 +204,14 @@ class ValueElement(CodeElement):
         self.dimension = self._clean_args(dimension)
 
     def __str__(self):
+        return self.definition()
+
+    def definition(self, suffix = ""):
+        """Returns the fortran code string that would define this value element.
+
+        :arg suffix: an optional suffix to append to the name of the variable.
+          Useful for re-using definitions with new names.
+        """
         kind = "({})".format(self.kind) if self.kind is not None else ""   
         if len(self.modifiers) > 0:
             mods = ", " + ", ".join(self.modifiers) + " " 
@@ -176,7 +219,8 @@ class ValueElement(CodeElement):
             mods = " "
         dimension = "({})".format(self.dimension) if self.dimension is not None else ""
         default = " = {}".format(self.default) if self.default is not None else ""
-        return "{}{}{}:: {}{}{}".format(self.dtype, kind, mods, self.name, dimension, default)
+        name = "{}{}".format(self.name, suffix)
+        return "{}{}{}:: {}{}{}".format(self.dtype, kind, mods, name, dimension, default)        
 
     def _clean_args(self, arg):
         """Removes any leading and trailing () from arguments."""
@@ -484,6 +528,7 @@ class Function(Executable):
     """Represents a function in a program or module."""    
     def __init__(self, name, modifiers, dtype, kind, parent):
         super(Function, self).__init__(name, modifiers, dtype, kind, None, None, parent)
+        self.update_dtype()
 
     def __str__(self):
         params = self.parameters_as_string()
@@ -514,6 +559,25 @@ class Function(Executable):
         self.modifiers = modifiers
         self.dtype = dtype
         self.kind = kind
+        self.update_dtype()
+
+    def update_dtype(self):
+        """Updates the dtype attribute of the function. This is required because
+        fortran functions can have their types declared either as a modifier on
+        the function *or* as a member inside the function."""
+        if self.dtype is None:
+            #search the members of this function for one that has the same name
+            #as the function. If it gets found, overwrite the dtype, kind and
+            #modifiers attributes so the rest of the code works.
+            for m in self.members:
+                if m == self.name.lower():
+                    member = self.members[m]
+                    self.dtype = member.dtype
+                    self.modifiers = member.modifiers
+                    self.kind = member.kind
+                    self.default = member.default
+                    self.dimension = member.dimension
+                    break
 
     @property
     def returns(self):
@@ -792,7 +856,6 @@ class Module(CodeElement, Decoratable):
         :arg result: the possible completions collected so far in the search.
         """
         possible = []
-        print([symbol, attribute])
         for ekey in self.collection(attribute):
             if symbol in ekey:
                 possible.append(ekey)
@@ -1113,98 +1176,3 @@ class Module(CodeElement, Decoratable):
             return result
         else:
             return [ -1, -1 ]
-
-class DocGroup(object):
-    """Represents a list of DocElements that have been logically grouped together."""
-    
-    def __init__(self, XMLElement, decorates = None):
-        self.xml = XMLElement
-        self.decorates = decorates
-        self.attributes = {}
-        self.doctype = "group"
-
-        #Extract all the attributes of the group into a dictionary
-        for key in list(self.xml.keys()):
-            self.attributes[key] = self.xml.get(key)
-            
-    def __str__(self):
-        return "GROUP: {}\nAttributes: {}\nDecorates: {}\n".format(self.name,
-                                                                self.attributes, self.decorates)
-
-    @property
-    def name(self):
-        """Gets the name of this group if it exists."""
-        if "name" in self.attributes:
-            return self.attributes["name"]
-        else:
-            return None
-
-class DocElement(object):
-    """Represents a docstring enabled element in a code file."""
-    
-    def __init__(self, XMLElement, parser, decorates = None, parent = None):
-        """Initializes the docstring element by parsing out the contents and references.
-
-         - XMLElement: the element from the XML tree for the docstring element.
-         - parser: an instance of the DocStringParser() with compiled re objects.
-        """
-        if XMLElement is not None:
-            self.contents = XMLElement.text
-            self.doctype = XMLElement.tag
-        else:
-            self.contents = ""
-            self.doctype = ""
-
-        self.references = []        
-        #Group is the parent of the docstring (i.e. group), NOT the code element it decorates
-        self.group = parent
-        
-        #Decorates is the code element that the docstring refers to. This is common to all code
-        #elements but is only set at a higher level by the code element.
-        self.decorates = decorates
-        self.attributes = {}
-        if XMLElement is not None:
-            self.parse(parser, XMLElement)
-
-    def __getstate__(self):
-        """Cleans up the object so that it can be pickled without any pointer
-        issues."""
-        odict = self.__dict__.copy() # copy the dict since we change it
-        del odict['group']
-        if self.group is not None and not isinstance(self.group, str):
-            odict['_parent_name'] = self.group.name
-        else:
-            odict['_parent_name'] = None
-        return odict
-
-    def __setstate__(self, dict):
-        self.group = None
-        self.__dict__.update(dict)
-
-    @property
-    def pointsto(self):
-        """Returns the name of the variable, parameter, etc. that this
-        docstring points to by checking whether a "name" attribute is
-        present on the docstring."""
-        if "name" in self.attributes:
-            return self.attributes["name"].lower()
-        else:
-            return None
-
-    def parse(self, parser, xml):
-        """Parses the rawtext to extract contents and references."""
-        #We can only process references if the XML tag has inner-XML
-        if xml.text is not None:
-            matches = parser.RE_REFS.finditer(xml.text)
-            if matches:
-                for match in matches:
-                    #Handle "special" references to this.name and param.name here.
-                    self.references.append(match.group("reference"))
-
-        #We also need to get all the XML attributes into the element
-        for key in list(xml.keys()):
-            self.attributes[key] = xml.get(key)
-            
-    def __str__(self):
-        return "{}: {}\nAttributes: {}\nDecorates: {}\n\n".format(self.doctype, self.contents,
-                                                                self.attributes, self.decorates)

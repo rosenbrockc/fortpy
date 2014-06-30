@@ -458,29 +458,43 @@ def _get_key_value_single(key, bodyblock):
 class FileComparer(object):
     """Class for comparing different versions of output files.
 
+    :arg fortpy_templates: the path to the templates folder that shipped with
+      the fortpy package.
     :arg template_folder: the path to the folder that contains the
     XML templates for comparing files across versions.
     """
-    def __init__(self, template_folder = ""):
+    def __init__(self, fortpy_templates, template_folder = ""):
+        self.fortpy_templates = fortpy_templates
         self.templates = {}
         self.folder = template_folder
         #This is the main template used for all the versions of the files that
         #will be compared.
         self.template = None
     
-    def compare(self, source, target):
+    def compare(self, source, target, template, mode):
         """Compares the two files using an XML template if one exists.
 
         :arg source: the path to the first file to compare.
         :arg target: the path to the other file to compare.
+        :arg template: the name of XML file to use as template for the files.
+        :arg mode: the comparison mode to use defined in the template.
         """
-        svalues = self.get_representation(source)
-        tvalues = self.get_representation(target)
+        #Try to load the template specified by the testspec.
+        self._load_from_xml(template)
 
-        return compare_representations(svalues, tvalues, mode)
+        svalues = self.get_representation(source, template)
+        tvalues = self.get_representation(target, template)
 
-    def get_representation(self, path):
-        """Creates a file representation for the specified file path."""
+        #We can't compare representations that don't exist...
+        if svalues is not None and tvalues is not None:
+            return compare_representations(svalues, tvalues, mode)
+
+    def get_representation(self, path, template):
+        """Creates a file representation for the specified file path.
+
+        :arg path: the full path to file to get a templated representation of.
+        :arg template: the name of the template XML file to use.
+        """
         source = os.path.expanduser(path)
         if not os.path.exists(source):
             print("ERROR: can't create representation for {}. File does not exist.\n".format(source))            
@@ -497,6 +511,9 @@ class FileComparer(object):
         #load a template based on the source name and use it for both
         if self.template is None:
             self.template = self._load_template(source, sf)
+        if self.template is None and template.lower() in self.templates:
+            self.template = self.templates[template.lower()]
+
         stemplate = self._get_file_template(self.template, sv)
 
         #Get python-valued representations and compare them. If the first line
@@ -543,6 +560,20 @@ class FileComparer(object):
         else:
             return 1
             
+    def _load_from_xml(self, filename):
+        """Loads the XML template for the specified XML file name if it exists."""
+        if filename is None or filename.lower() in self.templates:
+            return
+
+        target = os.path.join(self.folder, filename)
+        if os.path.isfile(target):
+            self.templates[filename.lower()] = FileTemplate(target)
+        else:
+            #We could try the default templates directory for fortpy.
+            target = os.path.join(self.fortpy_templates, filename)
+            if os.path.isfile(target):
+                self.templates[filename.lower()] = FileTemplate(target)            
+
     def _load_template(self, filepath, fortpyxml):
         """Tries to load the XML template for the file at the specified path."""
         #A template file name can be specified in the fortpy tag at the top of

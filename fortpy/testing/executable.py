@@ -91,32 +91,29 @@ class ExecutableGenerator(object):
             
         self.writer = MethodWriter(identifier, self.parser)
 
-    def write(self):
+    def write(self, testid):
         """Writes the fortran program file for the executable specified.
 
-        :arg identifier: a module.executable string that identifies the executable
-           to generate a unit test for."""        
+        :arg testid: the identifier of the test to construct the executable for.
+        """
         lines = []
+        identifier = self.writer.tests[testid].identifier
 
         #First off, we need to start the program and set the module dependencies.
         lines.append("!!<summary>Auto-generated unit test for {}\n".format(
             self.identifier))
-        lines.append("!!using FORTPY. Generated on {}.</summary>\n".format(datetime.now()))
+        lines.append("!!using FORTPY. Generated on {}.\n".format(datetime.now()))
+        lines.append("!!{}</summary>\n".format(self.writer.tests[testid].description))
         lines.append("PROGRAM UNITTEST_{}\n".format(self.writer.method.executable.name))
         lines.append(self._get_uses())
 
         #Next add the variable declarations and initializations and the calls
         #to execute the pre-req methods and the one we are trying to test.
-        lines.append(self.writer.lines())
-
-        #We need to examine the outcomes of the testing and see which variable
-        #values need to be written out to file for comparison by the python framework.
-        lines.append("") #Add a blank line for formatting.
-        lines.append(self._get_outcomes())
+        lines.append(self.writer.lines(testid))
 
         lines.append("\nEND PROGRAM UNITTEST_{}".format(self.writer.method.executable.name))
 
-        with open(path.join(self.folder, "tester.f90"), 'w') as f:
+        with open(path.join(self.folder, "{}.f90".format(identifier)), 'w') as f:
             f.writelines(lines)
         
     def _get_mapping(self, mapped):
@@ -128,13 +125,16 @@ class ExecutableGenerator(object):
         else:
             return mapped + ".f90"
 
-    def makefile(self):
+    def makefile(self, identifier):
         """Generates a makefile to create the unit testing executable
-        for the specified module.executable identifier."""
+        for the specified test identifier.
+
+        :arg identifier: the id of the test that this executable should be made for.
+        """
         lines = []
 
         #Append the general variables
-        lines.append("EXENAME\t\t= run.x")
+        lines.append("EXENAME\t\t= {}.x".format(identifier))
         lines.append("SHELL\t\t= /bin/bash")
         lines.append("UNAME\t\t= $(shell uname)")
         lines.append("HOSTNAME\t= $(shell hostname)")
@@ -162,7 +162,7 @@ class ExecutableGenerator(object):
             lines.append("\t\t{} \\".format(self._get_mapping(modk)))
         lines.append("\t\t{}".format(self._get_mapping(allneeds[-1])))
 
-        lines.append("MAINF90\t\t= tester.f90")
+        lines.append("MAINF90\t\t= {}.f90".format(identifier))
         lines.append("SRCF90\t\t= $(LIBMODULESF90) $(MAINF90)")
         lines.append("OBJSF90\t\t= $(SRCF90:.f90=.o)")
         lines.append("")
@@ -178,7 +178,7 @@ class ExecutableGenerator(object):
         lines.append(self._make_info())
         lines.append(self._make_exe())
 
-        makepath = path.join(self.folder, "Makefile")
+        makepath = path.join(self.folder, "Makefile.{}".format(identifier))
         with open(makepath, 'w') as f:
             f.writelines("\n".join(lines))
 
@@ -251,57 +251,6 @@ info:
 	echo ""                                                      | tee -a $(LOG)
 
 """
-
-    def _get_outcomes(self):
-        """Generates code to test the list of outcomes for the unit test."""
-        #The idea is that it is too hard to use ctypes etc. for unit testing
-        #if we know which variables need to be examined, we can write them
-        #out to a file with a pre-determined format that can be parsed and
-        #then compared by python.
-
-        #If the variable is a derived type, it must have a method called
-        #test_output() that takes a filename as a single argument and produces
-        #deterministic output.
-
-        #Outcomes can be either separate runs/cases with output file comparison
-        #or individual variable values. If only output files are being compared
-        #we don't have to do anything.
-        outcomes = []
-
-        for doc in self.writer.method.executable.tests:
-            if doc.doctype == "outcome" and "target" in doc.attributes:
-                target = doc.attributes["target"]
-                if target[0] != ".":
-                    #This is a variable value comparison and we need to do
-                    #something at this level.
-                    outcome = self._process_outcome(doc, target)
-                    if outcome is not None:
-                        outcomes.append(outcome)
-
-        return self._tabjoin(outcomes)
-
-    def _process_outcome(self, outcome, target):
-        """Processes a single outcome involving a variable value comparison."""
-        #The framework allows the developer to specify a subroutine to create the
-        #output file for comparison. If one was specified, just use that.
-        if "generator" in outcome.attributes:
-            return "call {}({})".format(outcome.attributes["generator"], target)
-        else:
-            #We need to use the fortpy module or the variables own test_output()
-            #to create a file that can be compared later by python. This means
-            #that we need to know the type and kind of the variable whose value
-            #needs to be compared
-            if target in self.writer._globals:
-                glob = self.writer._globals[target]
-                dtype = glob.attributes["type"]
-                if dtype == "class" or dtype == "type":
-                    return "call {}%test_output('{}.fortpy')".format(target, target)
-                else:
-                    #pysave is an interface in the fortpy module that can accept variables
-                    #of different types and write them to file in a deterministic way
-                    return "call pysave({}, '{}.fortpy')".format(target, target)
-            else:
-                return None            
 
     def _get_uses(self):
         """Gets a list of use statements to add to the program code."""

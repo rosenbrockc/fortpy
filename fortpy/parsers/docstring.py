@@ -1,6 +1,6 @@
 import xml.etree.ElementTree as ET
 import re
-from ..elements import DocElement, DocGroup
+from ..docelements import DocElement, DocGroup
 import os
 
 class DocStringParser(object):

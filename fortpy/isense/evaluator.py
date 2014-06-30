@@ -1,4 +1,5 @@
 from fortpy.elements import Function, Subroutine, CustomType, ValueElement, Module, Executable
+from fortpy.docelements import DocElement
 from . import cache
 from .classes import Completion
 
@@ -111,11 +112,18 @@ class Evaluator(object):
         """Returns a dictionary of documentation for helping complete the
         dimensions of a variable."""
         if variable is not None:
+            #Look for <dimension> descriptors that are children of the variable
+            #in its docstrings.
+            dims = variable.doc_children("dimension", ["member", "parameter", "local"])
+            descript = str(variable)
+            if len(dims) > 0:
+                descript += " | " + " ".join([DocElement.format_dimension(d) for d in dims])
+
             return dict(
                 params=[variable.dimension],
                 index=0,
                 call_name=variable.name,
-                description=str(variable),
+                description=descript,
             )        
         else:
             return []
@@ -285,7 +293,8 @@ class Evaluator(object):
         target_name = ""
         if previous in self.element.members:
             target_name = self.element.members[previous].kind
-        if previous in self.element.parameters:
+        #The contextual element could be a module, in which case it has no parameters
+        if hasattr(self.element, "parameters") and previous in self.element.parameters:
             target_name = self.element.parameters[previous].kind
 
         if target_name == "":

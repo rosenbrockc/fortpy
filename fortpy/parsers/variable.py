@@ -25,7 +25,7 @@ class VariableParser(object):
             #The regex match could contain multiple members that were defined
             #on the same line in the code file.
             for onemem in mems:
-                result[onemem.name] = onemem
+                result[onemem.name.lower()] = onemem
         return result
 
     def _process_member(self, member, parent):

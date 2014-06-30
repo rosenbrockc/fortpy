@@ -110,13 +110,18 @@ class CodeParser(object):
     def _parse_docstrings(self, filepath):
         """Looks for additional docstring specifications in the correctly named
         XML files in the same directory as the module."""        
-        segs = filepath.split(".")
-        segs.pop()
-        xmlpath = ".".join(segs) + ".xml"
+        xmlpath = self.get_xmldoc_path(filepath)
         if self.tramp.exists(xmlpath):
             xmlstring = self.tramp.read(xmlpath)
             self.modulep.docparser.parsexml(xmlstring, self.modules)
             
+    def get_xmldoc_path(self, filepath):
+        """Returns the full path to a possible XML documentation file for the
+        specified code filepath."""
+        segs = filepath.split(".")
+        segs.pop()
+        return ".".join(segs) + ".xml"
+
     def _parse_from_file(self, filepath, fname,
                          dependencies, recursive, greedy):
         """Parses the specified string to load the modules *from scratch* as
@@ -143,6 +148,13 @@ class CodeParser(object):
         to be reparsed because the file was changed since it was
         last loaded."""       
         file_mtime = self.tramp.getmtime(filepath)
+        #We also want to perform a reparse if the XML documentation file for the
+        #module changed, since the docs are also cached.
+        xmlpath = self.get_xmldoc_path(filepath)
+        if self.tramp.exists(xmlpath):
+            xml_mtime = self.tramp.getmtime(xmlpath)
+            if xml_mtime > file_mtime:
+                file_mtime = xml_mtime
 
         #If we have parsed this file and have its modules in memory, its
         #filepath will be in self._parsed. Otherwise we can load it from

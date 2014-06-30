@@ -148,6 +148,13 @@ class FileLine(object):
 
         return self._pcount
 
+    @property
+    def unique_names(self):
+        """Returns a list of all the named variables where each variable only
+        appears once, even if it is multi-valued.
+        """
+        return [n.split("*")[0] for n in self._raw_names]
+
     def write(self, valuedict, version, stored):
         """Creates a string representation for this line template using the
         specified values as part of output file conversion.
@@ -708,7 +715,7 @@ class FileTemplate(object):
         #THere also has to be a TemplateOutcomes.
         defaultto = TemplateOutcomes()
         for vkey in self.contents:
-            if "default" not in self.contents[vkey].comparisons:
+            if "default" not in self.contents[vkey].outcomes:
                 self.contents[vkey].outcomes["default"] = defaultto
 
     def _xml_v_outcomes(self, element):
@@ -743,7 +750,7 @@ class FileTemplate(object):
             if "key" in element.attrib:
                 self.contents[v].key = element.attrib["key"]
                 if "," in self.contents[v].key:
-                    self.contents[k].key = re.split(",\s*", self.contents[v].key)
+                    self.contents[v].key = re.split(",\s*", self.contents[v].key)
             
         self._xml_v_lineparent(element)
             

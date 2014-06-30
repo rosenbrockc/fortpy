@@ -1,4 +1,5 @@
 from . import cache
+import re
 from fortpy.elements import Function, Subroutine, ValueElement, Executable, TypeExecutable
 
 class BaseDefinition(object):
@@ -150,7 +151,10 @@ class Completion(BaseDefinition):
             result = "Intrinsic Fortran Symbol"
         elif isinstance(self._element, TypeExecutable):
             result = self._type_description()
-        return result
+
+        #Clean off any line breaks from the XML and excessive whitespace.
+        cleaned = re.sub("\s+", " ", result.replace("\n", " "))
+        return cleaned
         
     def _type_description(self):
         """Gets the completion description for a TypeExecutable."""
@@ -165,7 +169,7 @@ class Completion(BaseDefinition):
         return result
         
     def follow_definition(self):
-        """
+        """g
         Return the original definitions. I strongly recommend not using it for
         your completions, because it might slow down |fortpy|. If you want to
         read only a few objects (<=20), it might be useful, especially to get

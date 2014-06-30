@@ -1,4 +1,5 @@
 from fortpy.code import CodeParser
+from . import builtin
 import time
 import re
 import pyparsing
@@ -114,16 +115,8 @@ _RX_FULL_CURSOR = r"(?P<symbol>[^\s=,(]+)"
 RE_FULL_CURSOR = re.compile(_RX_FULL_CURSOR, re.I)
 
 #A list of all the function names that are 'builtin' in Fortran
-_builtin = parser().modulep.xparser._intrinsic_functions()
-builtin = {}
-for fun in _builtin:
-    builtin[fun.lower()] = fun
+builtin = builtin.load(_parsers["default"].modulep.docparser, _parsers["default"].serialize)
 
-#This is a hard-coded list of commonly used builtin functions for fortran
-#We need to replace this list with an XML file that has additional meta
-#data for each of the functions so we can give parameter support. When that
-#file is ready, we can add an attribute that specifies whether it is used
-#commonly. TODO
 _common_builtin = [ "OPEN", "CLOSE", "PRESENT", "ABS", "DIM", "ALLOCATE", "SQRT"]
 common_builtin = {}
 for fun in _common_builtin:

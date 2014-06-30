@@ -21,9 +21,6 @@ endif
 # Options that add to standard flags (do NOT replace standard flags)
 #................................................................................
 
-# Use precompiler
-FFLAGS += -cpp
-
 # Standard Fortran 95
 #FFLAGS  += -std=f95
 #FFLAGS  += -std=f2003
@@ -33,7 +30,3 @@ ifeq ($(UNCLE_OMP),true)   # add openmp flags
    FFLAGS   += -fopenmp
    LDFLAGS  += -fopenmp
 endif
-
-# Libraries
-FFLAGS	+= -I$(LBD1) -I$(LBD2) -I$(LBD3)
-

@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!-- 
 The standard intrinsic procedures are either functions or subroutines.
 Use <function> for a function.
@@ -46,10 +46,10 @@ The following tags support the documentation for the functions:
    will be quick to find the example when the intellisense shows.
 
 If you encounter math symbols: if they are simple enough, write them as
-you would in LaTex. If they are matrices, use bracket notation. E.g. a
+you would in LaTeX. If they are matrices, use bracket notation. E.g. a
 2D matrix is [[1,2,3],[4,5,6],[7,8,9]]. It is much more readable than
-the LaTex equivalent. Remember that newline characters are not allowed
-in XML, so any fancy formatting with whitespace will be lost. The docsring
+the LaTeX equivalent. Remember that newline characters are not allowed
+in XML, so any fancy formatting with whitespace will be lost. The docstring
 that will get displayed at the end of the day will be interpreted 
 without new lines.
 
@@ -71,20 +71,3390 @@ whether something is relevant, just make note of it and ask me later.
 One more thing: please don't go passed 80 characters width in your XML
 file, it would be nice to keep it human readable for when the next version
 of Fortran is released, then we can update any changed definitions more
-easily. Also, if you need to, you can split the definitions over multiple
+easily. (This is kept with a tab size of 2). 
+
+Also, if you need to, you can split the definitions over multiple
 XML files. Call them builtin-1.xml, builtin-2.xml etc. Just be sure that
 all the <function> and <subroutine> tags are nested inside a root tag with
 the name 'builtin'.
 
 I have included a simple example for you.-->
 <builtin>
-  <function name="ABS" type="int, real, complex" kind="" default="" dimension="">
-    <summary>Absolute value. The result is the same as A except that if A 
-    is complex, the result is real.</summary>
-    <parameter name="A" type="int, real, complex">The value to take the
-    absolute value of.</parameter>
-    <usage>The value of the result is |A|; if A is of type complex with 
-    value x + yi, this is equal to \sqrt{x^2 + y^2}. EXAMPLE: ABS (–1) 
-    has the value 1. ABS ((3.0, 4.0)) has the value 5.0.</usage>
+  <function name="ABS" type="int, real" elemental="true">
+    <summary>
+      Absolute value. The result is the same as A except that if A 
+      is complex, the result is real.
+    </summary>
+    <parameter name="A" type="int, real, complex">
+      The value to take the absolute value of.
+    </parameter>
+    <usage>
+      The value of the result is |A|; if A is of type complex with 
+      value x + yi, this is equal to $\sqrt{x^2 + y^2}$. 
+      EXAMPLES: ABS(–1) has the value 1. ABS((3.0, 4.0)) has the value 5.0.
+    </usage>
   </function>
+  <function name="ACHAR" type="character" elemental="true">
+	  <summary>
+			Character in a specified position of the ASCII character set. 
+			The result is a character of length 1 and type KIND if the parameter KIND 
+			is present, or otherwise, with the kind of default character.
+		</summary>
+		<parameter name="I" type="integer">
+			Its value must be in the range of the collating values of the appropriate 
+			ASCII or processor collating sequence.
+		</parameter>
+		<parameter name="KIND" type="integer" modifier="optional" default="1">
+			Scalar integer initialization expression whose value is a character kind 
+			value.
+		</parameter>
+		<usage>
+			The result is the ASCII character whose position in the ASCII collating 
+			sequence is I, provided I is in the range [0,127] and the processor is 
+			capable of representing that character in the character type of the 
+			result; otherwise, the result is processor dependent. 
+			ACHAR(@CREF[IACHAR](C)) has the value C for any character C representable 
+			in the default character type. EXAMPLES: ACHAR(120) is x and ACHAR(120, 
+			@CREF[SELECTED_CHAR_KIND]("ISO_10646")) is x represented as a character 
+			of the ISO 10646 character kind.
+		</usage>
+	</function>
+	<function name="ACOS" type="real" elemental="true">
+		<summary>
+			Arc cosine. The result is a real of the same kind as X.
+		</summary>
+		<parameter name="X" type="real">
+			Value to take the acos of. Of type real such that |X|&lt;=1.
+		</parameter>
+		<usage>
+			The result is the arc cosine of X, expressed in radians, in the range 
+			$[0,\pi]$. 
+			EXAMPLES: ACOS(1.0) is 0.0; and ACOS(-1.0d0) is $\pi$ with double 
+			precision kind.
+		</usage>
+	</function>
+	<function name="ADJUSTL" type="character"	elemental="true">
+		<summary>
+			Leading blanks are removed and placed on the right. Returned value is of 
+			type character with type parameters of STRING.
+		</summary>
+		<parameter name="STRING" type="character">
+			String to be adjusted. Of type character.
+		</parameter>
+		<usage>
+			The result is the argument value with leading blanks removed and the same 
+			number of trailing blanks inserted. 
+			EXAMPLE: ADJUSTL("bbinput.f90bbb") returns the string "input.f90bbbbb".
+		</usage>
+	</function>
+	<function name="AIMAG" type="real" elemental="true">
+		<summary>
+			Imaginary part of a complex value. Of type real with the kind of Z.
+		</summary>
+		<parameter name="Z" type="complex">
+			Value of complex type to get the imaginary part of.
+		</parameter>
+		<usage>
+			The result is the imaginary part of the complex object Z. 
+			EXAMPLE: AIMAG((1.0, 2.0)) is 2.0.
+		</usage>
+	</function>
+	<function name="AINT" type="real" elemental="true">
+		<summary>
+			Real value truncated to a whole number. The kind is KIND if present, or 
+			otherwise, the kind is the same as A.
+		</summary>
+		<parameter name="A" type="real">
+			Real number to be truncated.
+		</parameter>
+		<parameter name="KIND" type="integer" modifier="optional" default="1">
+			Scalar integer initialization expression whose value is a real kind value.
+		</parameter>
+		<usage>
+			Returns the largest whole number whose magnitude is less than or equal to 
+			|A| and whose sign is the same as A. 
+			EXAMPLE: AINT(3.7) is 3.0; AINT(-3.7, P) is -3.0 with kind P.
+		</usage>
+	</function>
+	<function name="ALL" type="logical" modifier="dimension">
+		<summary>
+			True if all array elements are true. Result is a logical of the kind of 
+			MASK. If DIM is absent or MASK has rank one, it is a scalar; otherwise, it 
+			is a rank n-1 array whose shape is that of MASK with the DIM dimension 
+			removed.
+		</summary>
+		<parameter name="MASK" type="logical" modifier="dimension">
+			Array of type logical.
+		</parameter>
+		<parameter name="DIM" type="integer" modifier="optional">
+			Scalar of type integer with a value in the range [1,n] where n is the 
+			rank of MASK. The corresponding actual argument must not be an optional 
+			dummy argument.
+		</parameter>
+		<usage>
+			If DIM is absent, or MASK has rank one, the result is the scalar equal to 
+			the conjunction ("and-ing") of all the elements of MASK or true if MASK 
+			is zero-sized. If DIM is present and MASK has rank n&gt;=2, the result is a 
+			rank n-1 array where the value of the element 
+			$(s_1, s_2, ... , s_{DIM-1}, s_{DIM+1}, ... , s_n)$ is the value of 
+			ALL(MASK $(s_1, s_2, ... , s_{DIM-1}, :, s_{DIM+1}, ... , s_n)$). 
+			EXAMPLES: ALL([.true., .false.]) is a scalar of default logical type with 
+			value false. If B is the array [[1,3,5],[2,4,6]], and C is the array 
+			[[0,3,5],[7,4,8]], ALL(B/=C,DIM=1) is [true false false], 
+			ALL(B/=C,DIM=2) is [false false], and ALL(B/=C) is false.
+		</usage>
+	</function>
+	<function name="ALLOCATED" type="logical">
+		<summary>
+			Allocation status of the argument. The result is a scalar of type default 
+			logical.
+		</summary>
+		<parameter name="ARRAY" 
+			type="real, complex, integer, character, logical, class" kind=",derived," 
+			modifier="allocatable, dimension">
+			An allocatable array of any type. Can also be a scalar.
+		</parameter>
+		<usage>
+			The result is true if the argument is allocated and false if unallocated. 
+			While the variable name refers to arrays, scalars can be allocatable and 
+			used with this function as well.
+		</usage>
+	</function>
+	<function name="ANINT" type="real" elemental="true">
+		<summary>
+			Real value rounded to the nearest whole number. The kind is KIND if 
+			present, or otherwise, the kind is the same as A.
+		</summary>
+		<parameter name="A" type="real">
+			Real number to be rounded.
+		</parameter>
+		<parameter name="KIND" type="integer" modifier="optional" default="1">
+			Scalar integer initialization expression whose value is a real kind value.
+		</parameter>
+		<usage>
+			Returns the nearest whole number to A; if there are two such whole 
+			numbers, the one of greater magnitude is returned. 
+			EXAMPLES: ANINT(3.1) is 3.0 and ANINT(-3.5) is -4.0.
+		</usage>
+	</function>
+	<function name="ANY" type="logical" modifier="dimension">
+		<summary>
+			True if any array elements are true. Result is a logical of the kind of 
+			MASK. If DIM is absent or MASK has rank one, it is a scalar; otherwise, it 
+			is a rank n-1 array whose shape is that of MASK with the DIM dimension 
+			removed.
+		</summary>
+		<parameter name="MASK" type="logical" modifier="dimension">
+			Array of type logical.
+		</parameter>
+		<parameter name="DIM" type="integer" modifier="optional">
+			Scalar of type integer with a value in the range [1,n] where n is the 
+			rank of MASK. The corresponding actual argument must not be an optional 
+			dummy argument.
+		</parameter>
+		<usage>
+			If DIM is absent, or MASK has rank one, the result is the scalar equal to 
+			the disjunction ("or-ing") of all the elements of MASK or false if MASK 
+			is zero-sized. If DIM is present and MASK has rank n &gt;=2, the result is a 
+			rank n-1 array where the value of the element 
+			$(s_1, s_2, ... , s_{DIM-1}, s_{DIM+1}, ... , s_n)$ is the value of 
+			ANY(MASK $(s_1, s_2, ... , s_{DIM-1}, :, s_{DIM+1}, ... , s_n)$). 
+			EXAMPLES: ANY([.true., .false.]) is a scalar of default logical type with 
+			value true. If B is the array [[1,3,5],[2,4,6]], and C is the array 
+			[[0,3,5],[7,4,8]], ANY(B/=C,DIM=1) is [true false true], 
+			ANY(B/=C,DIM=2) is [true true], and ANY(B/=C) is true.
+			<!--The examples given in the source were wrong; these are correct.-->
+		</usage>
+	</function>
+	<function name="ASIN" type="real" elemental="true">
+		<summary>
+			Arc sine. The result is a real of the same kind as X.
+		</summary>
+		<parameter name="X" type="real">
+			Value to take the asin of. Of type real such that |X|&lt;=1.
+		</parameter>
+		<usage>
+			The result is the arc sine of X, expressed in radians, in the range 
+			$[-\pi/2,\pi/2]$. 
+			EXAMPLES: ASIN(1.0) is $\pi/2$; and ASIN(-1.0d0) is $-\pi/2$ with double 
+			precision kind.
+		</usage>
+	</function>
+	<function name="ASSOCIATED" type="logical">
+		<summary>
+			Association status of a pointer or its association with a specific 
+			target. The result is a scalar of type default logical.
+		</summary>
+		<parameter name="POINTER" 
+			type="real, complex, integer, character, logical, procedure, class" 
+			kind=",derived," modifier="pointer">
+			A pointer of any type. It may be a procedure pointer. It must have a 
+			defined association status.
+		</parameter>
+		<parameter name="TARGET" 
+			type="real, complex, integer, character, logical" modifier="optional">
+			Any procedure of data target allowed in a pointer assignment statement of 
+			the form POINTER =&gt; TARGET. If TARGET is a pointer, its pointer 
+			association status must be defined.
+		</parameter>
+		<usage>
+			If POINTER is disassociated, the result is false regardless of whether 
+			TARGET is present. If TARGET is absent, the result is true if the pointer 
+			POINTER is associated with a target. 
+			If TARGET is present and is a procedure, the result is true if POINTER is 
+			associated with TARGET, otherwise it is false.
+			If TARGET is present and is a procedure pointer, the result is true if 
+			POINTER and TARGET are associated with the same procedure; the result is 
+			false if POINTER and TARGET are not associated with the same procedure or 
+			either POINTER or TARGET is disassociated.
+			If TARGET is present and is a scalar, the result is true if the target 
+			associated with POINTER occupies the same storage units as the scalar 
+			target and TARGET is not a zero-sized storage sequence; the result is 
+			false if the target associated with POINTER does not occupy the same 
+			storage units, TARGET is a zero-sized storage sequence, or POINTER is 
+			disassociated.
+			If TARGET is present and is an array, the result is true if TARGET and 
+			the target associated with POINTER have the same shape, occupy the same 
+			storage units in array element order, and neither is zero-sized nor an 
+			array whose elements are zero-sized storage sequences; the result is 
+			false if TARGET and the target associated with POINTER do not have the 
+			same shape, do not occupy the same storage units in array element order, 
+			or one of them is zero-sized or an array whose elements are zero-sized 
+			storage sequences, or POINTER is disassociated.
+			If TARGET is present and is a scalar pointer, the result is true if the 
+			targets associated with POINTER and TARGET occupy the same storage units, 
+			and neither of the targets is a zero-sized storage sequence; the result 
+			is false if the targets associated with POINTER and TARGET occupy 
+			different storage units, either one or both of the targets associated 
+			with POINTER or TARGET is a zero-sized storage sequence, or either one or 
+			both of POINTER or TARGET is disassociated.
+			If TARGET is present and is an array pointer, the result is true if the 
+			targets associated with POINTER and TARGET have the same shape, occupy 
+			the same storage units in array element order, and neither is zero-sized 
+			nor an array whose elements are zero-sized storage sequences. 
+			EXAMPLES: Consider the type declarations: \\
+			type node_type \\
+			integer :: value \\
+			type(node_type), pointer :: next =&gt; null() \\
+			end type \\
+			type(node_type) :: node \\ <!-- the \\ indicates a line break-->
+			ASSOCIATED(node%next) is false initially but after the allocation 
+			@CREF[ALLOCATE](node%next), ASSOCIATED(node%next) is true.
+			Consider a rank one array B with the TARGET attribute and bounds 1:N, and 
+			a pointer B_PTER of rank-one of the same type. After the execution of the 
+			statement B_PTR =&gt; B(:N), ASSOCIATED(B_PTR, B) is true whereas after the 
+			execution of the statement B_PTR =&gt; B(N:1:-1), ASSOCIATED(B_PTR, B) is 
+			false.
+		</usage>
+	</function>
+	<function name="ATAN" type="real" elemental="true">
+		<summary>
+			Arc tangent. The result is a real of the same kind as X.
+		</summary>
+		<parameter name="X" type="real">
+			Real to take the atan of.
+		</parameter>
+		<usage>
+			The result is the arc tangent of X, expressed in radians, in the range 
+			$[-\pi/2,\pi/2]$. 
+			EXAMPLES: ATAN(1.0) is $\pi/4$; and ATAN(-1.0d0) is $-\pi/4$ with double 
+			precision kind.
+		</usage>
+	</function>
+	<function name="ATAN2" type="real" elemental="true">
+		<summary> Angle in radians of a complex value X+Yi. Result kind is the same 
+			as Y.
+		</summary>
+		<parameter name="Y" type="real">
+			Imaginary part of complex argument to arc tangent X+Yi. X and Y must be 
+			of the same kind, and they must not both be zero.
+		</parameter>
+		<parameter name="X" type="real">
+			Real part of complex argument to arc tangent X+Yi. X and Y must be 
+			of the same kind, and they must not both be zero.
+		</parameter>
+		<usage>
+			The result is the principal value of the arc tangent of the complex value 
+			X+Yi, expressed in radians, in the range $[-\pi,\pi]$. For special 
+			values, the following rules are followed: 
+			ATAN2(Y &gt; 0, X) &gt; 0, ATAN2(Y &gt; 0, X = 0) = $\pi$, 
+			ATAN2(Y &lt; 0, X)&lt; 0, ATAN2(Y &lt; 0, X = 0) = $-\pi/2$, 
+			ATAN2(Y = 0, X &gt; 0) = 0, ATAN2(Y = 0, X &lt; 0) = $\pi$, 
+			ATAN2(Y = +0, X &gt; 0) = +0, ATAN2(Y = +0, X &lt; 0) = $\pi$,
+			ATAN2(Y = -0, X &gt; 0) = -0, ATAN2(Y = -0, X &lt; 0) = $-\pi$, 
+			where Y = 0 denotes the case where the processor cannot distinguish 
+			between +0 and -0. 
+			EXAMPLES: ATAN2(1.0,1.0) is $\pi/4$ and ATAN2(0.0d0,-1.0d0) is $\pi$ with 
+			double precision kind.
+		</usage>
+	</function>
+	<function name="BIT_SIZE" type="integer">
+		<summary>
+			Number of bits in the bit model. The result is an integer of the kind of 
+			I.
+		</summary>
+		<parameter name="I" type="integer" modifier="dimension">
+			Scalar or array of type integer.
+		</parameter>
+		<usage>
+			The result is the number of bits z provided by the bit model. 
+			EXAMPLE: BIT_SIZE(I) where I is of default 32-bit integer type is 32.
+		</usage>
+	</function>
+	<function name="BTEST" type="logical" elemental="true">
+		<summary>
+			Test of the bit value in a specified position. Result is of type default 
+			logical.
+		</summary>
+		<parameter name="I" type="integer">
+			Integer value to be tested.
+		</parameter>
+		<parameter name="POS" type="integer">
+			Integer value indicating bit to be tested. Must be in the range 
+			[0, @CREF[BIT_SIZE](I)-1]
+		</parameter>
+		<usage>
+			The result is true if the bit at position POS of I is 1 and false 
+			otherwise. 
+			EXAMPLE: BTEST(16, 4) is true.
+		</usage>
+	</function>
+	<function name="CEILING" type="integer" elemental="true">
+		<summary>
+			Smallest whole number greater than or equal to a value. Result is of type 
+			integer with kind KIND if KIND is present, or otherwise, with the kind of 
+			default integer.
+		</summary>
+		<parameter name="A" type="real">
+			Number to be rounded up, of type real.
+		</parameter>
+		<parameter name="KIND" type="integer" modifier="optional" default="1">
+			Scalar integer initialization expression whose value is an integer kind 
+			value.
+		</parameter>
+		<usage>
+			The result is the smallest whole number greater than or equal to A. 
+			EXAMPLES: CEILING(3.1) is 4; CEILING(3.0) is 3; and CEILING(-4.1, P) is 
+			-4 of integer kind P.
+		</usage>
+	</function>
+	<function name="CHAR" type="character" elemental="true">
+		<summary>
+			Character in the specified position of a character set. Result is of 
+			type character, of length 1, and with the kind KIND, if KIND is present, 
+			or otherwise, with the kind of default character.
+		</summary>
+		<parameter name="I" type="integer">
+			Integer whose value must be in the range of the collating values for the 
+			processor collating sequence.
+		</parameter>
+		<parameter name="KIND" type="integer" modifier="optional" default="1">
+			Scalar integer initialization expression whose value is a character kind 
+			value.
+		</parameter>
+		<usage>
+			The result is the character whose position is I in the collating sequence 
+			for character of the kind of the result. 
+			EXAMPLES: CHAR(100) is the character d if the default character set uses 
+			the ASCII collating sequence. 
+			CHAR(107, @CREF[SELECTED_CHAR_KIND]("ISO_10646")) is the character in 
+			position 107, namely k, of the ISO 10646 character set, provided the 
+			processor supports this ISO character set.
+		</usage>
+	</function>
+	<function name="CMPLX" type="complex" elemental="true">
+		<summary>
+			Convert to complex value. Return value is of type complex of kind KIND, 
+			if KIND is present, or otherwise, with kind default real.
+		</summary>
+		<parameter name="X" type="integer, real, complex">
+			Of type integer, real, or complex, or a BOZ literal constant. If X is 
+			not complex, X will be the real part of the returned complex value.
+		</parameter>
+		<parameter name="Y" type="integer, real" modifier="optional">
+			Of type integer, real, or a BOZ literal constant. Y is 
+			optional, need not be of the same type or kind as X, but must not be 
+			present if X is complex. The actual argument corresponding to Y must not 
+			be an optional dummy argument.
+		</parameter>
+		<parameter name="KIND" type="integer" modifier="optional" default="1">
+			Scalar integer initialization expression whose value is a real kind value.
+		</parameter>
+		<usage>
+			If Y is absent, the result is the value X if X is complex, or the complex 
+			value REAL(X, KIND) + 0i, if X is not complex; if Y is present, the value 
+			is that of the complex number REAL(X, KIND) + REAL(Y, KIND)i. If X or Y 
+			is a BOZ literal constant, the argument corresponding to X or Y is 
+			treated as if it were a constant of the type and kind of the result whose 
+			bit pattern is processor dependent. 
+			EXAMPLES: CMPLX(10.0) is the complex value 10.0; CMPLX(10, 1) is the 
+			complex value 10+i; CMPLX((10.0, 2.0), Q) is 10+2i of real kind 
+			Q.
+		</usage>
+	</function>
+	<function name="COMMAND_ARGUMENT_COUNT" type="integer">
+		<summary>
+			Number of command line arguments. Result is a scalar of type default 
+			integer.
+		</summary>
+		<usage>
+			The result is the number of command arguments used to invoke the 
+			execution of the program containing the reference to this function. If 
+			the processor does not support command arguments, the result is zero. If 
+			the processor has a concept of command name, the count does not include 
+			the command name. 
+			EXAMPLES: Consider the command: prog -c file.f90. On many systems, if the 
+			program prog executed the statement: number = COMMAND_ARGUMENT_COUNT() 
+			the value of number is 2. It could be 0 or 3 on some systems.
+		</usage>
+	</function>
+	<function name="CONJG" type="complex" elemental="true">
+		<summary>
+			Complex conjugate of a complex value. The return value is of type complex 
+			of the kind of Z.
+		</summary>
+		<parameter name="Z" type="complex">
+			Complex number to obtain the conjugate of.
+		</parameter>
+		<usage>
+			The result is the complex conjugate of Z. 
+			EXAMPLES: CONJG((1.0,-10.0)) is 1+10i. CONJG((-2.0, 1.0_Q)) is -2+i of 
+			kind Q where Q is a real kind parameter value of a real type with higher 
+			precision that the default real type.
+		</usage>
+	</function>
+	<function name="COS" type="real, complex" elemental="true">
+		<summary>
+			Cosine. Result type is same as X.
+		</summary>
+		<parameter name="X" type="real, complex">
+			Argument of cosine, of type real or complex.
+		</parameter>
+		<usage>
+			The result is the cosine of X. If X is real, X is in radians. If X is 
+			complex, the real part of X is express in radians. 
+			EXAMPLES: COS(0.0) is 1; COS(B) where B is $\pi/3$ and of type default 
+			real is 0.5; and COS(A) where A is $-\pi/2 - i$ and of type complex with 
+			kind Q is the complex value 1.54308 with kind Q.
+		</usage>
+	</function>
+	<function name="COSH" type="real" elemental="true">
+		<summary>
+			Hyperbolic cosine. Return value is real of kind of X.
+		</summary>
+		<parameter name="X" type="real">
+			Argument of cosh, of type real.
+		</parameter>
+		<usage>
+			The result is the hyperbolic cosine of X. 
+			EXAMPLES: COSH(0.0) is 1 and COSH(-0.5d0) is 1.127626 with double 
+			precision kind.
+			NOTE: COSH accepts complex arguments for some compilers, and is standard 
+			for Fortran 2008 or later.
+		</usage>
+	</function>
+	<function name="COUNT" type="integer" modifier="dimension">
+		<summary>
+			Number of true array elements. Result is of type integer with kind KIND 
+			if KIND is present, or otherwise, with the kind of default integer. If 
+			DIM is absent of MASK has rank one, it is a scalar; otherwise, it is a 
+			rank n-1 array whose shape is that of MASK with the DIM dimension removed.
+		</summary>
+		<parameter name="MASK" type="logical" modifier="dimension">
+			Array of type logical.
+		</parameter>
+		<parameter name="DIM" type="integer" modifier="optional">
+			Scalar of type integer with a value in the range [1, n] where n is the 
+			rank of MASK. The corresponding actual argument must not be an optional 
+			dummy argument.
+		</parameter>
+		<parameter name="KIND" type="integer" modifier="optional" default="1">
+			Scalar integer initialization expression whose value is an integer kind 
+			value.
+		</parameter>
+		<usage>
+			If DIM is absent, or MASK has rank one, the result is the count of all 
+			the true elements of MASK or 0 if MASK is zero-sized. If DIM is present 
+			and MASK has rank n&gt;=2, the result is a rank n-1 array; the value of the 
+			element $(s_1, s_2, ... , s_{DIM-1}, s_{DIM+1}, ... , s_n)$ is the value 
+			of COUNT (MASK $(s_1, s_2, ... , s_{DIM-1}, :, s_{DIM+1}, ... , s_n)$). 
+			EXAMPLES: COUNT([.true., .false.]) 1. If B is the array [[1,3,5],[2,4,6]] 
+			and C is the array [[0,3,5],[7,4,8]], COUNT(B/=C,DIM=1) is [2 0 1], 
+			COUNT(B/=C,DIM=2) is [1 2], and COUNT(B/=C) is 3.
+		</usage>
+	</function>
+	<subroutine name="CPU_TIME">
+		<summary>
+			Obtain the processor time. Result is loaded into the argument TIME.
+		</summary>
+		<parameter name="TIME" type="real" modifier="intent(out)">
+			Scalar of type real with intent(out). It is assigned the processor time 
+			in seconds. If the processor cannot return a meaningful time, TIME is 
+			assigned a processor-dependent negative value.
+		</parameter>
+		<usage>
+			EXAMPLE: Consider the following code segment: \\
+			call CPU_TIME(start_time) \\
+			... \\
+			call CPU_TIME(end_time) \\
+			elapsed_time = end_time - start_time \\
+			The first reference to CPU_TIME saves the start time for the code segment 
+			and the second reference saves the completion time; the difference in the 
+			two times provides an estimate of the execution time, subject to an error 
+			dependent on the resolution of the timer used by the procedure CPU_TIME. 
+			CPU time is not consistently available or interpreted on existing 
+			processors. The standard leaves the definition of CPU_TIME imprecise, 
+			permitting an implementation to define the result for CPU_TIME in a way 
+			useful for its uses. For example, when a single result on a parallel 
+			machine is not adequate, the processor might choose to return an array of 
+			times, one for each processor. Also, the start time is left imprecise so 
+			that a particular processor might measure time from midnight of from the 
+			beginning of the year. In addition, the time measured might include 
+			system overhead and might not measure anything related to "wall clock 
+			time". 
+			The purpose of CPU_TIME is to permit the comparison of different 
+			algorithms on the same processor or to return a measure of time that 
+			determines what parts of a computation are most time-consuming and to 
+			compare different methods of improving the performance of various 
+			segments of software. An implementation of CPU time is thus encouraged to 
+			return a result that permits these uses of CPU_TIME.
+		</usage>
+	</subroutine>
+	<function name="CSHIFT" 
+		type="real, complex, integer, character, logical" modifier="dimension">
+		<summary>
+			Circular shift of the elements of an array. Result is the same in type, 
+			dimension and shape as the argument ARRAY.
+		</summary>
+		<parameter name="ARRAY" 
+			type="real, complex, integer, character, logical, class" kind=",derived," 
+			modifier="dimension">
+			Array of any type.
+		</parameter>
+		<parameter name="SHIFT" type="integer" modifier="dimension">
+			Scalar or array of type integer. If ARRAY is of rank 1, it is a scalar; 
+			if ARRAY is an array of rank n&gt;1, SHIFT may also be an array of rank n-1 
+			whose shape is the shape of ARRAY with the DIM dimension removed, or 
+			likewise a scalar.
+		</parameter>
+		<parameter name="DIM" type="integer" modifier="optional" default="1">
+			Scalar of type integer with a value in the range [1, n] where n is the 
+			rank of ARRAY. If DIM is absent, it is as if it were present with the 
+			value 1.
+		</parameter>
+		<usage>
+			If SHIFT or an element of SHIFT is positive, elements of the array are 
+			shifted left; if it is negative, elements are shifted right; and, if it 
+			is zero, no shift occurs. 
+			If ARRAY is of rank one, the ith element of the result is 
+			ARRAY(1+@CREF[MODULO](i+SHIFT-1, @CREF[SIZE](ARRAY))); if ARRAY is of 
+			rank greater than 1, the section 
+			$(s_1, s_2, ... , s_{DIM-1}, :, s_{DIM+1}, ... , s_n)$ 
+			of the result has the value 
+			CSHIFT(ARRAY $(s_1,s_2,...,s_{DIM-1},:,s_{DIM+1},...,s_n)$, sh, 1), 
+			where sh is either SHIFT is SHIFT is a scalar or 
+			SHIFT $(s_1, s_2, ... , s_{DIM-1}, s_{DIM+1}, ... , s_n)$, if SHIFT is an 
+			array. 
+			EXAMPLES: IF V is the array [1,2,3,4,5,6], the effect of shifting V 
+			circularly to the left by two positions is achieved by CSHIFT(V, SHIFT=2) 
+			which has the value [3,4,5,6,1,2]; CSHIFT(V, SHIFT=-2) achieves a 
+			circular shift to the right by two positions and has the value 
+			[5,6,1,2,3,4].
+			The rows of an array of rank two may all be shifted by the same amount or 
+			by different amounts. If M is the array [[1,2,3],[4,5,6],[7,8,9]], the 
+			value of CSHIFT(M, SHIFT=-1, DIM=2) is [[3,1,2],[6,4,5],[9,7,8]], and the 
+			value of CSHIFT(M, SHIFT=[-1,1,0], DIM=2) is [[3,1,2],[5,6,4],[7,8,9]].
+		</usage>
+	</function>
+	<subroutine name="DATE_AND_TIME">
+		<summary>
+			Obtain date and time information in various formats.
+		</summary>
+		<parameter name="DATE" type="character" modifier="optional, intent(out)">
+			Scalar of type default character with length 8 or greater and 
+			with intent(out). If DATE is present, it is assigned the current date in 
+			the form of the string CCYYMMDD of type default character where the two 
+			characters CC are the two decimal digit century, the two characters YY 
+			are the two decimal digit year, the characters MM are the two decimal 
+			digit month (01-12), and the characters DD are the two decimal digit day 
+			(01-31) within the month. If the processor has no date available, DATE is 
+			assigned blanks.
+		</parameter>
+		<parameter name="TIME" type="character" modifier="optional, intent(out)">
+			Scalar of type default character with length 10 or greater and 
+			with intent(out). If TIME is present, it is assigned the current time in 
+			the form of a string hhmmss.sss of type default character where the two 
+			characters hh are the two decimal digit hour of the day (00-23), the 
+			characters mm are the two decimal digits for the minute in the hour, the 
+			characters ss.sss are the seconds ss and milliseconds sss in the hour. If 
+			no time is available, TIME is assigned blanks.
+		</parameter>
+		<parameter name="ZONE" type="character" modifier="optional, intent(out)">
+			Scalar of type default character with length 5 or greater and 
+			with intent(out). If ZONE is present, it is assigned the time zone in the 
+			form of a string +hhmm or -hhmm where the two characters hh and mm 
+			represent the difference between Coordinated Universal Time (UTC) and the 
+			current time zone in hours and minutes, respectively. If this information 
+			is not available, ZONE is assigned blanks.
+		</parameter>
+		<parameter name="VALUES" type="integer" 
+			modifier="optional, dimension(8:), intent(out)" dimension="8:">
+			Rank-one array of type default integer with intent(out) whose size is at 
+			least 8. If VALUES is present, its elements are set to the following 
+			values: 
+			element 1, the year (e.g., 2014); 
+			element 2, the month of the year (e.g., 6); 
+			element 3, the day of the month (e.g., 18); 
+			element 4, the zone as a difference from UTC in minutes (e.g., -360); 
+			element 5, the hour of the day, in the range [0, 23] (e.g., 22); 
+			element 6, the minutes of the hour, in the range [0, 59] (e.g., 47); 
+			element 7, the seconds of the minute, in the range [0, 60] (e.g., 59); 
+			element 8, the milliseconds of the second, in the range [0, 999]. 
+			In case any one of these values is not available, it is assigned 
+			-HUGE(0). UTC is defined by the ISO standard ISO 8601:1998. 
+		</parameter>
+		<usage>
+			EXAMPLE: The code segment: \\ 
+			integer :: time(8) \\ 
+			call DATE_AND_TIME(VALUES = time) \\ 
+			print "(a, i5, 2i3, i5, 3i3, i4)", "The date and time are:", time \\ 
+			produces a date and time such as: 
+			The date and time are: 2014  6 18 -360 22 51 55 513 
+		</usage>
+	</subroutine>
+	<function name="DBLE" type="real" kind=",dp" elemental="true">
+		<summary>
+			Convert to double precision real value.
+		</summary>
+		<parameter name="A" type="real, complex, integer">
+			Of type integer, real, or complex, or a BOZ literal constant.
+		</parameter>
+		<usage>
+			The result is REAL(A, @CREF[KIND](0.0d0)). If A is a BOZ literal 
+			constant, the argument corresponding to A is treated as if it were a 
+			constant of the type real with double precision kind whose bit pattern is 
+			that given by the BOZ literal constant; the interpretation of the bit 
+			patter is processor dependent. 
+			EXAMPLE: DBLE(1.23) is the default real value 1.23 converted to the real 
+			type with double precision kind by extending the default representation 
+			to a real representation with double precision kind. In general it is not 
+			equal to 1.23d0.
+		</usage>
+	</function>
+	<function name="DIGITS" type="integer">
+		<summary>
+			Number of model digits in a model number. Result is a scalar of default 
+			integer type.
+		</summary>
+		<parameter name="X" type="real, integer">
+			Scalar or array of type integer or real.
+		</parameter>
+		<usage>
+			If X is of type integer, the result is q where q is a parameter for the 
+			integer model $i = s \sum_{k=0}^{q-1}{w_k r^k}$ 
+			for the kind of X; if X is of type real, the result value 
+			is p where p is a parameter of the real model 
+			$x = s b^e \sum_{k=1}^p{f_k b^{-k}}$ for the kind of X. 
+			EXAMPLES: If q=31 in the integer model, DIGITS(0) has the value 31; if 
+			p=24 in the real model, DIGITS(0.0) has the value 24.
+		</usage>
+	</function>
+	<function name="DIM" type="real, integer" elemental="true">
+		<summary>
+			Difference of two values if positive, or zero otherwise. Result type is 
+			the same as the arguments.
+		</summary>
+		<parameter name="X" type="real, integer">
+			Of type integer or real.
+		</parameter>
+		<parameter name="Y" type="real, integer">
+			Of type integer or real, but must be the same as X.
+		</parameter>
+		<usage>
+			The result is the difference X-Y if the difference is positive; 
+			otherwise, zero. 
+			EXAMPLES: DIM(2, 3) is 0 and DIM(2.2_Q, -3.3_Q) is 5.5 of real kind Q.
+		</usage>
+	</function>
+	<function name="DOT_PRODUCT" type="real, complex, integer, logical">
+		<summary>
+			Dot product of two rank-one arrays. Result is a scalar with the same type 
+			and kind of the expression VECTOR_A*VECTOR_B if the actual arguments are 
+			both of numeric type, or of the expression VECTOR_A .AND. VECTOR_B if 
+			both actual arguments are of logical.
+		</summary>
+		<parameter name="VECTOR_A" type="real, complex, integer, logical" 
+			modifier="dimension(:)" dimension=":">
+			Rank-one array of type integer, real, complex, or logical. VECTOR_A and 
+			VECTOR_B must be of the same size and both of numeric type or logical 
+			type.
+		</parameter>
+		<parameter name="VECTOR_B" type="real, complex, integer, logical" 
+			modifier="dimension(:)" dimension=":">
+			Rank-one array of type integer, real, complex, or logical. VECTOR_A and 
+			VECTOR_B must be of the same size and both of numeric type or logical 
+			type.
+		</parameter>
+		<usage>
+			The result is the dot product of the vectors VECTOR_A and VECTOR_B. If 
+			the actual arguments are of numeric type (integer, real, or complex), 
+			the result is @CREF[SUM](VECTOR_A*VECTOR_B). If the actual arguments are 
+			of type logical, the result is @CREF[ANY](VECTOR_A .AND. VECTOR_B). Note 
+			that if the rank-one array are of zero size, the result is zero if they 
+			are of numeric type or false if they are of logical type. 
+			EXAMPLES: DOT_PRODUCT([1.0, 2.0], [2.0, 3.0]) is 8.0; 
+			DOT_PRODUCT([.false., .true.], [.true., .true.]) is true; 
+			DOT_PRODUCT(A(1:0), B(10:9)) is 0 with double precision kind where A is 
+			of type default real, and B is of type double precision real. 
+			DOT_PRODUCT([(1.0, 2.0), (2.0, 3.0)], [(1.0, 1.0), (1.0, 4.0)]) is 17+4i.
+		</usage>
+	</function>
+	<function name="DPROD" type="real" kind=",dp" elemental="true">
+		<summary>
+			Double precision product of two single precision values. Result is of 
+			type real with double precision kind.
+		</summary>
+		<parameter name="X" type="real" kind=",sp">
+			Of default real type.
+		</parameter>
+		<parameter name="Y" type="real" kind=",sp">
+			Of default real type.
+		</parameter>
+		<usage>
+			The result is the product X*Y. 
+			EXAMPLE: DPROD(3.0, 2.1) is 6.3 with double precision kind.
+		</usage>
+	</function>
+	<function name="EOSHIFT" 
+		type="real, complex, integer, character, logical" modifier="dimension">
+		<summary>
+			End-off shift of the elements of an array. Result is the same in type, 
+			dimension and shape as the argument ARRAY.
+		</summary>
+		<parameter name="ARRAY" 
+			type="real, complex, integer, character, logical, class" kind=",derived," 
+			modifier="dimension">
+			Array of any type.
+		</parameter>
+		<parameter name="SHIFT" type="integer" modifier="dimension">
+			Scalar or array of type integer. If ARRAY is of rank 1, it is a scalar; 
+			if ARRAY is an array of rank n&gt;1, SHIFT may also be an array of rank n-1 
+			whose shape is the shape of ARRAY with the DIM dimension removed, or 
+			likewise a scalar.
+		</parameter>
+		<parameter name="BOUNDARY" 
+			type="real, complex, integer, character, logical" 
+			modifier="dimension, optional">
+			Of the type and type parameters of ARRAY. It is either a scalar or an 
+			array of rank n-1 where n&gt;1 is the rank of ARRAY and of the shape of 
+			ARRAY with the DIM dimension removed. BOUNDARY is an optional dummy 
+			argument. It may be absent only if ARRAY is of one of the intrinsic types 
+			integer, real, complex, logical, or character; if it is absent, it is 
+			assumed to have the value 0, 0.0, 0+0i, false, or the blank character 
+			with the corresponding kind and length parameter of ARRAY, respectively.
+		</parameter>
+		<parameter name="DIM" type="integer" modifier="optional">
+			Scalar of type integer with a value in the range [1, n] where n is the 
+			rank of ARRAY. If DIM is absent, it is as if it were present with the 
+			value 1.
+		</parameter>
+		<usage>
+			If SHIFT or an element of SHIFT is positive, elements of the array are 
+			shifted left; if it is negative, elements are shifted right; and, if it 
+			is zero, no shift occurs. 
+			The element $(s_1, s_2, ..., s_n)$ of the result is 
+			ARRAY $(s_1, s_2, ..., s_{DIM-1}, s_{DIM}+sh, s_{DIM+1}, ..., s_n)$ 
+			where sh is SHIFT, if SHIFT is a scalar or 
+			SHIFT $(s_1, s_2, ..., s_{DIM-1}, s_{DIM+1}, ..., s_n)$, if SHIFT is an 
+			array provided @CREF[LBOUND](ARRAY, DIM) &lt;= $s_{DIM}$+sh &lt;= 
+			@CREF[UBOUND](ARRAY, DIM) and is otherwise BOUNDARY or 
+			BOUNDARY $(s_1, s_2, ..., s_{DIM-1}, s_{DIM+1}, ..., s_n)$ if BOUNDARY is 
+			an array. 
+			EXAMPLES: IF V is the array [1,2,3,4,5,6], the effect of shifting V off 
+			to the left by 3 positions is achieved by EOSHIFT(V, SHIFT=3) which has 
+			the value [4,5,6,0,0,0]; EOSHIFT(V, SHIFT=-2, BOUNDARY=99) achieves an  
+			end-off shift to the right by two positions with the boundary value of 99 
+			and has the value [99,99,1,2,3,4].
+			The rows of an array of rank two may all be shifted by the same amount or 
+			by different amounts and the boundary elements can be the same or 
+			different. If M is the character array [[A,B,C],[D,E,F],[G,H,I]], the 
+			value of EOSHIFT(M, SHIFT=-1, BOUNDARY='*', DIM=2) is 
+			[[*,A,B],[*,D,E],[*,G,H]], and the value of EOSHIFT(M, SHIFT=[-1,1,0], 
+			BOUNDARY=['*','/','?'], DIM=2) is [[*,A,B],[E,F,/],[G,H,I]].
+		</usage>
+	</function>
+	<function name="EPSILON" type="real">
+		<summary>
+			Value that is small relative to 1 for a real value. Result is a scalar of 
+			the type and kind of X.
+		</summary>
+		<parameter name="X" type="real" modifier="dimension">
+			Scalar or array of type real.
+		</parameter>
+		<usage>
+			The result is the number $b^{1-p}$ which is a number that is almost 
+			negligible with respect to 1, for real numbers of the type of X. 
+			EXAMPLES: If b=2 and p=24 in the real model 
+			$x = s b^e \sum_{k=1}^p{f_k b^{-k}}$, EPSILON(0.0) has the value 
+			$2^{-23}$; if b=2 and p=53 in the double precision model, EPSILON(0.0d0) 
+			has the value $2^{-52}$ with double precision kind.
+		</usage>
+	</function>
+	<function name="EXP" type="real, complex" elemental="true">
+		<summary>
+			Natural exponential. Return type is the same as X.
+		</summary>
+		<parameter name="X" type="real, complex">
+			Argument of exponential of type real or complex.
+		</parameter>
+		<usage>
+			The result is $e^X$. If X is complex, the imaginary part of X is in 
+			radians. 
+			EXAMPLES: EXP(0.0) is 1.0 with default real kind; EXP((1.0, 2.0d0)) is 
+			-1.13+2.47i with double precision kind.
+		</usage>
+	</function>
+	<function name="EXPONENT" type="integer" elemental="true">
+		<summary>
+			Exponent of a real value. Result is of type default integer.
+		</summary>
+		<parameter name="X" type="real">
+			Of type real.
+		</parameter>
+		<usage>
+			The result is the exponent e of the model representation of X as 
+			determined by the model for real numbers of the kind of X. If X is zero, 
+			the result is zero. If X is an IEEE infinity or NaN, the result is 
+			HUGE(0). 
+			EXAMPLES: If b=2 in the real model $x = s b^e \sum_{k=1}^p{f_k b^{-k}}$, 
+			the values 1.0 and 0.125 are 
+			represented as $2^1*f$ and $2^{-2}*f$ where f is the fraction one half. 
+			EXPONENT(1.0) and EXPONENT(0.125) have the values 1 and -2, respectively, 
+			of default integer kind.
+		</usage>
+	</function>
+	<function name="EXTENDS_TYPE_OF" type="logical">
+		<summary>
+			True if the dynamic type of the first argument is an extension type of 
+			they dynamic type of the second argument. Result is a scalar of type 
+			default logical.
+		</summary>
+		<parameter name="A" type="class" kind=",derived,"> 
+			Of any extensible type. If A is a pointer, it must have a defined 
+			association status.
+		</parameter>
+		<parameter name="MOLD" type="class" kind=",derived,">
+			Of any extensible type. If MOLD is a pointer, it must have a defined 
+			association status.
+		</parameter>
+		<usage>
+			Except when A or MOLD is unlimited polymorphic, and either A or MOLD is a 
+			disassociated pointer or unallocated allocatable, the result is true if 
+			and only if the dynamic type of A is an extension type of the dynamic 
+			type of MOLD. In the exceptional cases, if MOLD is unlimited polymorphic 
+			and is either a disassociated pointer or unallocated allocatable, the 
+			result is true; otherwise, if A is unlimited polymorphic and is either a 
+			disassociated pointer or unallocated allocatable, the result is false.
+			Note that the dynamic type of a disassociated pointer or unallocated 
+			allocatable is its declared type. 
+			EXAMPLES: Consider the following example where the type painted_line_type 
+			is an extension of the type line_type: \\ 
+			type, public :: line_type; real :: x, y; end type line_type \\ 
+			type, public, extends(line_type) :: painted_line_type \\ 
+			integer :: color \\ 
+			end type painted_line_type \\ 
+			type cartesian; real :: x, y; end type cartesian \\ 
+			type(line_type) :: line, divider \\
+			type(painted_line)type) :: a \\
+			type(cartesian) :: point \\ 
+			EXTENDS_TYPE_OF(a, line), EXTENDS_TYPE_OF(a, a), and 
+			EXTENDS_TYPE_OF(divider, line) are all true, but EXTENDS_TYPE_OF(line, a) 
+			and EXTENDS_TYPE_OF(point, line) are false.
+		</usage>
+	</function>
+	<function name="FLOOR" type="integer" elemental="true">
+		<summary>
+			Greatest integer less than or equal to a value. Result is of type 
+			integer with kind KIND if KIND is present, or otherwise, with the kind 
+			of default integer.
+		</summary>
+		<parameter name="A" type="real">
+			Number to be floored, of type real.
+		</parameter>
+		<parameter name="KIND" type="integer" modifier="optional" default="1">
+			Scalar integer initialization expression whose value is an integer kind 
+			value.
+		</parameter>
+		<usage>
+			The result is the greatest integer less than or equal to A. 
+			EXAMPLES: FLOOR(3.7) is 3; FLOOR(3.0) is 3; and FLOOR(-4.1, P) is -5 of 
+			integer kind P.
+		</usage>
+	</function>
+	<function name="FRACTION" type="real" elemental="true">
+		<summary>
+			Fractional part of a real value. Result is of type real with the same 
+			kind as X.
+		</summary>
+		<parameter name="X" type="real">
+			Of type real.
+		</parameter>
+		<usage>
+			The result is the fraction $X*b^{-e}$ as determined by the model for real 
+			numbers $x = s b^e \sum_{k=1}^p{f_k b^{-k}}$. 
+			If X is zero, the result is zero. If X is an IEEE infinity, the 
+			result is X; if X is a IEEE NaN, the result is a NaN. 
+			EXAMPLES: If b=2 in the real model, the values 1.0 and -0.125 are 
+			represented by $2^1*f$ and $-2^{-2}*f$ where f is the fraction one half. 
+			FRACTION(1.0) and FRACTION(-0.125) are 0.5 and -0.5, respectively, of 
+			kind default real.
+			<!-- I don't think this agrees with that actual encoding of IEEE reals, 
+			but I tested it, and the function FRACTION does behave this way. -->
+		</usage>
+	</function>
+	<subroutine name="GET_COMMAND">
+		<summary>
+			Obtain the entire command initiating the program.
+		</summary>
+		<parameter name="COMMAND" type="character" modifier="optional, intent(out)">
+			Scalar of type default character with intent(out). If COMMAND is 
+			present, COMMAND is assigned the entire command that invoked the program 
+			or blanks if the command cannot be determined; the entire command includes 
+			all arguments.
+		</parameter>
+		<parameter name="LENGTH" type="integer" modifier="optional, intent(out)">
+			Scalar of type default integer with intent(out). If LENGTH is present, 
+			LENGTH is assigned the significant length of the command, defined as the 
+			number of characters specifying the the command, including any 
+			significant trailing blanks if the processor supports significant 
+			trailing blanks. This length is determined by the command and not the 
+			length of the COMMAND argument of this procedure. If the command length 
+			cannot be determined, LENGTH is assigned zero.
+		</parameter>
+		<parameter name="STATUS" type="integer" modifier="optional, intent(out)">
+			Scalar of type default integer with intent(out). If status is present, 
+			STATUS is assigned the value -1 if the COMMAND argument is present and 
+			has a length less than the significant length. It is assigned a 
+			processor-dependent positive value if the command retrieval fails and 
+			zero otherwise.
+		</parameter>
+		<usage>
+			EXAMPLE: Consider the code segment: \\ 
+			integer :: stat, leng \\
+			character(len=100) :: cmd \\
+			call GET_COMMAND(cmd, leng, stat) \\
+			print *, "command: ", trim(cmd) \\ 
+			print *, "length:", leng \\ 
+			print *, "status:", stat \\ 
+			Executing this code segment (called sample) with the command: \\
+			sample xx.f90 &lt; yy \\ 
+			might print the following output: \\ 
+			command: sample xx.f90 \\ 
+			length: 13 \\ 
+			status: 0 \\ 
+			It is processor-dependent whether redirection (that is, &lt; yy) is part of 
+			the command. The relationship between what is written as a command and 
+			what is interpreted as the command by this procedure is processor 
+			dependent; redirection is one example, and use of wildcards is another.
+		</usage>
+	</subroutine>
+	<subroutine name="GET_COMMAND_ARGUMENT">
+		<summary>
+			Obtain a specified command argument.
+		</summary>
+		<parameter name="NUMBER" type="integer" modifier="intent(in)">
+			Scalar of type default integer with intent(in). It specifies the ordinal 
+			number of the argument whose properties are to be determined. To be useful 
+			it should have a value between 0 and the number of arguments of the 
+			command; if there is an argument numbered 0, it is the command name that 
+			invoked the program if there is one. Except for argument number 0, the 
+			ordering of the arguments is processor dependent.
+		</parameter>
+		<parameter name="VALUE" type="character" modifier="optional, intent(out)">
+			Scalar of type default character with intent(out). If VALUE is 
+			present, it is assigned the command argument specified by NUMBER. If the 
+			value of the command argument cannot be determined, VALUE is assigned 
+			blanks.
+		</parameter>
+		<parameter name="LENGTH" type="integer" modifier="optional, intent(out)">
+			Scalar of type default integer with intent(out). If LENGTH is present, 
+			LENGTH is assigned the significant length of the command argument 
+			specified by NUMBER, defined as the number of characters specifying the 
+			command argument, including any significant trailing blanks if the 
+			processor supports significant trailing blanks. This length is determined 
+			by the command argument and not the length of the VALUE argument of this 
+			procedure. If the command argument length cannot be determined, LENGTH is 
+			assigned zero.
+		</parameter>
+		<parameter name="STATUS" type="integer" modifier="optional, intent(out)">
+			Scalar of type default integer with intent(out). If status is present, 
+			STATUS is assigned the value -1 if the VALUE argument is present and 
+			has a length less than the significant length of the command argument. It 
+			is assigned a processor-dependent positive value if the argument 
+			retrieval fails and zero otherwise.
+		</parameter>
+		<usage>
+			EXAMPLE: Consider the code segment: \\ 
+			integer :: stat, leng \\
+			character(len=100) :: val \\
+			call GET_COMMAND_ARGUMENT(1, val, leng, stat) \\
+			print *, "argument 1: ", trim(val) \\ 
+			print *, "length:", leng \\ 
+			print *, "status:", stat \\ 
+			Executing this code segment (called sample) with the command: \\
+			sample xx.f90 &lt; yy \\ 
+			might print the following output: \\ 
+			argument 1: xx.f90 \\ 
+			length: 6 \\ 
+			status: 0
+		</usage>
+	</subroutine>
+	<subroutine name="GET_ENVIRONMENT_VARIABLE">
+		<summary>
+			Obtain the value of a system environment variable.
+		</summary>
+		<parameter name="NAME" type="character" modifier="intent(in)" 
+			dimension=":">
+			Scalar of type default character with intent(in). The 
+			interpretation of the case of its value is processor dependent. It 
+			specifies the name of the environment variable whose value is to be 
+			determined.
+		</parameter>
+		<parameter name="VALUE" type="character" modifier="optional, intent(out)">
+			Scalar of type default character with intent(out). If VALUE is 
+			present, it is assigned the character value of the environment variable 
+			specified by NAME or blanks if the processor cannot determine the value 
+			or the value of the environment variable NAME does not exist.
+		</parameter>
+		<parameter name="LENGTH" type="integer" modifier="optional, intent(out)">
+			Scalar of type default integer with intent(out). If LENGTH is present, it 
+			is assigned the length of the value of the environment variable if the 
+			environment variable NAME exists and 0 otherwise.
+		</parameter>
+		<parameter name="STATUS" type="integer" modifier="optional, intent(out)">
+			Scalar of type default integer with intent(out). It is assigned values as 
+			follows: -1 if the VALUE argument is present and has a length less than 
+			the significant length of the environment variable value, 0 if the 
+			environment variable NAME exists and either has no value or its value was 
+			successfully retrieved, 1 if the specified environment variable NAME does 
+			not exist, 2 if the processor does not support environment variables, or 
+			&gt;2 if some other error condition occurs.
+		</parameter>
+		<parameter name="TRIM_NAME" type="logical" modifier="optional, intent(in)">
+			Scalar of type logical with intent(in). If TRIM_NAME is true or is not 
+			present, the trailing blanks are not considered part of the name of the 
+			environment variable; if TRIM_NAME is present with the value false, it 
+			specifies that trailing blanks in NAME are considered significant if the 
+			processor supports trailing blanks in the name of an environment variable.
+		</parameter>
+		<usage>
+			EXAMPLE: Consider the code segment: \\ 
+			integer :: stat, leng \\
+			character(len=100) :: val \\
+			call GET_ENVIRONMENT_VARIABLE("SSH_ASKPASS", val, leng, stat) \\
+			print *, "value of SSH_ASKPASS: ", trim(val) \\ 
+			print *, "length:", leng \\ 
+			print *, "status:", stat \\ 
+			Executing this code segment (called sample) with the command: \\
+			sample \\ 
+			might print the following output: \\ 
+			value of ASK_PASS: /usr/libexec/openssh/gnome-ssh-askpass \\ 
+			length: 38 \\ 
+			status: 0
+		</usage>
+	</subroutine>
+	<function name="HUGE" type="real, integer">
+		<summary>
+			Largest number in the real or integer model. Result is a scalar of the 
+			type and kind of X.
+		</summary>
+		<parameter name="X" type="real, integer" modifier="dimension">
+			Scalar or array of type integer or real.
+		</parameter>
+		<usage>
+			The result is the number $r^q-1$ where r is the base value (commonly 2) 
+			and q is the number of digits (commonly 31 or 63) for integers, or 
+			$(1-b^{-p})*b^{e_{max}}$ where b is the base or radix (commonly 2), p is 
+			the number of mantissa digits (commonly 24 or 52), and $e_{max}$ is the 
+			maximum value the exponent (commonly 128 for single precision, or 
+			1024 for double precision) for real numbers. That is, the result is the 
+			largest model number of the type and kind of X. 
+			EXAMPLES: If r=2 and q=31 in the integer model, HUGE(0) has the value 
+			$2^{31}-1$ of default integer type; if b=2, p=24 and $e_{max}=128$ in the 
+			real model, HUGE(0.0) has the value $(1-2^{-24})*2^{128}$ or 
+			$0.3403*10^{39}$, of default real type.
+		</usage>
+	</function>
+	<function name="IACHAR" type="integer" elemental="true">
+		<summary>
+			Position of a specified character in the ASCII character set. Result is 
+			of type integer with kind KIND if KIND is present, or otherwise, with the 
+			kind of default integer.
+		</summary>
+		<parameter name="C" type="character">
+			Of type character and of length one.
+		</parameter>
+		<parameter name="KIND" type="integer" modifier="optional" default="1">
+			Scalar integer initialization expression whose value is an integer kind 
+			value.
+		</parameter>
+		<usage>
+			If C is a character in the ASCII collating sequence, the result is the 
+			position of the character C in the ASCII collating sequence and is an 
+			integer value in the range [0, 127]; otherwise the result is a 
+			processor-dependent integer value. The results are consistent with the 
+			results return by the character intrinsic functions @CREF[LGE], 
+			@CREF[LGT], @CREF[LLE], and @CREF[LLT]; that is, for example, if 
+			@CREF[LLT](C1, C2) is true, IACHAR(C1) &lt; IACHAR(C2). 
+			EXAMPLES: IACHAR("a") is 97; IACHAR("a", P) is 97 with integer kind P.
+		</usage>
+	</function>
+	<function name="IAND" type="integer" elemental="true">
+		<summary>
+			Logical AND of two integers. Result is an integer of the same kind as I 
+			and J.
+		</summary>
+		<parameter name="I" type="integer">
+			Of type integer. I and J must be of the same kind.
+		</parameter>
+		<parameter name="J" type="integer">
+			Of type integer. I and J must be of the same kind.
+		</parameter>
+		<usage>
+			The result is the value obtained by "and-ing" corresponding bit positions 
+			of I and J; that is, the kth bit position of the result is 1 if the kth 
+			bit positions in both I and J are 1, and 0 otherwise. 
+			EXAMPLES: Using the standard bit model, IAND(16,8) is 0. 
+			IAND(@CREF[INT](B'1010'), @CREF[INT](B'1100')) is 8, which is the same 
+			value as @CREF[INT](B'1000').
+		</usage>
+	</function>
+	<function name="IBCLR" type="integer" elemental="true">
+		<summary>
+			Value with a specified bit set to zero. Result is an integer of the same 
+			kind as I.
+		</summary>
+		<parameter name="I" type="integer">
+			Of type integer.
+		</parameter>
+		<parameter name="POS" type="integer">
+			Of type integer. Its value must be in the range [0, @CREF[BIT_SIZE](I)-1].
+		</parameter>
+		<usage>
+			The result is the integer obtained by setting the bit position POS of I 
+			to zero. 
+			EXAMPLES: Using the standard bit model, IBCLR([24,16],4) is [8,0] of kind 
+			default integer; IBCLR(@CREF[INT](B'1111'),0) is 14 which has the same 
+			value as the BOZ literal constant B'1110'.
+		</usage>
+	</function>
+	<function name="IBITS" type="integer" elemental="true">
+		<summary>
+			Specific bits extracted from an integer value. Result is an integer of 
+			the same kind as I.
+		</summary>
+		<parameter name="I" type="integer">
+			Of type integer.
+		</parameter>
+		<parameter name="POS" type="integer">
+			Of type integer. Its value must be in the range 
+			[0, @CREF[BIT_SIZE](I)-LEN-1].
+		</parameter>
+		<parameter name="LEN" type="integer">
+			Of type integer with a nonnegative value.
+		</parameter>
+		<usage>
+			The result is the integer value obtained by extracting the sequence of 
+			LEN bits from I starting in bit position POS, right adjusting them in the 
+			result, and setting all other bits in the result to zero. 
+			EXAMPLES: Using the standard bit model, IBITS(16, 4, 2) is 1; 
+			IBITS(@CREF[INT](B'10110'), 1, 2) is 3 which has the same value as the 
+			BOZ literal constant B'11'.
+		</usage>
+	</function>
+	<function name="IBSET" type="integer" elemental="true">
+		<summary>
+			Value with a specified bit set to one. Result is an integer of the same 
+			kind as I.
+		</summary>
+		<parameter name="I" type="integer">
+			Of type integer.
+		</parameter>
+		<parameter name="POS" type="integer">
+			Of type integer. Its value must be in the range [0, @CREF[BIT_SIZE](I)-1].
+		</parameter>
+		<usage>
+			The result is the integer value obtained by setting the bit position POS 
+			of I to one. 
+			EXAMPLES: Using the standard bit model, IBSET(24, [4,2]) is [24,28] of 
+			kind default integer; IBSET(@CREF[INT](B'0000'), 2) is 4 which has the 
+			same value as the BOZ literal constant B'0100'.
+		</usage>
+	</function>
+	<function name="ICHAR" type="integer" elemental="true">
+		<summary>
+			Position of a specified character in a character set. Result is of type 
+			integer with kind KIND if KIND is present, or otherwise, with the kind of 
+			default integer.
+		</summary>
+		<parameter name="C" type="character">
+			Of type character and of length one. It must be a character capable of 
+			being represented in the character type and kind of C.
+		</parameter>
+		<parameter name="KIND" type="integer" modifier="optional" default="1">
+			Scalar integer initialization expression whose value is an integer kind 
+			value.
+		</parameter>
+		<usage>
+			The result is the position of the character C in the collating sequence 
+			for characters of the kind of C. Additionally, for any two characters C1 
+			and C2 with the same kind capable of being represented by the processor, 
+			C1 &lt;= C2 if and only if ICHAR(C1) &lt; ICHAR(C2), and C1 = C2 if and only if 
+			ICHAR(C1) = ICHAR(C2). 
+			EXAMPLES: ICHAR("a") is 97, if the processor uses the ASCII representation 
+			in its default character kind. On the same processor, ICHAR("a", P) is 
+			the integer 97 with integer kind P.
+		</usage>
+	</function>
+	<function name="IEOR" type="integer" elemental="true">
+		<summary>
+			Logical exclusive-OR of two integers. Result is an integer of the same 
+			kind as I.
+		</summary>
+		<parameter name="I" type="integer">
+			Of type integer. I and J must be of the same kind.
+		</parameter>
+		<parameter name="J" type="integer">
+			Of type integer. I and J must be of the same kind.
+		</parameter>
+		<usage>
+			The result is the value obtained by "exclusive or-ing" corresponding bit 
+			positions of I and J; that is, the kth bit position of the result is 1 if 
+			exactly one of the kth bit position in I and J is 1, and 0 otherwise. 
+			EXAMPLES: Using the standard bit model, IEOR(24, 16) is 8; 
+			IEOR(@CREF[INT](B'1100'), @CREF[INT](B'0110')) is 10, which has the same 
+			value as the BOZ literal constant B'1010'.
+		</usage>
+	</function>
+	<function name="INDEX" type="integer" elemental="true">
+		<summary>
+			Location of a given substring in a character string. Result is an integer 
+			with kind KIND, if KIND is present, or otherwise, with the kind of 
+			default integer.
+		</summary>
+		<parameter name="STRING" type="character">
+			Of type character. STRING and SUBSTRING must be of the same kind.
+		</parameter>
+		<parameter name="SUBSTRING" type="character">
+			Of type character. STRING and SUBSTRING must be of the same kind.
+		</parameter>
+		<parameter name="BACK" type="logical">
+			Logical value that indicates search should begin from the end of the 
+			string if present with the value true.
+		</parameter>
+		<parameter name="KIND" type="integer" modifier="optional" default="1">
+			Scalar integer initialization expression whose value is an integer kind 
+			value.
+		</parameter>
+		<usage>
+			The result is the beginning index position in STRING of the substring 
+			SUBSTRING, or 0 if there is no such position. If BACK is present with the 
+			value false or is absent, the result is as follows: the beginning index 
+			position of the first occurrence of substring SUBSTRING in STRING, 0 if 
+			the length of STRING is less than the length of SUBSTRING, or 1 if the 
+			length of SUBSTRING is 0.
+			If BACK is present with the value true, the result is as follows: the 
+			beginning index position of the last occurrence of substring SUBSTRING in 
+			STRING, 0 if the length of STRING is less than the length of SUBSTRING, 
+			or @CREF[LEN](STRING)+1 if the length of SUBSTRING is 0. 
+			EXAMPLES: INDEX("input_file.f90", "f") is 7; 
+			INDEX("input_file.f90", "f", .true.) is 12; and 
+			INDEX("input_file.f90", "i", BACK=.true., KIND=P) is 8 of integer kind P; 
+			INDEX("input_file.f90", "pt") is 0 of default integer kind. 
+			When the length of the substring is greater than the length of the 
+			string, the substring is not present in the string; consequently, zero is 
+			returned. For example, INDEX("f90", "input_file.f90") is zero. The empty 
+			string is at both ends of any string; thus, INDEX("file", "") is 1 and 
+			INDEX("file", "", .true.) is 5.
+		</usage>
+	</function>
+	<function name="INT" type="integer" elemental="true">
+		<summary>
+			Truncated integer value. Result is an integer of kind KIND if KIND is 
+			present, or otherwise, of kind of default integer.
+		</summary>
+		<parameter name="A" type="real, complex, integer">
+			Of type integer, real, or complex, or a BOZ literal constant.
+		</parameter>
+		<parameter name="KIND" type="integer" modifier="optional" default="1">
+			Scalar integer initialization expression whose value is an integer kind 
+			value.
+		</parameter>
+		<usage>
+			The result is the truncated value of A or of the real part of A if A is 
+			complex, represented as an integer. If |A| &lt; 1, the truncated value is 0; 
+			otherwise, the truncated value is the largest integral value in 
+			magnitude, smaller than or equal to A in magnitude and with the same sign 
+			as A. If A is a BOZ literal constant, it is treated as if it were a 
+			constant of the integer type with the largest decimal exponent range 
+			supported by the processor and whose bit pattern is that given by the BOZ 
+			literal constant; the interpretation of the bit pattern is processor 
+			dependent. 
+			EXAMPLES: INT((3.6,1)) is 3; INT(-3.6) is -3. INT(0.5, P) is 0 of integer 
+			kind P. INT(-5) and INT(-5.0) are -5; INT(5.0) is 5. INT(B'101') is 5.
+		</usage>
+	</function>
+	<function name="IOR" type="integer" elemental="true">
+		<summary>
+			Logical inclusive-OR of two integers. Result is an integer of the same 
+			kind as I.
+		</summary>
+		<parameter name="I" type="integer">
+			Of type integer. I and J must be of the same kind.
+		</parameter>
+		<parameter name="J" type="integer">
+			Of type integer. I and J must be of the same kind.
+		</parameter>
+		<usage>
+			The result is the value obtained by "inclusive or-ing" corresponding bit 
+			positions of I and J; that is, the kth bit position of the result is 1 if 
+			either one or both of the kth bit position in I and J is 1, and 0 
+			otherwise. 
+			EXAMPLES: Using the standard bit model, IEOR(24, 16) is 24; 
+			IEOR(@CREF[INT](B'1100'), @CREF[INT](B'0110')) is 14, which has the same 
+			value as the BOZ literal constant B'1110'.
+		</usage>
+	</function>
+	<function name="ISHFT" type="integer" elemental="true">
+		<summary>
+			Logical end-off shift of an integer. Result is an integer of the same 
+			kind as I.
+		</summary>
+		<parameter name="I" type="integer">
+			Of type integer.
+		</parameter>
+		<parameter name="SHIFT" type="integer">
+			Of type integer. Its absolute value must be less than @CREF[BIT_SIZE](I).
+		</parameter>
+		<usage>
+			The result is the value of I shifted left by the SHIFT bits if SHIFT is 
+			positive, or shifted right by |SHIFT| bits if SHIFT is negative. The bits 
+			shifted out are lost and bits shifted in are zero. No shift is performed 
+			if SHIFT is zero. 
+			EXAMPLES: Using the standard bit model (32-bits), ISHFT(24, 2) is 96; 
+			ISHFT(24, -1) is 12; ISHFT(@CREF[INT](B'0011'), 2) is 12 which has the 
+			same value as the BOZ literal constant B'1100'.
+		</usage>
+	</function>
+	<function name="ISHFTC" type="integer" elemental="true">
+		<summary>
+			Logical circular shift in a field of an integer. Result is an integer of 
+			the same kind as I.
+		</summary>
+		<parameter name="I" type="integer">
+			Of type integer.
+		</parameter>
+		<parameter name="SHIFT" type="integer">
+			Of type integer with absolute value less than or equal to the value of 
+			SIZE.
+		</parameter>
+		<parameter name="SIZE" type="integer" modifier="optional">
+			Of type integer with a positive value less than or equal to 
+			@CREF[BIT_SIZE](I). If it is not present, it is treated as if it were 
+			present with the value @CREF[BIT_SIZE](I).
+		</parameter>
+		<usage>
+			The result is the rightmost SIZE bits of I circularly shifted left by 
+			SHIFT bits if SHIFT is positive, or circularly shifted right by |SHIFT| 
+			bits if SHIFT is negative. The bits shifted out of the field are brought 
+			in to the opposite end of the field of size SIZE; the unshifted bits are 
+			not altered. 
+			EXAMPLES: Using the standard bit model (32-bit), ISHFTC(24, 2) is 96; 
+			ISHFTC(24, -1) is 12; ISHFTC(1, -1, 10) is 512; ISHFTC(1, -2) is 
+			$2^{30}$; and ISHFTC(@CREF[INT](B'10110111'), 2, 4) has the value of the 
+			BOZ literal constant B'10111101'.
+		</usage>
+	</function>
+	<function name="IS_IOSTAT_END" type="logical" elemental="true">
+		<summary>
+			True if a value indicates an end-of-file IOSTAT condition. Result is of 
+			type default logical.
+		</summary>
+		<parameter name="I" type="integer">
+			Of type integer.
+		</parameter>
+		<usage>
+			The result is true if the value of I is the value of the IOSTAT specifier 
+			that indicates an end-of-file condition and false otherwise. 
+			EXAMPLES: IS_IOSTAT_END(-1) is true on some Fortran processors but 
+			IS_IOSTAT_END(1) is always false.
+		</usage>
+	</function>
+	<function name="IS_IOSTAT_EOR" type="logical" elemental="true">
+		<summary>
+			True if a value indicates and end-of-record IOSTAT condition. Result is 
+			of type default logical.
+		</summary>
+		<parameter name="I" type="integer">
+			Of type integer.
+		</parameter>
+		<usage>
+			The result is true if the value of I is the value of the IOSTAT specifier 
+			that indicates and end-of record condition and false otherwise. 
+			EXAMPLES: IS_IOSTAT_EOR(-2) is true on some Fortran processors, but 
+			IS_IOSTAT_EOR(2) is always false.
+		</usage>
+	</function>
+	<function name="KIND" type="integer" modifier="optional" default="1">
+		<summary>
+			Kind parameter. Result is a scalar of type default integer.
+		</summary>
+		<parameter name="X" type="real, complex, integer, character, logical" 
+			modifier="dimension">
+			Scalar or array of any intrinsic type.
+		</parameter>
+		<usage>
+			The result is the kind type parameter value of X. 
+			EXAMPLES: If the value 1 is a supported kind value for a real entity and 
+			X is declared by the statement: real(kind=1) X, KIND(X) has the value 1. 
+			If 1 is also the kind value for a real entity of the default real type, 
+			KIND(0.0) is 1.
+		</usage>
+	</function>
+	<function name="LBOUND" type="integer" modifier="dimension">
+		<summary>
+			Lower bound(s) of an array or a dimension of an array. Result is a scalar 
+			or rank-one array of type integer with kind KIND if KIND is present, or 
+			otherwise, with the kind of default integer.
+		</summary>
+		<parameter name="ARRAY" 
+			type="real, complex, integer, character, logical, class" kind=",derived,"
+			modifier="dimension">
+			An array of any type. If it is allocatable, it must be allocated; if it 
+			is a pointer, it must be associated.
+		</parameter>
+		<parameter name="DIM" type="integer" modifier="optional">
+			Scalar of type integer with a value in the range [1, n] where n is the 
+			rank of ARRAY. The corresponding actual argument must not be an optional 
+			dummy argument.
+		</parameter>
+		<parameter name="KIND" type="integer" modifier="optional" default="1">
+			Scalar integer initialization expression whose value is an integer kind 
+			value.
+		</parameter>
+		<usage>
+			If DIM is present, the result is a scalar integer representing the lower 
+			bound of ARRAY in the DIM dimension. If DIM is absent, the result is a 
+			rank-one array of the lower bounds of each dimension of ARRAY. 
+			EXAMPLES: For the following statements: \\ 
+			real, target :: A(2:3, 7:10) \\ 
+			real, pointer, dimension(:,:) :: B, C, D \\ 
+			B =&gt; A \\ 
+			C =&gt; A (:,:) \\ 
+			allocate(D(-3:3, -7:7)) \\ 
+			LBOUND(A) is [2,7], LBOUND(A, DIM=2) is 7, LBOUND(B) is [2,7], LBOUND(C) 
+			is [1 1], and LBOUND(D) is [-3 -7].
+		</usage>
+	</function>
+	<function name="LEN" type="integer">
+		<summary>
+			Length of a character string. Result is a scalar of type integer with 
+			kind KIND if KIND is present, or otherwise, with the kind of default 
+			integer.
+		</summary>
+		<parameter name="STRING" type="character" modifier="dimension">
+			Scalar or array of type character. If it is an unallocated allocatable or 
+			a pointer that is not associated, it must not have a deferred length type 
+			parameter.
+		</parameter>
+		<parameter name="KIND" type="integer" modifier="optional" default="1">
+			Scalar integer initialization expression whose value is an integer kind 
+			value to specify result kind.
+		</parameter>
+		<usage>
+			The result value is the length of STRING if STRING is scalar, and of an 
+			element of STRING if STRING is an array.
+			EXAMPLES: If STR and STR_ARRAY are declared by the statement 
+			character(kind=1, len=25) :: STR, STR_ARRAY(10,10) 
+			LEN(STR) and LEN(STR_ARRAY) both return the value 25. LEN("ABbb") and 
+			LEN("AB" // "CD") both return the value 4.
+		</usage>
+	</function>
+	<function name="LEN_TRIM" type="integer" elemental="true">
+		<summary>
+			Length of a string after trailing blanks have been removed. Result is of 
+			type integer with kind KIND if KIND is present, or otherwise, with the 
+			kind of default integer.
+		</summary>
+		<parameter name="STRING" type="character">
+			Character string to be trimmed.
+		</parameter>
+		<parameter name="KIND" type="integer" modifier="optional" default="1">
+			Scalar integer initialization expression whose value is an integer kind 
+			value to specify result kind.
+		</parameter>
+		<usage>
+			The result is the length of STRING not counting trailing blanks. 
+			EXAMPLES: LEN_TRIM("bbinputbbbb") is 7; LEN_TRIM("bbinput", P) is 7 with 
+			kind P; LEN_TRIM("bbbb") is 0.
+		</usage>
+	</function>
+	<function name="LGE" type="logical" elemental="true">
+		<summary>
+			Greater than or equal to comparison based on the ASCII collating 
+			sequence. Result is of type default logical.
+		</summary>
+		<parameter name="STRING_A" type="character">
+			Character string for comparison.
+		</parameter>
+		<parameter name="STRING_B" type="character">
+			Character string for comparison.
+		</parameter>
+		<usage>
+			The result is true if STRING_A follows or is equal to STRING_B in the 
+			ASCII collating sequence, or otherwise, false. The shorter string is 
+			padded on the right with blanks to the length of the longer string before 
+			the comparison is performed. The result is processor dependent if either 
+			string contains a non-ASCII character.
+			EXAMPLES: LGE("a","k") is false; LGE("xb","x") is true; and LGE("ak","") 
+			is true. Note that the result is true if both STRING_A and STRING_B are 
+			of zero length.
+		</usage>
+	</function>
+	<function name="LGT" type="logical" elemental="true">
+		<summary>
+			Greater than comparison based on the ASCII collating sequence. Result is 
+			of type default logical.
+		</summary>
+		<parameter name="STRING_A" type="character">
+			Character string for comparison.
+		</parameter>
+		<parameter name="STRING_B" type="character">
+			Character string for comparison.
+		</parameter>
+		<usage>
+			The result is true if STRING_A follows STRING_B in the ASCII collating 
+			sequence, or otherwise, false. The shorter string is padded on the right 
+			with blanks to the length of the longer string before the comparison is 
+			performed. The result is processor dependent if either string contains a 
+			non-ASCII character.
+			EXAMPLES: LGT("a","k") is false; LGT("xb","x") is false; and LGT("ak","") 
+			is true. Note that the result is false if both STRING_A and STRING_B are 
+			of zero length.
+		</usage>
+	</function>
+	<function name="LLE" type="logical" elemental="true">
+		<summary>
+			Less than or equal to comparison based on the ASCII collating 
+			sequence. Result is of type default logical.
+		</summary>
+		<parameter name="STRING_A" type="character">
+			Character string for comparison.
+		</parameter>
+		<parameter name="STRING_B" type="character">
+			Character string for comparison.
+		</parameter>
+		<usage>
+			The result is true if STRING_A precedes or is equal to STRING_B in the 
+			ASCII collating sequence, or otherwise, false. The shorter string is 
+			padded on the right with blanks to the length of the longer string before 
+			the comparison is performed. The result is processor dependent if either 
+			string contains a non-ASCII character.
+			EXAMPLES: LLE("a","k") is true; LLE("xb","x") is true; and LLE("ak","") 
+			is false. Note that the result is true if both STRING_A and STRING_B are 
+			of zero length.
+		</usage>
+	</function>
+	<function name="LLT" type="logical" elemental="true">
+		<summary>
+			Less than comparison based on the ASCII collating sequence. Result is of 
+			type default logical.
+		</summary>
+		<parameter name="STRING_A" type="character">
+			Character string for comparison.
+		</parameter>
+		<parameter name="STRING_B" type="character">
+			Character string for comparison.
+		</parameter>
+		<usage>
+			The result is true if STRING_A precedes STRING_B in the ASCII collating 
+			sequence, or otherwise, false. The shorter string is padded 
+			on the right with blanks to the length of the longer string before the 
+			comparison is performed. The result is processor dependent if either 
+			string contains a non-ASCII character.
+			EXAMPLES: LLT("a","k") is true; LLT("xb","x") is false; and LLT("ak","") 
+			is false. Note that the result is false if both STRING_A and STRING_B are 
+			of zero length.
+		</usage>
+	</function>
+	<function name="LOG" type="real, complex" elemental="true">
+		<summary>
+			Natural logarithm. Result is of the same type and kind as X.
+		</summary>
+		<parameter name="X" type="real, complex">
+			Argument to natural log. If X is of type real, its value must be 
+			positive. If it is of type complex, it must not be zero.
+		</parameter>
+		<usage>
+			The result is the natural logarithm of X. If X is of type complex, the 
+			result is the principal value, where the imaginary part of the result is 
+			in the range $[-\pi,\pi]$; if in addition, the real part of X is negative 
+			and the imaginary part of X is zero, the imaginary part of the result is 
+			$\pi$ in magnitude, either $\pi$ if the imaginary part of X is positive 
+			zero or the processor cannot determine the sign of zero, or $-\pi$ if the 
+			imaginary part of X is negative zero.
+			EXAMPLES: LOG(1.0) is 0.0; LOG((-1.0d0, 0.0)) is $\pi i$ with double 
+			precision.
+		</usage>
+	</function>
+	<function name="LOG10" type="real" elemental="true">
+		<summary>
+			Logarithm to the base 10. Result is a real of the same kind as X.
+		</summary>
+		<parameter name="X" type="real">
+			Argument to the logarithm. X must be positive.
+		</parameter>
+		<usage>
+			The result is the base 10 logarithm of X. 
+			EXAMPLES: LOG10(1.0) is 0.0; LOG10(10.0d0) is 1.0 with kind double 
+			precision; LOG([1.0_Q, 10.0_Q, 100.0_Q]) is [0.0 1.0 2.0] with kind Q.
+		</usage>
+	</function>
+	<function name="LOGICAL" type="logical" elemental="true">
+		<summary>
+			Convert to logical value. Result is of type logical with kind KIND if 
+			KIND is present, or otherwise, with the kind of default logical.
+		</summary>
+		<parameter name="L" type="logical">
+			Logical value.
+		</parameter>
+		<parameter name="KIND" type="integer" modifier="optional" default="1">
+			Scalar integer initialization expression whose value is a logical kind 
+			value.
+		</parameter>
+		<usage>
+			The result is L with kind KIND if KIND is present. 
+			EXAMPLE: LOGICAL(.true., T) is the value true of kind T, where T is a 
+			named integer constant with a logical kind value.
+		</usage>
+	</function>
+	<function name="MATMUL" type="real, complex, integer, logical" 
+		modifier="dimension">
+		<summary>
+			Matrix multiplication. Result is a rank-one or rank two array.
+		</summary>
+		<parameter name="MATRIX_A" type="real, complex, integer, logical" 
+			modifier="dimension">
+			First matrix to be multiplied. MATRIX_A can be rank one or rank two, but 
+			at least one of the matrices must be rank two. The last (or only) 
+			dimension of MATRIX_A must have the same extent as the first (or only) 
+			dimension of MATRIX_B, and MATRIX_A and MATRIX_B must both be of either 
+			numeric type or logical type.
+		</parameter>
+		<parameter name="MATRIX_B" type="real, complex, integer, logical" 
+			modifier="dimension">
+			Second matrix to be multiplied. MATRIX_B can be rank one or rank two, but 
+			at least one of the matrices must be rank two. The first (or only) 
+			dimension of MATRIX_B must have the same extent as the last (or only) 
+			dimension of MATRIX_A, and MATRIX_A and MATRIX_B must both be of either 
+			numeric type or logical type.
+		</parameter>
+		<usage>
+			The result is the matrix product of the arguments, treated as vectors 
+			(when rank one) or matrices(when rank two). The shape and value of the 
+			result MATMUL(A, B) is as follows: 
+			If A is two-dimensional and has the shape [m,n] and B is two-dimensional 
+			and has the shape [n,p], then the result is two-dimensional and has the 
+			value @CREF[SUM](A(i,:)*B(:,j)) or @CREF[ANY](A(i,:).AND.B(:,j)) where 
+			the array indices are (i,j); 
+			if A is one-dimensional and has is of length [m] and B is two-dimensional 
+			and has the shape [m,p], then the result is one-dimensional and has 
+			length [p] and has the value @CREF[SUM](A(:)*B(:,j)) or 
+			@CREF[ANY](A(:).AND.B(:,j)), where the array index is j; 
+			if A is two-dimensional and has the shape [m,n] and B is one-dimensional 
+			and is of length [n], then the result is one-dimensional and has length 
+			[m] and has the value @CREF[SUM](A(i,:)*B(:)) or 
+			@CREF[ANY](A(i,:).AND.B(:)), where the array index is i.
+			EXAMPLES: Let A and B be the matrices [[1,2,3],[2,3,4]] and 
+			[[1,2],[2,3],[3,4]]; let X and Y have the values [1,2] and [1,2,3]. 
+			The result of MATMUL(A, B) is the matrix-matrix product AB with the value 
+			[[14,20],[20,29]]. The result of MATMUL(X, A) is the vector-matrix 
+			product XA with the value [5,8,11]. The result of MATMUL(A,Y) is the 
+			matrix-vector product AY with the value [14 20].
+		</usage>
+	</function>
+	<function name="MAX" type="real, integer, character" elemental="true">
+		<summary>
+			Maximum of specified values. Result of the same type as the arguments. If 
+			the arguments are of type character, the length of the result is the 
+			length of the longest argument.
+		</summary>
+		<parameter name="A1" type="real, integer, character">
+			First value. All of the arguments must be of the same type and kind. If 
+			the arguments are of type character, they may be of differing lengths.
+		</parameter>
+		<parameter name="A2" type="real, integer, character">
+			Second value. All of the arguments must be of the same type and kind. If 
+			the arguments are of type character, they may be of differing lengths.
+		</parameter>
+		<parameter name="A3..." type="real, integer, character" modifier="optional">
+			MAX accepts any number of arguments. All of the arguments must be of the 
+			same type and kind. If the arguments are of type character, they may be 
+			of differing lengths.
+		</parameter>
+		<usage>
+			The result is the maximum of all objects A1, A2, .... For the type 
+			character arguments, the comparisons are made using the intrinsic 
+			character relational operators. If the maximum argument is shorter in 
+			character length than the longest argument, the result is the maximum 
+			argument padded with blanks on the right to equal the length of the 
+			longest argument. 
+			EXAMPLES: MAX(1.0, 2.0, 30.0) is 30.0; MAX(1, 2, -3) is 2; and 
+			MAX([-1.d0,-10.0d0], [-2.0d0,20.1d0]) is [-1,20.1] with double precision 
+			kind. MAX("a","b ","c") is "c ".
+		</usage>
+	</function>
+	<function name="MAXEXPONENT" type="integer">
+		<summary>
+			Maximum value of the model exponent.
+		</summary>
+		<parameter name="X" type="real" modifier="dimension">
+			Scalar or array of type real to qualify. The value of X is not used.
+		</parameter>
+		<usage>
+			The result is the integer $e_{max}$ for real numbers of the type and kind 
+			of X, namely the maximum value the exponent of the real number model 
+			$x = s b^e \sum_{k=1}^p{f_k b^{-k}}$ can 
+			have (commonly 128 for single precision, or 1024 for double 
+			precision).
+			EXAMPLE: If $e_{max}=128$ in the real model, MAXEXPONENT(0.0) is the 
+			value 128 of default integer kind.
+		</usage>
+	</function>
+	<function name="MAXLOC" type="integer" modifier="dimension">
+		<summary>
+			Location of the first maximum element of an array. Result is of an 
+			integer of kind KIND if KIND is present, or otherwise, with the kind of 
+			default integer. If DIM is absent, it is a rank-one array of size equal 
+			to the rank n of ARRAY; if DIM is present and ARRAY is of rank one, it is 
+			a scalar; otherwise, it is a rank-one array of size n-1.
+		</summary>
+		<parameter name="ARRAY" type="real, integer, character" 
+			modifier="dimension">
+			An array of type integer, real, or character.
+		</parameter>
+		<parameter name="DIM" type="integer" modifier="optional">
+			Scalar of type integer in the range [1,n] where n is the rank of ARRAY. 
+			The corresponding actual argument must not be an optional dummy argument. 
+			If DIM is not present, MASK can be supplied without using a keywords 
+			(i.e., MAXLOC has two different prototypes or footprints).
+		</parameter>
+		<parameter name="MASK" type="logical" modifier="optional, dimension">
+			Masks which elements of ARRAY are considered. MASK is a logical array 
+			conformable with ARRAY.
+		</parameter>
+		<parameter name="KIND" type="integer" modifier="optional" default="1">
+			Scalar integer initialization expression whose value is an integer kind 
+			value to specify result kind.
+		</parameter>
+		<usage>
+			If MASK and DIM are not present, the result is a rank-one array whose 
+			element values are the subscripts of the first maximum in array element 
+			order of all elements of ARRAY provided ARRAY is of nonzero size. The ith 
+			subscript is in the range [1, $e_i$] where $e_i$ is the extent of the ith 
+			dimension of ARRAY. If ARRAY is zero-sized, all elements of the result 
+			are zero. 
+			If MASK is present and DIM is not present, the result is a rank-one array 
+			whose element values are the subscripts of the first maximum in array 
+			element order of all elements of ARRAY corresponding to a true element of 
+			MASK. The ith subscript is in the range [1, $e_i$] where $e_i$ is the 
+			extent of ith dimension of ARRAY. If ARRAY is zero-sized or all elements 
+			of MASK are false, all elements of the result are zero. 
+			If DIM is present and ARRAY has rank one, the result is the same as if 
+			DIM were not present. 
+			If DIM is present and the rank of ARRAY is at least two, the value of the 
+			element $(s_1, s_2, ... , s_{DIM-1}, s_{DIM+1}, ... , s_n)$ of the result 
+			is equal to 
+			MAXLOC(ARRAY($(s_1, s_2, ... , s_{DIM-1}, :, s_{DIM+1}, ... , s_n)$), 
+			DIM=1 [,MASK=MASK($(s_1, s_2, ... , s_{DIM-1}, s_{DIM+1}, ... , s_n)$)]). 
+			If ARRAY is of type character, the comparisons to determine the maximum 
+			value are the same as those used by the intrinsic relational operators 
+			for operands of the same type as ARRAY. 
+			EXAMPLES: MAXLOC([1,2,3,4]) is the rank-one array [3] of size 1; 
+			MAXLOC([4,2,4,3]) is [1]; MAXLOC([1,2,4,3],1) is the scalar 3; 
+			MAXLOC([1,2,4,3],[.true.,.true.,.false.,.true.]) is the rank-one array 
+			[4] of size 1; and 
+			MAXLOC([1,2,4,3], 1, [.true.,.true.,.false.,.true.], P) is the scalar 4 
+			of integer kind P. 
+			Given the following statements: \\ 
+			logical, parameter :: T = .true., F = .false. \\ 
+			integer, dimension(11:12,31:33) :: a \\ 
+			a = reshape((/1,2,3,4,5,6,7,8,9/), @CREF[SHAPE](a)) \\ 
+			m = reshape((/T,F,T,T,T,F,F,F,T/), @CREF[SHAPE](a)) \\ 
+			logical, dimension(21:22,21:23) :: m \\ 
+			integer, dimension(2) :: r \\ 
+			r = MAXLOC(a, DIM=2, MASK=M) \\ 
+			MAXLOC returns [2,2,3] which is the list of indices indicating the 
+			maximum values of those being selected along the rows of a, the 
+			indicating the 4 in row 1, the 5 in row 2, and the 9 in row 3 or array a.
+		</usage>
+	</function>
+	<function name="MAXVAL" type="real, integer, character" modifier="dimension">
+		<summary>
+			Maximum value of array elements. Result is of the same type and kind as 
+			ARRAY. If DIM is absent or ARRAY is of rank one, it is a scalar; 
+			otherwise, it is a rank n-1 array with the DIM dimension removed.
+		</summary>
+		<parameter name="ARRAY" type="real, integer, character" 
+			modifier="dimension">
+			An array of type integer, real, or character.
+		</parameter>
+		<parameter name="DIM" type="integer" modifier="optional">
+			Scalar of type integer in the range [1,n] where n is the rank of ARRAY. 
+			The corresponding actual argument must not be an optional dummy argument. 
+			If DIM is not present, MASK can be supplied without using a keywords 
+			(i.e., MAXVAL has two different prototypes or footprints).
+		</parameter>
+		<parameter name="MASK" type="logical" modifier="optional, dimension">
+			Masks which elements of ARRAY are considered. MASK is a logical array 
+			conformable with ARRAY.
+		</parameter>
+		<usage>
+			If MASK and DIM are not present, the result is the maximum of all 
+			elements of ARRAY provided ARRAY is of nonzero size. If ARRAY is 
+			zero-sized and of numeric type, the result is the negative value of 
+			largest magnitude supported by the processor of the same type and kind as 
+			ARRAY; if ARRAY is zero-sized and of type character, the result is the 
+			value of the string of the length of ARRAY, with each character equal to 
+			@CREF[CHAR](0,KIND=KIND(ARRAY)).  
+			If MASK is present and DIM is not present, the result is equal to 
+			MAXVAL(@CREF[PACK](ARRAY, MASK)).  
+			If DIM is present and ARRAY has rank one, the result is the same as if 
+			DIM were not present. 
+			If DIM is present and the rank of ARRAY is at least two, the value of the 
+			element $(s_1, s_2, ... , s_{DIM-1}, s_{DIM+1}, ... , s_n)$ of the result 
+			is equal to 
+			MAXVAL(ARRAY($(s_1, s_2, ... , s_{DIM-1}, :, s_{DIM+1}, ... , s_n)$), 
+			DIM=1 
+			[,MASK=MASK($(s_1, s_2, ... , s_{DIM-1}, :, s_{DIM+1}, ... , s_n)$)]). 
+			If ARRAY is of type character, the comparisons to determine the maximum 
+			value are the same as those used by the intrinsic relational operators 
+			for operands of the same type as ARRAY. 
+			EXAMPLES: MAXVAL([-1,5,2]) is 5. If A=[[1,2],[-2,-3]] and 
+			M=[[false, true],[true,true]], MAXVAL(A, 1) is [1,2]; MAXVAL(A, 2, M) is 
+			[2,-2]; MAXVAL(A, M) is 2.
+		</usage>
+	</function>
+	<function name="MERGE" type="real, complex, integer, logical, character" 
+		modifier="dimension" elemental="true">
+		<summary>
+			Selection of values under control of a mask.
+		</summary>
+		<parameter name="TSOURCE" 
+			type="real, complex, integer, character, logical, class" kind=",derived," 
+			modifier="dimension">
+			Of any type but TSOURCE and FSOURCE must have the same type and type 
+			parameters.
+		</parameter>
+		<parameter name="FSOURCE" 
+			type="real, complex, integer, character, logical, class" kind=",derived," 
+			modifier="dimension">
+			Of any type but TSOURCE and FSOURCE must have the same type and type 
+			parameters.
+		</parameter>
+		<usage>
+			The result is TSOURCE if MASK is true and FSOURCE if MASK is false. 
+			MERGE([1,2,3],[4,5,6],[.false.,.true.,.false.]) is [4,2,6]; if TSOURCE is 
+			[[1,6,5],[7,4,6]] and FSOURCE is [[0,3,2],[7,4,8]] and MASK is 
+			[[.true.,.false.,.true.],[.false.,.false.,.true.]], 
+			MERGE(TSOURCE, FSOURCE, MASK) is [[1,3,5],[7,4,6]].
+		</usage>
+	</function>
+	<function name="MIN" type="real, integer, character" elemental="true">
+		<summary>
+			Minimum of specified values. Result of the same type as the arguments. If 
+			the arguments are of type character, the length of the result is the 
+			length of the longest argument.
+		</summary>
+		<parameter name="A1" type="real, integer, character">
+			First value. All of the arguments must be of the same type and kind. If 
+			the arguments are of type character, they may be of differing lengths.
+		</parameter>
+		<parameter name="A2" type="real, integer, character">
+			Second value. All of the arguments must be of the same type and kind. If 
+			the arguments are of type character, they may be of differing lengths.
+		</parameter>
+		<parameter name="A3..." type="real, integer, character" modifier="optional">
+			MIN accepts any number of arguments. All of the arguments must be of the 
+			same type and kind. If the arguments are of type character, they may be 
+			of differing lengths.
+		</parameter>
+		<usage>
+			The result is the minimum of all objects A1, A2, .... For the type 
+			character arguments, the comparisons are made using the intrinsic 
+			character relational operators. If the minimum argument is shorter in 
+			character length than the longest argument, the result is the minimum 
+			argument padded with blanks on the right to equal the length of the 
+			longest argument. 
+			EXAMPLES: MIN(1.0, 2.0, 30.0) is 1.0; MIN(1, 2, -3) is -3; and 
+			MIN([-1.d0,-10.0d0], [-2.0d0,20.1d0]) is [-2,-10] with double precision 
+			kind. MIN("a","b ","c") is "a ".
+		</usage>
+	</function>
+	<function name="MINEXPONENT" type="integer">
+		<summary>
+			Minimum value of the model exponent.
+		</summary>
+		<parameter name="X" type="real" modifier="dimension">
+			Scalar or array of type real to qualify. The value of X is not used.
+		</parameter>
+		<usage>
+			The result is the integer $e_{min}$ for real numbers of the type and kind 
+			of X, namely the minimum value the exponent of the real number model 
+			$x = s b^e \sum_{k=1}^p{f_k b^{-k}}$ can 
+			have (commonly -125 for single precision, or -1021 for double 
+			precision).
+			EXAMPLE: If $e_{min}=-1021$ in the real model, MINEXPONENT(0.0d0) is the 
+			value -1021 of default integer kind.
+		</usage>
+	</function>
+	<function name="MINLOC" type="integer" modifier="dimension">
+		<summary>
+			Location of the first minimum element of an array. Result is of an 
+			integer of kind KIND if KIND is present, or otherwise, with the kind of 
+			default integer. If DIM is absent, it is a rank-one array of size equal 
+			to the rank n of ARRAy; if DIM is present and ARRAY is of rank one, it is 
+			a scalar; otherwise, it is a rank-one array of size n-1.
+		</summary>
+		<parameter name="ARRAY" type="real, integer, character" 
+			modifier="dimension">
+			An array of type integer, real, or character.
+		</parameter>
+		<parameter name="DIM" type="integer" modifier="optional">
+			Scalar of type integer in the range [1,n] where n is the rank of ARRAY. 
+			The corresponding actual argument must not be an optional dummy argument. 
+			If DIM is not present, MASK can be supplied without using a keywords 
+			(i.e., MINLOC has two different prototypes or footprints).
+		</parameter>
+		<parameter name="MASK" type="logical" modifier="optional, dimension">
+			Masks which elements of ARRAY are considered. MASK is a logical array 
+			conformable with ARRAY.
+		</parameter>
+		<parameter name="KIND" type="integer" modifier="optional" default="1">
+			Scalar integer initialization expression whose value is an integer kind 
+			value to specify result kind.
+		</parameter>
+		<usage>
+			If MASK and DIM are not present, the result is a rank-one array whose 
+			element values are the subscripts of the first minimum in array element 
+			order of all elements of ARRAY provided ARRAY is of nonzero size. The ith 
+			subscript is in the range [1, $e_i$] where $e_i$ is the extent of the ith 
+			dimension of ARRAY. If ARRAY is zero-sized, all elements of the result 
+			are zero. 
+			If MASK is present and DIM is not present, the result is a rank-one array 
+			whose element values are the subscripts of the first minimum in array 
+			element order of all elements of ARRAY corresponding to a true element of 
+			MASK. The ith subscript is in the range [1, $e_i$] where $e_i$ is the 
+			extent of ith dimension of ARRAY. If ARRAY is zero-sized or all elements 
+			of MASK are false, all elements of the result are zero. 
+			If DIM is present and ARRAY has rank one, the result is the same as if 
+			DIM were not present. 
+			If DIM is present and the rank of ARRAY is at least two, the value of the 
+			element $(s_1, s_2, ... , s_{DIM-1}, s_{DIM+1}, ... , s_n)$ of the result 
+			is equal to 
+			MINLOC(ARRAY($(s_1, s_2, ... , s_{DIM-1}, :, s_{DIM+1}, ... , s_n)$), 
+			DIM=1 [,MASK=MASK($(s_1, s_2, ... , s_{DIM-1}, s_{DIM+1}, ... , s_n)$)]). 
+			If ARRAY is of type character, the comparisons to determine the minimum 
+			value are the same as those used by the intrinsic relational operators 
+			for operands of the same type as ARRAY. 
+			EXAMPLES: MINLOC([1,2,3,4]) is the rank-one array [1] of size 1; 
+			MINLOC([4,2,4,2]) is [2]; MINLOC([1,2,4,3],1) is the scalar 1; 
+			MINLOC([1,2,4,3],[.false.,.true.,.false.,.true.]) is the rank-one array 
+			[2] of size 1; and 
+			MINLOC([1,2,4,3], 1, [.false.,.true.,.false.,.true.], P) is the scalar 2 
+			of integer kind P. 
+			Given the following statements: \\ 
+			logical, parameter :: T = .true., F = .false. \\ 
+			integer, dimension(11:12,31:33) :: a \\ 
+			a = reshape((/1,2,3,4,5,6,7,8,9/), @CREF[SHAPE](a)) \\ 
+			m = reshape((/T,F,T,T,T,F,F,F,T/), @CREF[SHAPE](a)) \\ 
+			logical, dimension(21:22,21:23) :: m \\ 
+			integer, dimension(2) :: r \\ 
+			r = MINLOC(a, DIM=2, MASK=M) \\ 
+			MINLOC returns [1,2,1] which is the list of indices indicating the 
+			minimum values of those being selected along the rows of a, the 
+			indicating the 1 in row 1, the 5 in row 2, and the 3 in row 3 or array a.
+		</usage>
+	</function>
+	<function name="MINVAL" type="real, integer, character" modifier="dimension">
+		<summary>
+			Minimum value of array elements. Result is of the same type and kind as 
+			ARRAY. If DIM is absent or ARRAY is of rank one, it is a scalar; 
+			otherwise, it is a rank n-1 array with the DIM dimension removed.
+		</summary>
+		<parameter name="ARRAY" type="real, integer, character" 
+			modifier="dimension">
+			An array of type integer, real, or character.
+		</parameter>
+		<parameter name="DIM" type="integer" modifier="optional">
+			Scalar of type integer in the range [1,n] where n is the rank of ARRAY. 
+			The corresponding actual argument must not be an optional dummy argument. 
+			If DIM is not present, MASK can be supplied without using a keywords 
+			(i.e., MINVAL has two different prototypes or footprints).
+		</parameter>
+		<parameter name="MASK" type="logical" modifier="optional, dimension">
+			Masks which elements of ARRAY are considered. MASK is a logical array 
+			conformable with ARRAY.
+		</parameter>
+		<usage>
+			If MASK and DIM are not present, the result is the minimum of all 
+			elements of ARRAY provided ARRAY is of nonzero size. If ARRAY is 
+			zero-sized and of numeric type, the result is the negative value of 
+			largest magnitude supported by the processor of the same type and kind as 
+			ARRAY; if ARRAY is zero-sized and of type character, the result is the 
+			value of the string of the length of ARRAY, with each character equal to 
+			@CREF[CHAR](0,KIND=KIND(ARRAY)).  
+			If MASK is present and DIM is not present, the result is equal to 
+			MINVAL(@CREF[PACK](ARRAY, MASK)).  
+			If DIM is present and ARRAY has rank one, the result is the same as if 
+			DIM were not present. 
+			If DIM is present and the rank of ARRAY is at least two, the value of the 
+			element $(s_1, s_2, ... , s_{DIM-1}, s_{DIM+1}, ... , s_n)$ of the result 
+			is equal to 
+			MINVAL(ARRAY($(s_1, s_2, ... , s_{DIM-1}, :, s_{DIM+1}, ... , s_n)$), 
+			DIM=1 
+			[,MASK=MASK($(s_1, s_2, ... , s_{DIM-1}, :, s_{DIM+1}, ... , s_n)$)]). 
+			If ARRAY is of type character, the comparisons to determine the minimum 
+			value are the same as those used by the intrinsic relational operators 
+			for operands of the same type as ARRAY. 
+			EXAMPLES: MINVAL([-1,5,2]) is -1. If A=[[1,2],[-2,-3]] and 
+			M=[[false, true],[true,true]], MINVAL(A, 1) is [-2,-3]; MINVAL(A, 2, M) 
+			is [2,-3]; MINVAL(A, M) is -3.
+		</usage>
+	</function>
+	<function name="MOD" type="real, integer" elemental="true">
+		<summary>
+			Remainder function, having the sign of the first argument. The result is 
+			of the same type and kind as the arguments.
+		</summary>
+		<parameter name="A" type="real, integer">
+			Dividend, of type integer or real. A and P must have the same type and 
+			kind.
+		</parameter>
+		<parameter name="P" type="real, integer">
+			Divisor, of type integer or real. P must not be zero. A and P must have 
+			the same type and kind.
+		</parameter>
+		<usage>
+			The result is the remainder of A when divided by P; that is, the result 
+			is A-@CREF[INT](A/P)*P. 
+			EXAMPLES: MOD(5, 2) is 1; MOD(-3.1, 2.0) is -1.1; MOD(3.1, -2.0) is 1.1; 
+			and MOD(-6.2d0, -2.1d0) is -2.0 with double precision kind.
+		</usage>
+	</function>
+	<function name="MODULO" type="real, integer" elemental="true">
+		<summary>
+			Remainder function, having the sign of the second argument. The result is 
+			of the same type and kind as the arguments.
+		</summary>
+		<parameter name="A" type="real, integer">
+			Dividend, of type integer or real. A and P must have the same type and 
+			kind.
+		</parameter>
+		<parameter name="P" type="real, integer">
+			Divisor, of type integer or real. P must not be zero. A and P must have 
+			the same type and kind.
+		</parameter>
+		<usage>
+			For A of type integer, the result is the modulo R or A with respect to P; 
+			that is, where Q is an integer, the integer result R satisfies the 
+			requirement that A = Q*P + R where 0 &lt;= R &lt; P if P is positive, and 
+			P &lt; R &lt;= 0 if P is negative. For A of type real, the result is the same 
+			as the Fortran expression A-@CREF[FLOOR](A/P)*P.
+			EXAMPLES: MOD(5, 2) is 1; MOD(-3.1, 2.0) is 0.9; MOD(3.1, -2.0) is -0.9; 
+			and MOD(-6.2d0, -2.1d0) is -2.0 with double precision kind. Note that 
+			despite the different forms of the definitions for real and integer 
+			values, the definitions are consistent; for example, MODULO(-3, 2) and 
+			MODULO(-3.0, 2.0) both have the value 1.
+		</usage>
+	</function>
+	<subroutine name="MOVE_ALLOC">
+		<summary>
+			Transfer an allocation from one object to another of the same type. 
+			MOVE_ALLOC is a pure subroutine.
+		</summary>
+		<parameter name="FROM" 
+			type="real, complex, integer, character, logical, class" kind=",derived," 
+			modifier="allocatable, dimension, intent(out)">
+			Allocatable scalar or array of any type with intent(out).
+		</parameter>
+		<parameter name="TO" 
+			type="real, complex, integer, character, logical, class" kind=",derived," 
+			modifier="allocatable, dimension, intent(out)">
+			Allocatable scalar or array, type compatible with FROM, with the same 
+			rank as FROM and with intent(out). If FROM is polymorphic, TO must be
+			polymorphic. Any non-deferred parameter of the declared type of TO must 
+			have the same value as the corresponding parameter of the declared type 
+			of FROM.
+		</parameter>
+		<usage>
+			The allocation is moved from the allocatable object FORM to the 
+			allocatable object TO and FROM is deallocated. If FROM is unallocated on 
+			invocation of MOVE_ALLOC, TO becomes unallocated; otherwise, TO is 
+			allocated with the same dynamic type, type parameters, and array bounds, 
+			and is given the same value as FROM had before MOVE_ALLOC was invoked; 
+			the allocation status of FROM becomes unallocated. If TO has the TARGET 
+			attribute, any pointer associated with FROM becomes associated with TO 
+			after MOVE_ALLOC is invoked; otherwise, any pointer associated with FROM 
+			when MOVE_ALLOC is invoked becomes undefined. 
+			It is expected that allocatable objects involve the use of descriptors to 
+			locate allocatable storage. Using descriptors, MOVE_ALLOC can be 
+			implemented by transferring the descriptor of FROM to that of TO and 
+			clearing the descriptor of FROM, and thus no target data will move. 
+			EXAMPLE: Suppose more data is collected than will fit into an initially 
+			allocated array. In the following code sequence, an allocatable array TMP 
+			is allocated twice the size of the array SYMBOLS; the value of SYMBOLS is 
+			copied to TMP, and then the array TMP becomes SYMBOLS by using the 
+			subroutine MOVE_ALLOC; in this last step, no data will be moved. \\ 
+			character(len=len(SYMBOLS)), allocatable, dimension(:) :: TMP \\ 
+			@CREF[ALLOCATE](TMP(2*@CREF[SIZE](SYMBOLS)) \\ 
+			TMP(1:@CREF[SIZE](SYMBOLS)) = SYMBOLS \\ 
+			TMP(@CREF[SIZE](SYMBOLS)+1:) = "" \\ 
+			call MOVE_ALLOC(TMP, SYMBOLS) \\ 
+			After these statements are executed, the array SYMBOLS is now twice its 
+			original size with the first half of it having the same values as it had 
+			originally.
+		</usage>
+	</subroutine>
+	<subroutine name="MVBITS" elemental="true">
+		<summary>
+			Copy a sequence of bits from one integer to another.
+		</summary>
+		<parameter name="FROM" type="integer" modifier="intent(in)">
+			Integer from which the bits are to be copied.
+		</parameter>
+		<parameter name="FROMPOS" type="integer" modifier="intent(in)">
+			Position in FROM integer at which to copy bits. Must be in the range 
+			[0, @CREF[BIT_SIZE](FROM)-LEN].
+		</parameter>
+		<parameter name="LEN" type="integer" modifier="intent(in)">
+			Number of bits to copy from FROM to TO. Must not be negative.
+		</parameter>
+		<parameter name="TO" type="integer" modifier="intent(inout)">
+			Integer into which the bits are to be copied.
+		</parameter>
+		<parameter name="TOPOS" type="integer" modifier="intent(in)">
+			Position in TO at which to copy the bits. Must have a nonnegative value 
+			such that TOPOS+LEN &lt;= @CREF[BIT_SIZE](TO).
+		</parameter>
+		<usage>
+			EXAMPLE: Consider the following code segment: \\ 
+			integer :: T \\ 
+			T = 16 \\ 
+			call MVBITS(31, 0, 2, T, 1) \\ 
+			Using the standard bit model for integers, the value of T is 22 after the 
+			call to MVBITS. In place of the last two statements above, the statements 
+			\\ 
+			T = @CREF[INT](B"10000") \\ 
+			call MVBITS(@CREF[INT](B"11111"), 0, 2, T, 1) \\ 
+			sets T to the same value 22 which is the same value as the BOZ literal 
+			constant B"10110".
+		</usage>
+	</subroutine>
+	<function name="NEAREST" type="real" elemental="true">
+		<summary>
+			Nearest machine-representable number in a given direction. Result is of 
+			the same type and kind as X.
+		</summary>
+		<parameter name="X" type="real">
+			Beginning value, of type real. The return value will be the nearest value 
+			greater than or less than X.
+		</parameter>
+		<parameter name="S" type="real">
+			Direction value. S may be of a different kind than X, but it must not be 
+			zero.
+		</parameter>
+		<usage>
+			The result is the machine-representable value nearest X toward the 
+			direction of the infinity of the sign of S. Note that the result is 
+			described in terms of machine-representable values rather than model 
+			numbers. 
+			EXAMPLES: If a processor uses for its default real type values the 
+			standard 32-bit real model, the values of NEAREST(1.0, -1.0) and 
+			NEAREST(0.0, 0.125) are $1-2^{-24}$ and $2^{-126}$, respectively.
+		</usage>
+	</function>
+	<function name="NEW_LINE" type="character">
+		<summary>
+			New line character for the character kind of the argument. Result is a 
+			scalar of type character, length 1, and the kind of A.
+		</summary>
+		<parameter name="A" type="character">
+			Scalar or array of type character, given to define the kind of character 
+			to be used.
+		</parameter>
+		<usage>
+			The result is the new line character for the character set specified by 
+			the kind of A, as follows: If A is of default character type and 
+			@CREF[ACHAR](10) is a representable character, the result will be 
+			@CREF[ACHAR](10); if A is ISO 10646 or ASCII, the result will be 
+			@CREF[CHAR](10, @CREF[KIND](A)); if a new line character exists in files 
+			connected for formatted stream output, that will be the result, if not, 
+			the result will be a blank character. 
+			EXAMPLE: The statements \\ 
+			print "(/)" \\ 
+			print "(a)", NEW_LINE("a") \\ 
+			will produce the same result on most systems.
+		</usage>
+	</function>
+	<function name="NINT" type="integer" elemental="true">
+		<summary>
+			Real value rounded to the nearest integer. Result is a real of kind KIND 
+			if KIND is present, or otherwise, with the kind of default integer.
+		</summary>
+		<parameter name="A" type="real">
+			Real value to be rounded.
+		</parameter>
+		<parameter name="KIND" type="integer" modifier="optional" default="1">
+			Scalar integer initialization expression whose value is an integer kind 
+			value.
+		</parameter>
+		<usage>
+			The result is the nearest integer value to A; if there are two such 
+			nearest integers, the result is the one of greater magnitude.
+			EXAMPLES: NINT(3.1) is 3; NINT(-3.5, P) is -4 of kind P.
+		</usage>
+	</function>
+	<function name="NOT" type="integer" elemental="true">
+		<summary>
+			Logical complement of an integer. Result is an integer of the same kind 
+			as I.
+		</summary>
+		<parameter name="I" type="integer">
+			Integer to be bitwise inverted.
+		</parameter>
+		<usage>
+			The result is the value obtained by complementing the bit positions of I; 
+			that is I is inverted bit-by-bit. 
+			EXAMPLE: Using the standard 32-bit bit model for default integers, NOT(4) 
+			has the integer value represented as a bit string 
+			11111111111111111111111111111011, which has the first bit set to 1. For 
+			all arguments, the result value as an integer is processor dependent 
+			because the standard does not specify the representation of negative 
+			integers.
+		</usage>
+	</function>
+	<function name="NULL" 
+		type="real, complex, integer, character, logical, procedure, class" 
+		kind=",derived," modifier="pointer, allocatable">
+		<!-- I'm not sure about if type="procedure" is real or not... -->
+		<summary>
+			A disassociated pointer or unallocated allocatable component of a 
+			structure constructor. The characteristics of the result are the same as 
+			MOLD if it is present; otherwise, the characteristics are determines by 
+			the context from which NULL is invoked. In addition, if the contextual 
+			entity has deferred-type parameters, those type parameters of the result 
+			are deferred.
+		</summary>
+		<parameter name="MOLD" 
+			type="real, complex, integer, character, logical, procedure, class" 
+			kind=",derived," modifier="pointer, allocatable, optional">
+			MOLD must be a pointer of allocatable and may be of any type or a 
+			procedure pointer. If a pointer, its association status may be 
+			associated, disassociated, or undefined. If it is allocatable, its 
+			allocation status may be allocated or unallocated. Its value may be 
+			undefined.
+		</parameter>
+		<usage>
+			The result is a disassociated pointer or an unallocated allocatable 
+			entity. 
+			If NULL appears on the right side of a pointer assignment, its type, type 
+			parameters, and rank match those of the pointer on the left side. If NULL 
+			appears in the initialization of an object in a declaration, its 
+			characteristics match those of the object. If NULL appears in the default 
+			initialization for a component, its characteristics match those of the 
+			component. If NULL appears as a value in a structure constructor, its 
+			characteristics match those of the corresponding component. If NULL 
+			appears as an actual argument of a procedure, it assumes the 
+			characteristics of the corresponding dummy argument. If NULL appears as a 
+			data value in a DATA statement, its characteristics match those of the 
+			corresponding pointer data object. If any type parameter in these 
+			contexts is assumed, such as in the case of generic procedures where the 
+			type, type parameters, or rank of the actual argument are needed to 
+			determine which specific procedure is to be referenced, or information 
+			such as the character length of the actual argument, MOLD must be present 
+			to specify that information, as well as in any context not listed. 
+			EXAMPLES: If A is a pointer, NULL(A) is a disassociated pointer with the 
+			characteristics of A. Consider the following code segment: \\ 
+			type node_type \\ 
+			integer, allocatable, dimension(:) :: vals \\ 
+			type(node_type), pointer :: nxt \\ 
+			end node_type \\ 
+			type(node_type) :: node \\ 
+			node = node_type(NULL(), NULL()) \\ 
+			The assignment statement with the structure constructor node_type sets 
+			the component vals to an unallocated allocatable entity and the component 
+			nxt to a disassociated pointer.
+		</usage>
+	</function>
+	<function name="PACK" 
+		type="real, complex, integer, character, logical, class" kind=",derived," 
+		modifier="dimension(:)" dimension=":">
+		<summary>
+			Masked array packed into a vector. Result is a rank-one array of the type 
+			and type parameters of ARRAY. If VECTOR is present, the result size is the 
+			size of VECTOR; otherwise, if MASK is an array, the result size is the 
+			number of true elements in MASK. If MASK is a scalar with the value true, 
+			the result size is the size of ARRAY; if MASK is a scalar with the value 
+			false, the result size is zero.
+		</summary>
+		<parameter name="ARRAY" 
+			type="real, complex, integer, character, logical, class" kind=",derived," 
+			modifier="dimension">
+			Array of any type to be packed.
+		</parameter>
+		<parameter name="MASK" type="logical" modifier="dimension">
+			Logical mask, conformable with ARRAY.
+		</parameter>
+		<parameter name="VECTOR" 
+			type="real, complex, integer, character, logical, class" kind=",derived," 
+			modifier="dimension(:)" dimension=":">
+			Rank-one array of the same type and type parameter as ARRAY. If MASK is 
+			an array, VECTOR must have a size at least as large as the number of true 
+			elements in MASK. If MASK is a scalar with the value true, VECTOR must 
+			have a size at least as large as the size of ARRAY. If VECTOR is larger 
+			than the ARRAY or the number of true elements in MASK, the remaining 
+			values will come from VECTOR.
+		</parameter>
+		<usage>
+			The result consists of the elements of ARRAY corresponding to the true 
+			elements of MASK in array element order. If VECTOR is present and is 
+			larger in size than the number of true elements in MASK, the remaining 
+			elements of the result are the corresponding remaining elements of 
+			VECTOR. 
+			EXAMPLES: If ARRAY is [[4,2],[3,1]], PACK(ARRAY, .true.) is [4,3,2,1]; 
+			PACK (ARRAY, .false., [1,2,3,4,5,6]) is [1,2,3,4,5,6]; and if MASK is 
+			[[.true.,.false.],[.false.,.true.]], PACK(ARRAY, MASK, [1,2,3,4,5,6]) is 
+			[4,1,3,4,5,6].
+		</usage>
+	</function>
+	<function name="PRECISION" type="integer">
+		<summary>
+			Decimal precision of a model number. Result is a scalar of default 
+			integer type.
+		</summary>
+		<parameter name="X" type="real, complex" modifier="dimension">
+			Scalar or array of type real or complex as a model number. The value of X 
+			is irrelevant.
+		</parameter>
+		<usage>
+			The result is the integer part of $((p-1)*log_{10}(b))+k$ for model 
+			parameters p and b in the bit for the real type of X where p is the 
+			number of mantissa digits and b is the base (usually 2) and k is 1 if b 
+			is an integral power of 10 and 0 otherwise, namely the decimal precision 
+			of real numbers of the kind of X. 
+			EXAMPLE: If a processor supports the double precision kind using the real 
+			model with p=53 and b=2, the value PRECISION(0.0d0) is 15.
+		</usage>
+	</function>
+	<function name="PRESENT" type="logical">
+		<summary>
+			Returns true if an actual argument of a procedure is present. Result is a 
+			scalar of type default logical.
+		</summary>
+		<parameter name="A" 
+			type="real, complex, integer, character, logical, procedure, class" 
+			kind=",derived," modifier="pointer">
+			Scalar or array optional dummy argument name of any type. The actual 
+			argument may be a dummy procedure or a pointer. A has no intent 
+			attribute. The actual argument corresponding to A must be an accessible 
+			optional argument in the subprogram that invokes the PRESENT function.
+		</parameter>
+		<usage>
+			The result is true if A is present and false otherwise.
+			EXAMPLE: In the following code segment: \\ 
+			print "(es7.1)", DEFINE_SMALL() \\ 
+			print "(es7.1)", DEFINE_SMALL(1.0e10) \\ 
+			contains \\ 
+			real function DEFINE_SMALL (x) \\ 
+			real, optional :: x \\ 
+			if(PRESENT(x)) then \\ 
+			find_small = @CREF[ABS](x) * @CREF[EPSILON](x) \\ 
+			else \\ 
+			find_small = @CREF[EPSILON](x) \\ 
+			endif \\ 
+			end function DEFINE_SMALL \\ 
+			the printed output might be: 1.2e−07 and 1.2e+03.
+		</usage>
+	</function>
+	<function name="PRODUCT" type="real, complex, integer" modifier="dimension">
+		<summary>
+			Product of array elements. Result is of the same type and kind as ARRAY. 
+			If DIM is not present or ARRAY has rank one, it is a scalar; otherwise, 
+			it is a rank n-1 array whose shape is that of ARRAY with the DIM 
+			dimension removed.
+		</summary>
+		<parameter name="ARRAY" type="real, complex, integer" modifier="dimension">
+			Array for multiplication of type integer, real, or complex.
+		</parameter>
+		<parameter name="DIM" type="integer" modifier="optional">
+			Dimension along which to perform multiplication. It is a scalar of type 
+			integer in the range [1,n] where n is the rank of ARRAY. The 
+			corresponding actual argument must not be an optional dummy argument. If 
+			DIM is not present, MASK can be supplied without using a keywords 
+			(i.e., PRODUCT has two different prototypes or footprints).
+		</parameter>
+		<parameter name="MASK" type="logical" modifier="optional, dimension">
+			Masks which elements of ARRAY are multiplied. MASK is a logical array 
+			conformable with ARRAY.
+		</parameter>
+		<usage>
+			If MASK and DIM are not present, the result is the product of all 
+			elements of ARRAY provided ARRAY is of nonzero size. If ARRAY is 
+			zero-sized, the result is one. 
+			If MASK is present and DIM does not appear, the result is the product of 
+			the elements of ARRAY corresponding to the true elements of MASK and one 
+			if there are no true elements. 
+			If DIM is present and ARRAY has rank one, the result is the same as if 
+			DIM were not present. 
+			If DIM is present and the rank of ARRAY is at least 2, the value of the 
+			element $(s_1, s_2, ... , s_{DIM-1}, s_{DIM+1}, ... , s_n)$ is equal to 
+			PRODUCT(ARRAY $(s_1, s_2, ... , s_{DIM-1}, :, s_{DIM+1}, ... , s_n)$ 
+			[, MASK=MASK $(s_1, s_2, ... , s_{DIM-1}, :, s_{DIM+1}, ... , s_n)$]). 
+			If ARRAY is of zero size or no elements of MASK are true, the result is 
+			1. 
+			EXAMPLES: PRODUCT([-1, 5, 2]) is -10. If A=[[4,2],[-2,-3]], PRODUCT(A, 1) 
+			is [-8, -6]; and if M=[[.false.,.true.],[.true.,.true.]], 
+			PRODUCT(A, 2, M) is [2,6] and PRODUCT(A, A>0) is 8.
+		</usage>
+	</function>
+	<function name="RADIX" type="integer">
+		<summary>
+			Base of a model number. Result is a scalar of default integer type.
+		</summary>
+		<parameter name="X" type="real, integer" modifier="dimension">
+			Scalar or array of type integer or real as a model number. The value of X 
+			is irrelevant.
+		</parameter>
+		<usage>
+			The result is the value r of the integer model 
+			$i = s \sum_{k=0}^{q-1}{w_k r^k}$ or the value b of the real model 
+			$x = s b^e \sum_{k=1}^p{f_k b^{-k}}$ of the type and kind of X, namely 
+			the radix of number of the type and kind of X. 
+			EXAMPLES: If r=2 in the integer model, RADIX(0) has the value 2 of 
+			default integer kind; if b=2 in the real model, RADIX(0.0) has the value 
+			2 of default integer kind.
+		</usage>
+	</function>
+	<subroutine name="RANDOM_NUMBER">
+		<summary>
+			Generate pseudorandom scalar or array of real type. Result is assigned to 
+			HARVEST.
+		</summary>
+		<parameter name="HARVEST" type="real" modifier="dimension, intent(out)">
+			Scalar or array of type real. It is assigned a scalar or array of 
+			uniformly distributed pseudorandom real values in the interval [0,1).
+		</parameter>
+		<usage>
+			EXAMPLE: The code segment: \\ 
+			real :: S \\ 
+			real(kind=KIND (0.0d0)) :: D \\ 
+			real, dimension(3) :: A \\ 
+			call RANDOM_NUMBER (S) \\ 
+			call RANDOM_NUMBER (D) \\ 
+			call RANDOM_NUMBER (A) \\ 
+			produces a set of pseudorandom numbers, probably different for each 
+			execution of the code segment. Upon completion of this code segment, the 
+			values of S is a scalar of type default real, such as 0.5587673; the 
+			value of D is a real scalar with double precision kind such as 
+			0.2024475895811094, and the value of A is a default real rank-one array 
+			of three numbers, such as [0.5366381,0.2763737,.012461195].
+		</usage>
+	</subroutine>
+	<subroutine name="RANDOM_SEED">
+		<summary>
+			Retrieve or set the seed of the pseudorandom number generator. There must 
+			be zero or one argument.
+		</summary>
+		<parameter name="SIZE" type="integer" modifier="optional, intent(out)">
+			Scalar of default integer type. If it is present, it is assigned the size 
+			of the array used by the processor to hold the seed for the pseudorandom 
+			number generator.
+		</parameter>
+		<parameter name="PUT" type="integer" 
+			modifier="optional, intent(in), dimension(:)" dimension=":">
+			Rank-one array of default integer type. If it is present, it is an 
+			intent(in) argument that is the value used to set the seed of the 
+			pseudorandom number generator.
+		</parameter>
+		<parameter name="GET" type="integer" 
+			modifier="optional, intent(out), dimension(:)" dimension=":">
+			Rank-one array of default integer type. If it is present, it is assigned 
+			the current seed for the pseudorandom number generator.
+		</parameter>
+		<usage>
+			There must be zero or one argument. If no argument is present, the 
+			processor assigns a processor-dependent value to the seed. If the PUT 
+			argument is used to set the seed with a particular value, the same 
+			sequence of pseudorandom numbers must be generated when that particular 
+			seed is specified a second time. 
+			EXAMPLES: Consider the following program: \\ 
+			real :: S \\ 
+			real(kind=KIND(0.0d0)) :: D \\ 
+			real, dimension(3) :: A \\ 
+			integer :: sz \\ 
+			integer, dimension(:), allocatable :: seed \\ 
+			call  RANDOM_SEED(size=sz) ! Finds the size sz of the seed \\ 
+			allocate(seed(sz)) \\ 
+			sz = [(i,i=1,sz)] ! Establishes a user seed \\ 
+			call RANDOM_SEED(PUT=seed) ! Sets the array of seeds \\ 
+			call @CREF[RANDOM_NUMBER](S) ! A scalar default real random number \\ 
+			call @CREF[RANDOM_NUMBER](D) ! A scalar double precision random number \\ 
+			call @CREF[RANDOM_NUMBER](A) ! An array of random numbers \\ 
+			This program segment produces a set of pseudorandom numbers, the same for 
+			each execution of the code segment.
+		</usage>
+	</subroutine>
+	<function name="RANGE" type="integer">
+		<summary>
+			Decimal exponent range of a model number. Result is a scalar of type 
+			default integer.
+		</summary>
+		<parameter name="X" type="real, complex, integer" modifier="dimension">
+			Scalar or array of type integer or real as a model number. The value of X 
+			is irrelevant.
+		</parameter>
+		<usage>
+			For integer X, the result is @CREF[INT](@CREF[LOG10](@CREF[HUGE](X))). 
+			For real X, the result is 
+			@CREF[INT](@CREF[MIN](@CREF[LOG10](@CREF[HUGE](X)), 
+			−@CREF[LOG10](@CREF[TINY](X)))). 
+			For complex X, @CREF[RANGE](@CREF[REAL](X)). 
+			EXAMPLES: If r=2 in the integer model, RANGE(0) has the value 9 of 
+			default integer kind; if b=2, p=24, $e_{max}$=128 in the real model, 
+			RANGE(0.0) has the value 37 of default integer kind.
+		</usage>
+	</function>
+	<function name="REAL" type="real" elemental="true">
+		<summary>
+			Convert to real value. Result is of kind KIND if KIND is present, or 
+			otherwise, of the kind of default real.
+		</summary>
+		<parameter name="A" type="real, complex, integer">
+			Scalar or array of type integer, real, or complex type, or a BOZ literal 
+			constant.
+		</parameter>
+		<parameter name="KIND" type="integer" modifier="optional" default="1">
+			Scalar integer initialization expression whose value is a real kind value.
+		</parameter>
+		<usage>
+			The result is A if A is of integer or real type, or of the real part of A 
+			if A is of complex type. If A is a BOZ literal constant, the result is 
+			that value of type real with the kind of the result whose bit pattern is 
+			that given by the BOZ literal constant; the interpretation of the bit 
+			pattern is processor dependent. 
+			EXAMPLES: REAL(3) is 3.0; REAL((4.0, 1.0)) is 4.0. REAL(4.1, KIND(0.0d0)) 
+			is 4.1, converted from real kind to double precision kind; in general, it 
+			is not equal to 4.1d0.
+		</usage>
+	</function>
+	<function name="REPEAT" type="character">
+		<summary>
+			Concatenation of several copies of a character string. Result is a 
+			scalar character string of the same kind as STRING and with length 
+			NCOPIES*@CREF[LEN](STRING).
+		</summary>
+		<parameter name="STRING" type="character">
+			Scalar of type character to be repeated.
+		</parameter>
+		<parameter name="NCOPIES" type="integer">
+			Number of copies, a scalar of type integer. Its value must not be 
+			negative.
+		</parameter>
+		<usage>
+			The result is the string consisting of NCOPIES copies of STRING 
+			concatenated together. 
+			EXAMPLE: REPEAT("BAD ", 3) is the string "BAD BAD BAD "; 
+			REPEAT("BAD ", 0) is the empty string.
+		</usage>
+	</function>
+	<function name="RESHAPE" 
+		type="real, complex, integer, character, logical, class" kind=",derived," 
+		modifier="dimension">
+		<summary>
+			Source array reshaped to an array of a specified shape. Result is an 
+			array of the same type and type parameters as SOURCE but with the shape 
+			SHAPE.
+		</summary>
+		<parameter name="SOURCE" 
+			type="real, complex, integer, character, logical, class" kind=",derived," 
+			modifier="dimension">
+			Array of any type to be reshaped. If PAD is absent or of zero size, the 
+			size of SOURCE must be greater than or equal to @CREF[PRODUCT](SHAPE).
+		</parameter>
+		<parameter name="SHAPE" type="integer" modifier="dimension(:)" 
+			dimension=":">
+			Rank-one array of type integer and of a positive size n less than 8. No 
+			element may have a negative value. The size n must be determinable at 
+			compile time; what is determinable at compile time is open to 
+			interpretation.
+		</parameter>
+		<parameter name="PAD" 
+			type="real, complex, integer, character, logical, class" kind=",derived," 
+			modifier="optional, dimension">
+			Array of value to pad the reshaped array, if necessary. Must have the 
+			same type and type parameters as SOURCE.
+		</parameter>
+		<parameter name="ORDER" type="integer" modifier="optional, dimension(:)" 
+			dimension=":">
+			Rank-one array of type integer with any integer kind and of size n the 
+			same as the size of SHAPE. It must have a value that is a permutation of 
+			the integers from 1 to n. If it is not present, it is as if it is present 
+			with the value [1,2,...,n].
+		</parameter>
+		<usage>
+			The elements of the result, taken in permuted subscript order ORDER(1), 
+			ORDER(2), ..., ORDER(n), are those of the array SOURCE in array element 
+			order, followed, if needed to complete the elements of the result, by the 
+			elements of PAD in array element order, followed if needed, by further 
+			copies of PAD in array element order. 
+			EXAMPLES: RESHAPE([1,2,3,4,5,6], [2,3]) has the value [[1,3,5],[2,4,6]]. 
+			RESHAPE([1,2,3,4,5,6],[2,4],[0,0],[2,1]) has the value 
+			[[1,2,3,4],[5,6,0,0]]. Consider the following program segment: \\ 
+			real, dimension(2,2) :: a \\ 
+			integer, dimension(2) :: shp = [@CREF[SIZE](a,1), @CREF[SIZE](a,2)] \\ 
+			a = RESHAPE([1,2,3,4], shp, order= [2,1]) \\ 
+			a is the array [[1.0,2.0],[3.0,4.0]].
+		</usage>
+	</function>
+	<function name="RRSPACING" type="real" elemental="true">
+		<summary>
+			Reciprocal of model relative spacing near a specified value. Result is 
+			a real with the same kind parameters as X.
+		</summary>
+		<parameter name="X" type="real">
+			Of type real.
+		</parameter>
+		<usage>
+			The result is the value $|X b^{-e}|b^p$ as determined by the model for 
+			real numbers $x = s b^e \sum_{k=1}^p{f_k b^{-k}}$. If X is an infinity or 
+			NaN, the result is zero or that NaN, respectively. 
+			EXAMPLES: If a processor uses for its default the real model with b=2 and 
+			p=24, the values of RRSPACING(1.0) and RRSPACING(0.0) are $2^{23}$ and 
+			0.0, respectively.
+		</usage>
+	</function>
+	<function name="SAME_TYPE_AS" type="logical">
+		<summary>
+			Returns true if two objects are of the same dynamic type.
+		</summary>
+		<parameter name="A" type="class" kind=",derived,"> 
+			Of any extensible type. If A is a pointer, it must have a defined 
+			association status.
+		</parameter>
+		<parameter name="B" type="class" kind=",derived,">
+			Of any extensible type. If B is a pointer, it must have a defined 
+			association status.
+		</parameter>
+		<usage>
+			The result is true if the dynamic type of A is the same as the dynamic 
+			type of B. Note that the dynamic type of a disassociated pointer or 
+			unallocated allocatable is its declared type. 
+			EXAMPLE: Consider the following example where the type 
+			painted_line_type is an extension of the type line_type: \\ 
+			type, public :: line_type; real :: x, y; end type line_type \\ 
+			type, public, extends(line_type) :: painted_line_type \\ 
+			integer :: color \\ 
+			end type painted_line_type \\ 
+			type cartesian; real :: x, y; end type cartesian \\ 
+			type(line_type) :: line, divider \\
+			type(painted_line)type) :: a \\
+			type(cartesian) :: point \\ 
+			SAME_TYPE_AS(a, line), SAME_TYPE_AS(a, divider), and 
+			SAME_TYPE_AS(divider, line) are all false whereas 
+			SAME_TYPE_AS(line, divider) is true.
+		</usage>
+	</function>
+	<function name="SCALE" type="real" elemental="true">
+		<summary>
+			Value scaled by a power of the radix (usually 2). Result is a real of the 
+			same type as X.
+		</summary>
+		<parameter name="X" type="real">
+			Real number to be scaled.
+		</parameter>
+		<parameter name="I" type="integer">
+			Integer power to scale by.
+		</parameter>
+		<usage>
+			The result is the value $X b^I$ as determined by the model for real 
+			numbers $x = s b^e \sum_{k=1}^p{f_k b^{-k}}$, provided the value is in 
+			range, and otherwise, is processor dependent. 
+			EXAMPLES: If a processor uses the real model with b=2, the values of 
+			SCALE(1.0, -2) and SCALE(0.0,10) are 0.25 and 0.0, respectively.
+		</usage>
+	</function>
+	<function name="SCAN" type="integer" elemental="true">
+		<summary>
+			Position in a string of any one of a given set of characters. Result is 
+			an integer with kind KIND if KIND is present, or otherwise, with the kind 
+			of default integer.
+		</summary>
+		<parameter name="STRING" type="character">
+			String to be scanned, of type character. STRING and SET must be of the 
+			same character kind.
+		</parameter>
+		<parameter name="SET" type="character">
+			Set of characters to scan for, of type character. STRING and SET must be 
+			of the same character kind.
+		</parameter>
+		<parameter name="BACK" type="logical" modifier="optional" default=".false.">
+			Logical value that indicates search should begin from the end of the 
+			string if present with the value true.
+		</parameter>
+		<parameter name="KIND" type="integer" modifier="optional" default="1">
+			Scalar integer initialization expression whose value is an integer kind 
+			value.
+		</parameter>
+		<usage>
+			The result is the index position in STRING of a character in the string 
+			SET, or zero if no character in SET appears in STRING. If BACK is present 
+			with the value false or is not present, the index position is that of the 
+			first occurrence in STRING of any character in SET; otherwise, if BACK is 
+			present with the value true, the index position is that of the last 
+			occurrence in STRING of a character in SET. If the length of STRING or 
+			SET is zero, zero is returned. 
+			EXAMPLES: SCAN("input string", "if") is 1; 
+			SCAN("input string", "if", .true.) is 10; and 
+			SCAN("input string", "f", KIND=P) is 0 of integer kind P.
+		</usage>
+	</function>
+	<function name="SELECTED_CHAR_KIND" type="integer">
+		<summary>
+			Kind parameter of a specified character set. Result is a scalar of type 
+			default integer.
+		</summary>
+		<parameter name="NAME" type="character">
+			Name of the character type, of type character.
+		</parameter>
+		<usage>
+			The result is the kind parameter value of the character type whose name 
+			is the value of NAME. If the named character type is not supported by the 
+			processor, the value is −1. The value of NAME is interpreted without 
+			regard to case and trailing blanks. The names used for character kinds 
+			that support the default, ASCII, and ISO/IEC 10646-1:2000 UCS-4 character 
+			sets are the strings DEFAULT, ASCII and ISO 10646, respectively. 
+			EXAMPLES: If a processor supports the default character and the ISO/IEC 
+			10646-1:2000 UCS-4 character types with kind values 1 and 2, 
+			respectively, the kind values for X, Y, and Z declared as follows: \\ 
+			character(kind=kind("ABC")) X \\ 
+			character(kind=SELECTED_CHAR_KIND("ISO_10646")) Y \\ 
+			character(kind=SELECTED_CHAR_KIND("default")) Z \\ 
+			are 1, 2, and 1, respectively; in this case, the first and third 
+			statements declare the same character kind.
+		</usage>
+	</function>
+	<function name="SELECTED_INT_KIND" type="integer">
+		<summary>
+			Kind parameter of an integer data type, specified by a minimum decimal 
+			range. Result is a scalar of type default integer.
+		</summary>
+		<parameter name="R" type="integer">
+			Desired minimum decimal range. R is a scalar of type integer.
+		</parameter>
+		<usage>
+			The result is the kind parameter value of an integer type that supports 
+			integers n in the range $−10^R &lt; n &lt; 10^R$. If such an integer kind does 
+			not exist, the value is −1. If there is more than one kind available, the 
+			kind corresponding to the smallest decimal exponent range is returned. If 
+			there are more than one of those, the smallest kind value of those is 
+			returned. 
+			EXAMPLES: If q=63 and r=2 in the integer model 
+			$i = s \sum_{k=0}^{q-1}{w_k r^k}$ for integers with kind 2, 
+			SELECTED_INT_KIND (15) has the value 2 of default integer kind.
+		</usage>
+	</function>
+	<function name="SELECTED_REAL_KIND" type="integer">
+		<summary>
+			Kind parameter of a real data type, specified by a minimum decimal 
+			precision and/or exponent range. Result is a scalar of type default 
+			integer.
+		</summary>
+		<parameter name="P" type="integer" modifier="optional" default="0">
+			Number of digits of decimal precision. At least one of P and R must be 
+			present. If either is absent, it is as if it were present with the value 
+			zero.
+		</parameter>
+		<parameter name="R" type="integer" modifier="optional" default="0">
+			Decimal range. At least one of P and R must be present. If either is 
+			absent, it is as if it were present with the value zero.
+		</parameter>
+		<usage>
+			The result is the kind parameter value of a real type that supports real 
+			numbers x of decimal precision at least P digits and a decimal range of 
+			at least R as defined by the intrinsic functions PRECISION and RANGE, 
+			respectively. If more than one kind type parameter meets the criterion, 
+			the kind value returned is the one that has the least decimal precision; 
+			if there is more than one of these, the one with the smallest kind value 
+			is returned. If the processor does not support such a real kind, the 
+			value returned is as follows: -1 if no kind with precision 
+			P exists, but a kind with range R exists; -2 if no kind with range R 
+			exists, but a kind with precision P exists; -3 if no kind precision P or 
+			range R exists; and -4 if a kind with precision P exists and another with 
+			range R exists, but not one kind that supports both.
+			EXAMPLES: If a processor supports the default real type modeled with 
+			$e_{min}=−125$, $e_{max}=128$, p=24, and r=2 and a double precision real 
+			type modeled with $e_{min}=−1021$, $e_{max}=1024$, p=53 and r=2 using the 
+			real model $x = s b^e \sum_{k=1}^p{f_k b^{-k}}$ with kind values 4 and 8, 
+			respectively, the kind values for SELECTED_REAL_KIND (6) and 
+			SELECTED_REAL_KIND (R=100) are 4 and 8, respectively.
+			To illustrate the negative returned values, consider one processor that 
+			has two real kinds, whose precisions and ranges returned by the functions 
+			PRECISION and RANGE are 6 and 36, and 15 and 307 respectively, and a 
+			second processor whose precisions and ranges for its two kinds are 10 and 
+			30, and 4 and 40, respectively. On the first processor, 
+			SELECTED_REAL_KIND(20,37) will return -1, SELECTED_REAL_KIND(10, 400) 
+			will return -2, and SELECTED_REAL_KIND(20, 400) will return -3. On the 
+			second processor, SELECTED_REAL_KIND(6, 37) will return -4. Note that the 
+			second processor supports two real kinds; nether of these real kinds 
+			satisfy the requirement for at least 6 decimal digits of precision and 
+			decimal exponent range of 37, but each satisfies one of the requirements; 
+			thus, the value of SELECTED_REAL_KIND (6, 37) must be −4 for this 
+			processor.
+		</usage>
+	</function>
+	<function name="SET_EXPONENT" type="real" elemental="true">
+		<summary>
+			Real value with its exponent set to a specified value. Result is a real 
+			with the same kind as X.
+		</summary>
+		<parameter name="X" type="real">
+			Value to be set, of type real.
+		</parameter>
+		<parameter name="I" type="integer">
+			Exponent to set, of type integer.
+		</parameter>
+		<usage>
+			The result is the value $X b^{I-e}$ as determined by the model for real 
+			numbers $x = s b^e \sum_{k=1}^p{f_k b^{-k}}$, provided the value is in 
+			range, and otherwise, is processor dependent. If X is zero, the result is 
+			zero. 
+			EXAMPLES: If a processor uses for its default real type values the values 
+			described by the real model with b=2, the values of SET_EXPONENT(1.0, 3) 
+			and SET_EXPONENT(0.0, 120) are 4.0 and 0.0, respectively.
+		</usage>
+	</function>
+	<function name="SHAPE" type="integer" modifier="dimension(:)" dimension=":">
+		<summary>
+			Number of elements in each dimension of an array. Result is a rank-one 
+			array of integer type with kind KIND if KIND is present, or otherwise, 
+			with the kind of default integer. Its size is equal to the rank of 
+			SOURCE.
+		</summary>
+		<parameter name="SOURCE" 
+			type="real, complex, integer, character, logical, class" kind=",derived," 
+			modifier="dimension">
+			Scalar or array of any type to be measured. If it is allocatable, it 
+			must be allocated; if it is a pointer, it must be associated. It must 
+			not be an assumed-size array.
+		</parameter>
+		<parameter name="KIND" type="integer" modifier="optional" default="1">
+			Scalar integer initialization expression whose value is an integer kind 
+			value.
+		</parameter>
+		<usage>
+			The result is the shape of SOURCE. Note that if SOURCE is a scalar, the 
+			result is a zero-sized rank-one array.
+			EXAMPLES: For the following code segment: \\ 
+			real, allocatable, dimension(:) :: vector \\ 
+			real, dimension(0:100, 1:1000) :: table \\ 
+			ALLOCATE(vector(10:20)) \\ 
+			SHAPE(vector), SHAPE(vector(15:)), and SHAPE(table) are [11], [6], and 
+			[101 1000], respectively. SHAPE(3) is a rank-one array of size zero.
+		</usage>
+	</function>
+	<function name="SIGN" type="real, integer">
+		<summary>
+			Value with a specified sign. Result is of the same type and kind as A.
+		</summary>
+		<parameter name="A" type="real, integer">
+			Value to have its sign set. A and B must be of the same type and kind 
+			type parameter.
+		</parameter>
+		<parameter name="B" type="real, integer">
+			Value specifying the sign to be set. A and B must be of the same type and 
+			kind type parameter.
+		</parameter>
+		<usage>
+			The result is |A| if B is positive, −|A| if B is negative. If B is 
+			positive zero or the processor cannot distinguish the sign of zero or if 
+			B is of type integer and is zero, the result is |A|; otherwise, the 
+			result is −|A|. 
+			EXAMPLES: SIGN(1, −10) is −1; SIGN(10.1, 2.0) is 10.1; and 
+			SIGN(1.0d0, −0.0d0) is −1 with double precision kind on a processor that 
+			can distinguish positive and negative zero, and 1 with double precision 
+			kind otherwise.
+		</usage>
+	</function>
+	<function name="SIN" type="real, complex" elemental="true">
+		<summary>
+			Sine. Result type is same as X.
+		</summary>
+		<parameter name="X" type="real, complex">
+			Argument of sine, of type real or complex.
+		</parameter>
+		<usage>
+			The result is the sine of X. If X is real, X is in radians. If X is 
+			complex, the real part of X is express in radians. 
+			EXAMPLES: SIN(0.0) is 0.0; SIN(X) where X is $\pi/2$ is 1.0; and 
+			SIN((1.0_P, 1.0_P)) is 1.29846 + 0.63496i of kind P.
+		</usage>
+	</function>
+	<function name="SINH" type="real" elemental="true">
+		<summary>
+			Hyperbolic sine. Return value is real of kind of X.
+		</summary>
+		<parameter name="X" type="real">
+			Argument of sinh, of type real.
+		</parameter>
+		<usage>
+			The result is the hyperbolic sine of X. 
+			EXAMPLES: COSH(0.0) is 0.0 and COSH(-0.5_P) is -0.521095 of real kind P.
+			NOTE: SINH accepts complex arguments for some compilers, and is standard 
+			for Fortran 2008 or later.
+		</usage>
+	</function>
+	<function name="SIZE" type="integer">
+		<summary>
+			Number of elements of an array or a dimension of an array. Result is a 
+			scalar of integer type with kind KIND if KIND is present, or otherwise, 
+			with the kind of default integer.
+		</summary>
+		<parameter name="ARRAY" 
+			type="real, complex, integer, character, logical, class" kind=",derived," 
+			modifier="dimension">
+			Array of any type to be measured. If it is allocatable, it must be 
+			allocated; if it is a pointer, it must be associated. If it is an 
+			assumed-size array, DIM must be present with a value that is not equal to 
+			the rank of ARRAY.
+		</parameter>
+		<parameter name="DIM" type="integer" modifier="optional">
+			Scalar of type integer with a value in the range [1, n] where n is the 
+			rank of ARRAY to specify the dimension to be measured.
+		</parameter>
+		<parameter name="KIND" type="integer" modifier="optional" default="1">
+			Scalar integer initialization expression whose value is an integer kind 
+			value.
+		</parameter>
+		<usage>
+			If DIM is present, the result is the extent of the DIM dimension of 
+			ARRAY; if absent, the result is the number of elements in ARRAY. 
+			EXAMPLES: Consider the following code segment, in a subprogram with dummy 
+			argument D:
+			real, allocatable, dimension(:) :: vector \\ 
+			real, dimension(10,20,*) :: D \\ 
+			ALLOCATE(vector(10:20)) \\ 
+			SIZE(vector) has the value 11; SIZE(vector(15:)) has the value 6; 
+			SIZE(D,1) has the value 20; SIZE(D(:,:10)) has the value 200. Note that 
+			D(:,:10) is not an assumed-size array even though D is an assumed-size 
+			array.
+		</usage>
+	</function>
+	<function name="SPACING" type="real" elemental="true">
+		<summary>
+			Model absolute spacing near a specified value. Result is a real of the 
+			same kind as X.
+		</summary>
+		<parameter name="X" type="real">
+			Real value.
+		</parameter>
+		<usage>
+			The result is the value $b^{max((e-p),(e_{min}-1))}$ as determined by the 
+			model for real numbers $x = s b^e \sum_{k=1}^p{f_k b^{-k}}$, provided X 
+			is neither zero, IEEE infinity, nor NaN. If X is zero, the result is 
+			@CREF[TINY](X); if X is an IEEE infinity, the result is positive IEEE 
+			infinity; if X is NaN, the result is that NaN.
+			EXAMPLES: If a processor uses for its default real type values the value 
+			described by the real model with b=2 and $e_{min}=-125$, the values of 
+			SPACING(1.0) and SPACING(0.0) are $2^-26$ and $2^{e_{min}-1}$, 
+			respectively, or $1.19*10^{-7}$ and $1.18*10^{-38}$, respectively.
+		</usage>
+	</function>
+	<function name="SPREAD" 
+		type="real, complex, integer, character, logical, class" kind=",derived," 
+		modifier="dimension">
+		<summary>
+			Array replicated by adding a dimension. Result is an array of the type 
+			and type parameters of SOURCE and of rank n+1. If SOURCE is a scalar, the 
+			shape of the result is [@CREF[MAX](NCOPIES,0)]; if SOURCE is an array, 
+			the shape of the result is 
+			$[d_1, d_2, ..., d_{DIM-1}, MAX(NCOPIES,0), d_{DIM}, ..., d_n]$ where 
+			$[d_1, d_2, ..., d_n]$ is the shape of SOURCE.
+		</summary>
+		<parameter name="SOURCE" 
+			type="real, complex, integer, character, logical, class" kind=",derived," 
+			modifier="dimension">
+			Scalar or array of any type to be replicated. If it is an array, its rank 
+			must not exceed 6.
+		</parameter>
+		<parameter name="DIM" type="integer">
+			Integer scalar indicating the dimension along with to replicate. DIM must 
+			be in the range [1, n+1] where n is the rank of SOURCE.
+		</parameter>
+		<parameter name="NCOPIES" type="integer">
+			Integer scalar indicating the number of copies to make of ARRAY.
+		</parameter>
+		<usage>
+			If SOURCE is a scalar, every element of the result is that scalar; if 
+			SOURCE is an array, the element $(r_1, r_2, ..., r_{n+1})$ has the value 
+			SOURCE $(r_1, r_2, ..., r_{DIM-1}, r_{DIM+1}, ..., r_{n+1})$. 
+			EXAMPLES: SPREAD("A", 1, 3) is the character array [A,A,A]. If B is the 
+			array [1,3,7], SPREAD(B, DIM=1, NCOPIES=NC) is the array 
+			[[1,3,7],[1,3,7],[1,3,7]] if NC has the value 3 and is a zero-sized 
+			array if NC has the value 0.
+		</usage>
+	</function>
+	<function name="SQRT" type="real, complex" elemental="true">
+		<summary>
+			Square root. Result is of the same type and kind as X.
+		</summary>
+		<parameter name="X" type="real, complex">
+			Number to square root. If it is of type real, its value must be 
+			nonnegative.
+		</parameter>
+		<usage>
+			The result is the square root of X. If X is of type real, the result is 
+			nonnegative; if X is of type complex, the result is the principal value; 
+			namely, the real part is nonnegative, and if the real part of the result 
+			is zero, the sign of the imaginary part of the result is the sign of the 
+			imaginary part of X. 
+			EXAMPLES: SQRT (4.0) is 2.0; SQRT ((−25.0d0, 0.0d0)) is (−3.0d0, 4.0d0) 
+			is 1+2i of double precision kind. If A=[[1.0,9.0,25.0],[4.0,16.0,36.0]], 
+			SQRT(A) is [[1.0,3.0,5.0],[2.0,4.0,6.0]].
+		</usage>
+	</function>
+	<function name="SUM" type="real, complex, integer" modifier="dimension">
+		<summary>
+			SUM of array elements. Result is of the same type and kind as ARRAY. 
+			If DIM is not present or ARRAY has rank one, it is a scalar; otherwise, 
+			it is a rank n-1 array whose shape is that of ARRAY with the DIM 
+			dimension removed.
+		</summary>
+		<parameter name="ARRAY" type="real, complex, integer" modifier="dimension">
+			Array for addition of type integer, real, or complex.
+		</parameter>
+		<parameter name="DIM" type="integer" modifier="optional">
+			Dimension along which to sum. It is a scalar of type integer in the range 
+			[1,n] where n is the rank of ARRAY. The corresponding actual argument 
+			must not be an optional dummy argument. If DIM is not present, MASK can 
+			be supplied without using a keywords (i.e., SUM has two different 
+			prototypes or footprints).
+		</parameter>
+		<parameter name="MASK" type="logical" modifier="optional, dimension">
+			Masks which elements of ARRAY are to be summed. MASK is a logical array 
+			conformable with ARRAY.
+		</parameter>
+		<usage>
+			If MASK and DIM are not present, the result is the sum of all elements of 
+			ARRAY provided ARRAY is of nonzero size. If ARRAY is zero-sized, the 
+			result is one. 
+			If MASK is present and DIM does absent, the result is the sum of the 
+			elements of ARRAY corresponding to the true elements of MASK and one if 
+			there are no true elements. 
+			If DIM is present and ARRAY has rank one, the result is the same as if 
+			DIM were not present. 
+			If DIM is present and the rank of ARRAY is at least 2, the value of the 
+			element $(s_1, s_2, ... , s_{DIM-1}, s_{DIM+1}, ... , s_n)$ is equal to 
+			SUM(ARRAY $(s_1, s_2, ... , s_{DIM-1}, :, s_{DIM+1}, ... , s_n)$ 
+			[, MASK=MASK $(s_1, s_2, ... , s_{DIM-1}, :, s_{DIM+1}, ... , s_n)$]). 
+			If ARRAY is of zero size or no elements of MASK are true, the result is 
+			0. 
+			EXAMPLES: SUM([-1, 5, 2]) is -6. If A=[[1,2],[-2,-3]], SUM(A, 1) is 
+			[-1, -1]; and if M=[[.false.,.true.],[.true.,.true.]], SUM(A, 2, M) is 
+			[2,-5] and SUM(A, A>0) is 3.
+		</usage>
+	</function>
+	<subroutine name="SYSTEM_CLOCK">
+		<summary>
+			Obtain data from the system clock.
+		</summary>
+		<parameter name="COUNT" type="integer" modifier="optional, intent(out)">
+			Scalar of type integer with intent(out). If COUNT is present, COUNT is 
+			assigned a processor-dependent value based on the processor clock, 
+			representing time in terms of counts of the clock. The value is in the 
+			range [0, COUNT_MAX]. If the processor clock is not available, it is 
+			assigned −@CREF[HUGE](COUNT).
+		</parameter>
+		<parameter name="COUNT_RATE" type="real, integer" 
+			modifier="optional, intent(out)">
+			Scalar of type integer or real with intent(out). If COUNT_RATE is 
+			present, COUNT_RATE is assigned the number of clock counts per second or 
+			zero if there is no processor clock.
+		</parameter>
+		<parameter name="COUNT_MAX" type="integer" modifier="optional, intent(out)">
+			Scalar of type integer with intent(out). If COUNT_MAX is present, 
+			COUNT_MAX is assigned the maximum value of COUNT, if a processor clock is 
+			available, or otherwise, zero.
+		</parameter>
+		<usage>
+			EXAMPLES: The code segment: \\ 
+			integer :: cnt, cnt_rate, cnt_max \\ 
+			call SYSTEM_CLOCK(cnt, cnt_rate, cnt_max) \\ 
+			print *, "clock count:", cnt \\ 
+			print *, "clock counts per second:", cnt_rate \\ 
+			print *, "maximum clock count:", cnt_max \\ 
+			might produce output such as: \\ 
+			clock count: 50110264 \\ 
+			clock counts per second: 1000 \\ 
+			maximum clock count: 86399999 \\ 
+			This output might be produced on a system with a 24-hour clock (8640000 
+			is the number of seconds in 24 hours and 5011064 is the number of seconds 
+			from when the clock was started).
+		</usage>
+	</subroutine>
+	<function name="TAN" type="real" elemental="true">
+		<summary>
+			Tangent. Result kind is same as X.
+		</summary>
+		<parameter name="X" type="real">
+			Argument of tangent, of type real (or complex on some compilers).
+		</parameter>
+		<usage>
+			The result is the tangent of X where X is in radians. 
+			EXAMPLES: TAN(0.0) is 0.0; TAN(X) where X is $\pi/4$ is 1.0; and 
+			TAN(0.5d0) is 0.54630 with double precision kind. 
+			NOTE: TAN accepts complex arguments for some compilers, and is standard 
+			for Fortran 2008 or later.
+		</usage>
+	</function>
+	<function name="TANH" type="real" elemental="true">
+		<summary>
+			Hyperbolic tangent. Return value is real of kind of X.
+		</summary>
+		<parameter name="X" type="real">
+			Argument of tanh, of type real.
+		</parameter>
+		<usage>
+			The result is the hyperbolic tangent of X. 
+			EXAMPLES: TANH(0.0d0) is 0.0 with double precision kind; TANH(-0.5_Q) is 
+			-0.46212 of real kind Q.
+			NOTE: TANH accepts complex arguments for some compilers, and is standard 
+			for Fortran 2008 or later.
+		</usage>
+	</function>
+	<function name="TINY" type="real">
+		<summary>
+			Smallest positive number in the real model. Result is a scalar of the 
+			type and kind of X.
+		</summary>
+		<parameter name="X" type="real, integer" modifier="dimension">
+			Scalar or array of type real as a model number. The value of X is not 
+			used.
+		</parameter>
+		<usage>
+			The result is the value	$b^{e_{min}-1}$ where b is the base or radix 
+			(commonly 2), p is the number of mantissa digits (commonly 24 or 52), 
+			and $e_{min}$ is the maximum value the exponent (commonly -125 for single 
+			precision, or -1023 for double precision) for real numbers. That is, the 
+			result is the smallest positive model number of the type and kind of X. 
+			EXAMPLE: If b=2 and $e_{min}=-125$ in the real model, TINY(0.0) has the 
+			value $2^{-126}$ or $1.175*10^{-38}$ of default real type. Note that the 
+			returned values for TINY are defined in terms of the model and may not be 
+			the smallest number in magnitude nor the smallest positive number; for 
+			example, denormalized numbers, if supported by the processor, are smaller 
+			than the value returned by TINY.
+		</usage>
+	</function>
+	<function name="TRANSFER" 
+		type="real, complex, integer, character, logical, class" kind=",derived," 
+		modifier="dimension">
+		<summary>
+			Value transferred from an object to the result without conversion. Result 
+			has the same characteristics as MOLD. IIt is a scalar if SIZE is absent 
+			and MOLD is a scalar or, if MOLD is an array and SIZE absent, it is a 
+			rank-one array of a size that is the smallest size that is not shorter 
+			than the physical representation of SOURCE. If SIZE is present, the 
+			result is a rank-one array of size SIZE.
+		</summary>
+		<parameter name="SOURCE" 
+			type="real, complex, integer, character, logical, class" kind=",derived," 
+			modifier="dimension">
+			Scalar or array of any type to be transferred.
+		</parameter>
+		<parameter name="MOLD" 
+			type="real, complex, integer, character, logical, class" kind=",derived," 
+			modifier="dimension">
+			Scalar or array of any type to serve as a mold for the result. If it is a 
+			variable, it need not be defined.
+		</parameter>
+		<parameter name="SIZE" type="integer" modifier="optional">
+			Scalar of integer type. The corresponding actual argument must not be an 
+			optional dummy argument.
+		</parameter>
+		<usage>
+			The result is a value with the physical representation of SOURCE, 
+			interpreted as an entity of the type and type parameters of MOLD. If the 
+			sizes of SOURCE and the result are the same, the result is SOURCE; if the 
+			size of SOURCE is smaller than that of the result, the leading part of 
+			the result is SOURCE and the remaining part is processor dependent; if 
+			the size of SOURCE is larger than the size of the result, the result is 
+			the leading part of SOURCE.
+			EXAMPLES: Suppose FFT is a default complex array of three elements and X 
+			is a default real array of size six. TRANSFER (FFT, X) is a rank-one 
+			array of six elements, representing the real and imaginary components 
+			of the three elements of FFT in order, with the elements of the odd 
+			indices of the result being the real parts and the elements with the even 
+			indices being the imaginary parts. 
+			Suppose STRUCTURE is a sequence derived type with five default real 
+			components. TRANSFER(STRUCTURE, 0.0, 3) is a rank-one array of size three 
+			and type default real consisting of the first three components of 
+			STRUCTURE, in order.
+			TRANSFER([1.1, 2.2, 3.3], [(0.0,0.0)]) is a complex rank-one array of 
+			length two whose first element has the value 1.1 + 2.2i and whose second 
+			element has a real part with value 3.3. The imaginary part of the second 
+			element is processor dependent.
+		</usage>
+	</function>
+	<function name="TRANSPOSE" 
+		type="real, complex, integer, character, logical, class" kind=",derived," 
+		modifier="dimension(:,:)" dimension=":,:">
+		<summary>
+			Matrix transpose. Result is an array of the type and type parameters of 
+			MATRIX and of shape [m,n] where MATRIX has shape [n,m].
+		</summary>
+		<parameter name="MATRIX" 
+			type="real, complex, integer, character, logical, class" kind=",derived," 
+			modifier="dimension(:,:)" dimension=":,:">
+			A two-dimensional array of any type to be transposed.
+		</parameter>
+		<usage>
+			The (i,j) element of the result is MATRIX(j,i) for all 1 &lt;= j &lt;= m and 
+			1 &lt;= i &lt;= n. 
+			EXAMPLE: If MATRIX=[[1,3],[2,4]], TRANSPOSE(MATRIX) is [[1,2],[3,4]].
+		</usage>
+	</function>
+	<function name="TRIM" type="character">
+		<summary>
+			String without trailing blanks. Result is of type character with the KIND 
+			of STRING and length equal to the length of STRING less the number of 
+			trailing blanks.
+		</summary>
+		<parameter name="STRING" type="character">
+			Character string to be trimmed.
+		</parameter>
+		<usage>
+			The result is the value of STRING with all trailing blanks removed. 
+			EXAMPLES: TRIM("bbbstringbbb") is "bbbstring". TRIM("bbbb") is the null 
+			string.
+		</usage>
+	</function>
+	<function name="UBOUND" type="integer" modifier="dimension">
+		<summary>
+			Upper bound(s) of an array or a dimension of an array. Result is a scalar 
+			or rank-one array of type integer with kind KIND if KIND is present, or 
+			otherwise, with the kind of default integer.
+		</summary>
+		<parameter name="ARRAY" type="real, complex, integer, character, logical" 
+			modifier="dimension">
+			An array of any type. If it is allocatable, it must be allocated; if it 
+			is a pointer, it must be associated. If it is an assumed-size array, DIM 
+			must be present with a value not equal to the rank of ARRAY.
+		</parameter>
+		<parameter name="DIM" type="integer" modifier="optional">
+			Scalar of type integer with a value in the range [1, n] where n is the 
+			rank of ARRAY. The corresponding actual argument must not be an optional 
+			dummy argument.
+		</parameter>
+		<parameter name="KIND" type="integer" modifier="optional" default="1">
+			Scalar integer initialization expression whose value is an integer kind 
+			value.
+		</parameter>
+		<usage>
+			If DIM is present, the result is a scalar integer representing the upper 
+			bound of ARRAY in the DIM dimension. If DIM is absent, the result is a 
+			rank-one array of the upper bounds of each dimension of ARRAY. 
+			EXAMPLES: Consider the following code segment, in a subprogram with dummy 
+			argument D:
+			real, allocatable, dimension(:) :: vector \\ 
+			real, dimension(0:100,-10:30) :: array \\ 
+			real, dimension(10,20,*) :: D \\ 
+			ALLOCATE(vector(10:20)) \\ 
+			UBOUND(vector), UBOUND(array, 1), and UBOUND(array, 2) are [20], 100, and 
+			30, respectively; UBOUND(D,1) and UBOUND(D,:,21:35),2) are 20 and 15, 
+			respectively.
+		</usage>
+	</function>
+	<function name="UNPACK" 
+		type="real, complex, integer, character, logical, class" kind=",derived," 
+		modifier="dimension">
+		<summary>
+			Array unpacked from a vector under mask control. Result is an array of 
+			the type of VECTOR and the shape of MASK.
+		</summary>
+		<parameter name="VECTOR" 
+			type="real, complex, integer, character, logical, class" kind=",derived," 
+			modifier="dimension(:)" dimension=":">
+			Rank-one array of any type to be unpacked. Its size must be at least as 
+			large as the number of true elements in MASK.
+		</parameter>
+		<parameter name="MASK" type="logical" modifier="dimension">
+			Logical mask indicating the locations in which to place elements from 
+			VECTOR or FIELD.
+		</parameter>
+		<parameter name="FIELD" 
+			type="real, complex, integer, character, logical, class" kind=",derived," 
+			modifier="dimension">
+			Of the type and type parameters of VECTOR and conformable with MASK, 
+			indicates values to be placed where MASK is false.
+		</parameter>
+		<usage>
+			The elements of the result, where MASK is true, taken in array element 
+			order, are those of VECTOR in array element order, and where MASK is 
+			false, have the value FIELD if FIELD is a scalar or have the value of the 
+			corresponding element of FIELD if FIELD is an array.
+			EXAMPLES: Particular values may be “scattered” to particular positions in 
+			an array by using UNPACK. If M is the array [[1,0,0],[0,1,0],[0,0,1]], V 
+			is the array [1,2,3] and U is the logical mask 
+			[[false,true,false],[true,false,false],[false,false,true]], the result of 
+			UNPACK(V, MASK=U, FIELD=M) has the value [[1,2,0],[1,1,0],[0,0,3]] and 
+			the result of UNPACK(V, MASK=U, FIELD=0) has the value 
+			[[0,2,0],[1,0,0],[0,0,3]].
+		</usage>
+	</function>
+	<function name="VERIFY" type="integer">
+		<summary>
+			Position in a string of any one of a character that is not one of a given 
+			set. Result is an integer with kind KIND if KIND is present, or 
+			otherwise, with the kind of default integer.
+		</summary>
+		<parameter name="STRING" type="character">
+			String to be scanned, of type character. STRING and SET must be of the 
+			same character kind.
+		</parameter>
+		<parameter name="SET" type="character">
+			Set of characters, of type character. STRING and SET must be of the same 
+			character kind.
+		</parameter>
+		<parameter name="BACK" type="logical" modifier="optional" default=".false.">
+			Logical value that indicates search should begin from the end of the 
+			string if present with the value true.
+		</parameter>
+		<parameter name="KIND" type="integer" modifier="optional" default="1">
+			Scalar integer initialization expression whose value is an integer kind 
+			value.
+		</parameter>
+		<usage>
+			The result is the index position in STRING of a character that is not in 
+			the string SET. If BACK is present with the value false or is not 
+			present, the index position is that of the first occurrence of a 
+			character not in SET; otherwise, if BACK is present with the value true, 
+			the index position is that of the last occurrence in of a character not 
+			in SET. If all characters in the string are in SET or the length of 
+			STRING is zero, zero is returned. 
+			EXAMPLES: VERIFY("input string", "if") is 2; 
+			VERIFY("input string", "if", .true.) is 12;  
+			VERIFY("input string", "xy", KIND=P) is 0 of integer kind P; and 
+			VERIFY("", "abc") is 0.
+		</usage>
+	</function>
 </builtin>
