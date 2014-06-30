@@ -15,7 +15,7 @@ class Evaluator(object):
         """
         self.context = context
         self.line, self.column = pos
-        
+
         #Initialize the lazy variables
         self._names = None
         self._possible = None
@@ -53,7 +53,7 @@ class Evaluator(object):
         #   the argument list of a function, e.g. function(a, fnb(c,d), e)
         # - when specifying the dimensions of an array for element selection
         # - inside of if/do/while blocks.
-        
+
         #If there is a \s immediately preceding the bracket, then short_symbol
         #will be null string and we are most likely doing arithmetic of some
         #sort or a block statement.

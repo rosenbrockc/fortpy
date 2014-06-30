@@ -1,3 +1,5 @@
 recursive-include docs *.*
+recursive-include fortpy *.xml
+include scripts/*.py
 include *.md LICENSE
 exclude tests

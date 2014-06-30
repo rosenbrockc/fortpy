@@ -42,7 +42,7 @@ def _load_builtin_xml(xmlpath, parser):
     if el.tag == "builtin":
         for child in el:
             anexec = _parse_xml(child, parser)
-            result[anexec.name] = anexec
+            result[anexec.name.lower()] = anexec
 
     return result
                 

@@ -1,6 +1,11 @@
 FORTPY: Revision History
 ======
 
+Revision 1.0.5
+------
+
+- Fixed issue with the builtin.xml file not being included in the distribution.
+
 Revision 1.0.4
 ------
 

@@ -52,9 +52,11 @@ class UserContext(object):
 
     def __str__(self):
         output = []
+        output.append("\n\nSYMBOLS: {}; {}".format(self.symbol, self.full_symbol))
+        output.append("SHORT: {}; {}".format(self.short_symbol, self.short_full_symbol))
         output.append("MODULE: " + self.modulename)
         output.append("SECTION: " + self.section)
-        tel = self.el_type or self.element
+        tel = self.el_type or self.element.name
         output.append("TYPE: {}".format(str(tel)))
         output.append("NAME: " + self.el_name)
         output.append("EL SECTION: " + self.el_section)
