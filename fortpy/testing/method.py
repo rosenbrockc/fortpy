@@ -99,7 +99,7 @@ class MethodWriter(object):
             self.method.group.code(testid, "before", result, "  ")
             self._code_repeats(result, "  ", testid)
             self.method.group.code(testid, "after", result, "  ")
-
+        
         #The group code for 'after' would have saved the values of any variables that
         #we needed, so we can deallocate now.
         self._code_assignments(result, "after", "  ")

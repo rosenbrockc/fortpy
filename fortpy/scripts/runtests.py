@@ -1,4 +1,4 @@
-#!/apps/python/2.7.3/bin/python
+#!/usr/bin/env python
 import argparse
 
 def initialize():    
@@ -17,8 +17,8 @@ def initialize():
             timestr = "{0:.4f}".format(totaltime*1000)
         else:
             timestr = "<untimed>"
-        print("RESULT: {0} = {1:.2%} success in {2} ms".format(idk, result[idk].percent,
-                                                               timestr))
+        print("RESULT: {0} = {1:.2%} success ({3:.2%} common) in {2} ms".format(idk, result[idk].percent,
+                                                                                timestr, result[idk].common))
 
 #Create a parser so that the script can receive arguments
 parser = argparse.ArgumentParser(description="Fortpy Automated Unit Testing Tool")

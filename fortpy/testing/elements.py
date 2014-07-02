@@ -887,6 +887,7 @@ class TestTarget(object):
         if position in self.when and self.name[0] != ".":
             if self._code is None:
                 self._process(variables, spacer)
+                
             lines.append(self._code)
 
     def clean(self, testroot):
@@ -931,6 +932,10 @@ class TestTarget(object):
                 #name with a suffix of "_fpy".
                 self._code = "{}call pysave({}_fpy, '{}', {})".format(spacer, self.testspec.executable.name,
                                                                       self.varfile, len(self.varfile))
+            else:
+                raise ValueError("Variable {} has not been initialized with ".format(self.name) +
+                                 "a <global> tag or regular=true parameter doc tag.")
+                
 
     def _parse_attributes(self):
         """Extracts implemented attributes from the test target."""

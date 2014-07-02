@@ -206,7 +206,7 @@ def compare_representations(rep1, rep2, mode = "default"):
     #We will compare the preamble and body separately and see how closely
     #related they are. We have to take compatibility specs into account
     #and what can actually be compared if the versions are different.
-    if not rep1.simple:
+    if not rep1.simple or not rep2.simple:
         #Make sure the mode specifed for comparisons exists
         _compare_validate(rep1, mode)
         _compare_validate(rep2, mode)
@@ -219,7 +219,7 @@ def compare_representations(rep1, rep2, mode = "default"):
     elif rep2.simple:
         #This is a really simple file comparison of straight values.
         #Since all the other comparers need template information, we
-        #will just do a line by line comparison here.                                                                    
+        #will just do a line by line comparison here.               
         result = ListResult(rep1.clean, rep2.clean)
         elcount = min([len(rep1.clean), len(rep2.clean)])
         for i in range(elcount):
@@ -283,7 +283,7 @@ def _compare_body(rep1, rep2, mode):
         #See if we had more entries in body2 than body1
         if len(rep2.body) > len(rep1.body):
             for i in range(len(rep1.body), len(rep2.body)):
-                result.only2[i] = representation.body[i]
+                result.only2[i] = rep2.body[i]
 
     return result                
 

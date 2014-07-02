@@ -52,7 +52,10 @@ class ExecutionResult(object):
         return actual >= bounds[0] and actual <= bounds[1]
 
     def test(self, caseid, uresult):
-        """Tests the outcome of this executable using its tester attribute."""
+        """Tests the outcome of this executable using its tester attribute.
+
+        :arg uresult: the overall TestResult for the test.
+        """
         #The first thing to check is the contents of the files
         self.tester.test(caseid, self, uresult)
         #All that's left is to check the runtime against its max.
@@ -275,10 +278,28 @@ class TestResult(object):
                         total += 1
                 else:
                     if result is not None:
-                        total += result.common_match
+                        total += result.percent_match
 
         return float(total) / (len(list(self.cases.keys())) + self.failure_count)
             
+    @property
+    def common(self):
+        """Returns the common match percent success."""
+        total = 0
+        common = 0
+
+        for caseid in self.outcomes:
+            case = self.outcomes[caseid]
+            for result in case:
+                if isinstance(result, ValueCompareResult):
+                    if result.equal:
+                        total += 1
+                else:
+                    if result is not None:
+                        total += result.common_match
+
+        return float(total) / (len(list(self.cases.keys())) + self.failure_count)
+
     @property
     def failure_count(self):
         """Gets the number of outcomes that failed because of tolerance

@@ -1,4 +1,4 @@
-#!/apps/python/2.7.3/bin/python
+#!/usr/bin/env python
 import argparse
 from fortpy.testing.comparer import FileComparer
 from fortpy.testing.results import print_compare_result
