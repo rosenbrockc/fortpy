@@ -1,4 +1,4 @@
-from os import path
+from os import path, system
 #What I learned. gprof is a tool that does exactly what we want and would
 #work with both ifort and gfortran (both using the -pg option for compiling
 #and for linking. This is supposed to produce a gmon.out file in the directory
@@ -30,6 +30,7 @@ def profile(testpath, identifier, exepath, compiler):
 
     command = gprof.format(exepath, function)
     fullcmd = "cd {}; {}".format(testpath, command)
+    system(fullcmd)
 
     profpath = path.join(testpath, "profiling.out")
     if path.isfile(profpath):

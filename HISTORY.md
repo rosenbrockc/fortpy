@@ -6,6 +6,7 @@ Revision 1.0.8
 
 - Fixed bug in `fortpy.pysave` that made 2d saving not produce tabular input.
 - Fixed bug that crashed the program when `<isense>` was not present in the `config.xml` file.
+- Added support for automated profiling of methods being tested using the -profile argument to `scripts/runtests.py`.
 
 Revision 1.0.7
 ------
