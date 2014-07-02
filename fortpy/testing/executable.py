@@ -76,6 +76,7 @@ class ExecutableGenerator(object):
         #recorded to temporary files for comparison etc.
         self.identifier = identifier
         self.folder = path.expanduser(path.join(libraryroot, identifier))
+        self._needs = None
 
         #Create the directory for the executable files to be copied and written to.
         if not path.exists(self.folder):
@@ -141,12 +142,6 @@ class ExecutableGenerator(object):
         lines.append("LOG\t\t= compile.log")
         lines.append("")
 
-        #We are only going to use ifort for the testing framework since we have it
-        #First add stuff for the C compilers
-        lines.append("CC\t\t= gcc")
-        lines.append("CFLAGS\t\t= -g -O3 -fPIC")
-        lines.append("")
-
         #Now the standard entries for ifort. We will just have the ifort include
         #file so that the MPI and other options can be tested to.
         lines.append(self._make_compiler_include())
@@ -166,9 +161,6 @@ class ExecutableGenerator(object):
         lines.append("SRCF90\t\t= $(LIBMODULESF90) $(MAINF90)")
         lines.append("OBJSF90\t\t= $(SRCF90:.f90=.o)")
         lines.append("")
-        lines.append("SRCC\t\t= timing.c")
-        lines.append("HEADC\t\t= timing.h")
-        lines.append("OBJSC\t\t= timing.o")
 
         #We need to add the error handling commands to make debugging compiling easier.
         lines.append(self._make_error())
@@ -177,6 +169,7 @@ class ExecutableGenerator(object):
         lines.append("all:	info $(EXENAME)")
         lines.append(self._make_info())
         lines.append(self._make_exe())
+        lines[-1] += "	make -f Makefile.{}".format(identifier)
 
         makepath = path.join(self.folder, "Makefile.{}".format(identifier))
         with open(makepath, 'w') as f:
@@ -206,10 +199,10 @@ SHOW_LOG	= ( perl -pi -e 's/ [Ee]rror \#/\\n\\n\\n$(ERR)\\n*** error \#/' $(LOG)
     def _make_exe(self):
         """Generates the script to run the compiling."""
         return """
-$(EXENAME): $(OBJSF90) $(OBJSC)
+$(EXENAME): $(OBJSF90)
 	-rm $(EXENAME) 2> /dev/null
 	echo -n "Linking... "
-	-$(F90) $(LDFLAGS) -o $(EXENAME) $(OBJSC) $(OBJSF90) >> $(LOG) 2>> $(LOG)
+	-$(F90) $(LDFLAGS) -o $(EXENAME) $(OBJSF90) >> $(LOG) 2>> $(LOG)
 	echo "done."
 	if test -e $(EXENAME); then echo "Produced executable: $(EXENAME)"; else $(SHOW_LOG); echo "Error."; fi
 
@@ -218,14 +211,15 @@ $(OBJSF90): %.o: %.f90
 	-$(F90) -c $(FFLAGS) $^ >> $(LOG) 2>> $(LOG)
 	echo "done."
 
-$(OBJSC): %.o: %.c $(HEADC)
-	echo -n "Compiling: $^... "
-	$(CC) $(CFLAGS) -c $^
-	echo "done."
+clean:
+	-rm *.o *.mod *.i90 $(EXENAME)
+remake:
+	-rm *.o *.mod *.i90 $(EXENAME)
 """
 
     def _make_info(self):
         """Generates the script for displaying compile-time info."""
+        module, method = self.identifier.split(".")
         return """
 info: 
 	echo -e "\\nCompile time:" > $(LOG)
@@ -236,6 +230,8 @@ info:
 	echo "------------------------------------------------------"| tee -a $(LOG)
 	echo -e "Compiling on system  : $(UNAME)"                    | tee -a $(LOG)
 	echo -e "             machine : $(HOSTNAME)"                 | tee -a $(LOG)
+	echo "Compiling for module : {0}"                            | tee -a $(LOG)         
+	echo "              method : {1}"                            | tee -a $(LOG)         
 	echo "------------------------------------------------------"| tee -a $(LOG)
 	echo -e "DEBUG mode\\t:\\t$(DEBUG)"                            | tee -a $(LOG)
 	echo -e "MPI mode\\t:\\t$(UNCLE_MPI)"                          | tee -a $(LOG)
@@ -250,7 +246,7 @@ info:
 	echo "------------------------------------------------------"| tee -a $(LOG)
 	echo ""                                                      | tee -a $(LOG)
 
-"""
+""".format(module, method)
 
     def _get_uses(self):
         """Gets a list of use statements to add to the program code."""

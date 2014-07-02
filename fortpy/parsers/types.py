@@ -12,7 +12,7 @@ class TypeParser(object):
         """Sets up the patterns and compiled regex objects for parsing types."""
         #Regex for matching the entire body of the type and getting top-level modifiers.
         self._RX_TYPE = r"(?<!!)\s+type(?P<modifiers>,\s+(public|private))?(\s+::)?\s+(?P<name>[A-Za-z0-9_]+)" + \
-                        r"(?P<contents>.+?)end\s+type(\s+(?P=name))?"
+                        r"(?P<contents>.+?)end\s*type(\s+(?P=name))?"
         self.RE_TYPE = re.compile(self._RX_TYPE, re.DOTALL | re.I)
         #This regex is the same as RE_TYPE, only the contents are removed from the definition.
         self._RX_SIG =  r"type(?P<modifiers>,\s+(public|private))?(\s+::)?\s+(?P<name>[A-Za-z0-9_]+)"

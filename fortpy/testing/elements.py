@@ -227,6 +227,21 @@ class AssignmentValue(object):
         """Returns the globally unique identifier for this value."""
         return "{}_{}".format(self.parent.name, self.identifier)
        
+    @property
+    def xname(self):
+        """Returns the name of the file to use taking renaming into account."""
+        if self.rename is not None:
+            return self.rename
+        else:
+            return self.filename
+
+    @property
+    def allocatable(self):
+        """Returns true if the variable assigned by this object should be allocated."""
+        return (self.parent.allocate and 
+                ("allocatable" in self.parent.variable.modifiers or
+                 "pointer" in self.parent.variable.modifiers))        
+
     def copy(self, coderoot, testroot, case):
         """Copies the input files needed for this value to set a variable.
 
@@ -322,25 +337,25 @@ class AssignmentValue(object):
         if self.filename is not None:
             flines = []
             flines.append("open(fpy_newunit({}_funit), ".format(self.iid) + 
-                         "file='{}')".format(self.filename))
-            flines.append("if ({}_nlines == 1) then".format(self.iid))
+                          "file='{}')".format(self.xname))
+
             #We are working with a vector or scalar. Check the dimensionality of
             #the actual variable and see if it needs to be allocated.
-            if self.parent.variable.dimension is not None:
-                if ("allocatable" in self.parent.variable.modifiers and 
-                    self.parent.allocate):
-                    flines.append("  allocate({}({}_nvalues))".format(self.parent.name, self.iid))
-            flines.append("  read({}_funit, *) {}".format(self.iid, self.parent.name))
+            if (self.parent.variable.dimension is not None and
+                self.allocatable and self.parent.variable.D == 1):
+                flines.append("allocate({}({}_nvalues))".format(self.parent.name, self.iid))
+                flines.append("read({}_funit, *) {}".format(self.iid, self.parent.name))
                     
             #Now handle the case where the input file fills a 2D variable.
-            flines.append("else")
-            if ("allocatable" in self.parent.variable.modifiers and
-                self.parent.allocate):
-                flines.append("  allocate({0}({1}_nlines, {1}_nvalues))".format(self.parent.name, self.iid))
-            flines.append("  read({0}_funit,*) (cs(nrow,:), nrow =1, {0}_nlines)".format(self.iid))
-            flines.append("end if")
-            flines.append("close({}_funit)".format(self.iid))
+            if (self.parent.variable.dimension is not None and
+                self.parent.variable.D == 2 and self.allocatable):                  
+                allocstr = "allocate({0}({1}_nlines, {1}_nvalues))"
+                flines.append(allocstr.format(self.parent.name, self.iid))
 
+                fmtstr = "read({0}_funit,*)({1}(nrow,:), nrow =1, {0}_nlines)"
+                flines.append(fmtstr.format(self.iid, self.parent.name))
+
+            flines.append("close({}_funit)\n".format(self.iid))
             lines.extend([ spacer + l for l in flines])
 
     def _code_after(self, lines, spacer):
@@ -348,7 +363,8 @@ class AssignmentValue(object):
         This is useful so that we can reallocate it again in repeat mode.
         """
         if (self.repeats and self.parent.allocate and 
-            "allocatable" in self.parent.variable.modifiers):
+            ("allocatable" in self.parent.variable.modifiers or
+             "pointer" in self.parent.variable.modifiers)):
             lines.append("{}deallocate({})".format(spacer, self.parent.name))
 
     def _code_init(self, lines, spacer):
@@ -356,9 +372,10 @@ class AssignmentValue(object):
         operations later on.
         """
         if self.filename is not None:
-            lines.append("{}!Line/value counting for {}.".format(spacer, self.filename))
-            lines.append("{}call fpy_linevalue_count('{}', ".format(spacer, self.filename) + 
-                         "'{0}', {1}_nlines, {1}_values)".format(self.commentchar, self.iid))
+            lines.append("{}!Line/value counting for {}.".format(spacer, self.xname))
+            lines.append("{}call fpy_linevalue_count('{}', ".format(spacer, self.xname) + 
+                         "{2}, '{0}', {1}_nlines, {1}_nvalues)".format(self.commentchar, self.iid,
+                                                                      len(self.xname)))
 
     def _code_vars(self, lines, spacer):
         """Appends lines to declare any variables we need for file read
@@ -388,6 +405,8 @@ class AssignmentValue(object):
             self.function = self.xml.attrib["function"]
         if "commentchar" in self.xml.attrib:
             self.commentchar = self.xml.attrib["commentchar"]
+        else:
+            self.commentchar = '#'
         if "paramlist" in self.xml.attrib:
             self.paramlist = self.xml.attrib["paramlist"]
         if "rename" in self.xml.attrib:
@@ -875,7 +894,8 @@ class TestTarget(object):
         testing folder."""
         if self.varfile is not None:
             target = path.join(testroot, self.varfile)
-            remove(target)
+            if path.isfile(target):
+                remove(target)
 
     def _process(self, variables, spacer):
         """Processes a single outcome involving a variable value comparison.
@@ -885,7 +905,11 @@ class TestTarget(object):
         #The framework allows the developer to specify a subroutine to create the
         #output file for comparison. If one was specified, just use that.
         if self.generator is not None:
-            self._code = "{}call {}({})".format(spacer, self.generator, self.name)
+            if self.varfile is not None:
+                self._code = "{}call {}({}, '{}')".format(spacer, self.generator, 
+                                                          self.name, self.varfile)
+            else:
+                self._code = "{}call {}({})".format(spacer, self.generator, self.name)
         else:
             #We need to use the fortpy module or the variables own test_output()
             #to create a file that can be compared later by python. This means
@@ -941,6 +965,8 @@ class TestSpecification(object):
     :attr runtime: an integer list [min, max] range for the time this test 
       should take to run.
     :attr unit: either 'm' or 'h'; the units for 'runtime'.
+    :attr timed: when true, the execution time of the main method being unit tested
+      will be accumulated and saved.
     :attr targets: a list of TestTarget instances that specify which variables
       and files need to be verified after the unit test runs.
     :attr inputs: a list of TestInput instances that specify how to initialize
@@ -961,6 +987,7 @@ class TestSpecification(object):
         self.cases = None
         self.runtime = None
         self.unit = None
+        self.timed = False
 
         self.targets = []
         self.inputs = []
@@ -1021,6 +1048,12 @@ class TestSpecification(object):
         is clean for a new run."""
         for t in self.targets:
             t.clean(testroot)
+
+        #We also need to remove the timing of any previous tests that ran.
+        if self.timed:
+            timepath = path.join(testroot, "fpytiming.out")
+            if path.isfile(timepath):
+                remove(timepath)
 
     def code_validate(self, lines, variables, spacer):
         """Appends the fortran code to validate the length of the constant-valued
@@ -1148,6 +1181,8 @@ class TestSpecification(object):
             runtime = list(self.xml.attrib["runtime"])
             self.unit = runtime.pop()
             self.runtime = [ int(t) for t in "".join(runtime).split("-") ]
+        if "timed" in self.xml.attrib:
+            self.timed = self.xml.attrib["timed"] == "true"
 
 class TestingGroup(object):
     """Represents a unit testing documentation group with information on
@@ -1313,12 +1348,14 @@ class MethodFinder(object):
       find a method that is referenced as a pre-req.
     :attr executable: the code element instance of the executable found from
       the module that the method belongs to.
+    :attr main: when true, this instance is for the *main* method being unit tested.
     """
-    def __init__(self, identifier, parser, element, fatal_if_missing = True):
+    def __init__(self, identifier, parser, element, fatal_if_missing = True, main=False):
         self.identifiers = identifier.split(".")
         self.name = identifier
         self.methods = []
         self.element = element
+        self.main = main
 
         self._parser = parser
         self._module = None
@@ -1399,26 +1436,51 @@ class MethodFinder(object):
                         break
         return result                        
 
-    def code(self, lines, position, spacer):
+    def timed(self, testid):
+        """Returns true if this method will produce code to time its execution."""
+        if self.group is not None and self.main:
+            testspec = self.group.tests[testid]
+            return testspec.timed
+        else:
+            return False        
+
+    def code(self, lines, position, spacer, testid):
         """Appends the code to execute *only* this method's main executable as
         part of the main program.
 
         :arg lines: the list of strings that form the contents of the *.f90 file
           being created.
         """
-        if position == "vars":
-            self._code_vars(lines, spacer)
-        elif position == "call":
-            self._code_call(lines, spacer)
+        #We only need to worry about vars if this is the *main* method that is
+        #being unit tested.
+        if self.main and position == "vars":
+            self._code_vars(lines, spacer, testid)
 
-    def _code_vars(self, lines, spacer):
+        if position == "call":
+            self._code_call(lines, spacer, testid)
+
+        if self.timed(testid) and position == "final":
+            lines.append("{}call pysave(fpy_elapsed, 'fpytiming.out', 13)".format(spacer))
+
+    def _code_vars(self, lines, spacer, testid):
         """Appends code to initialize the variables that accept the return values
-        if the method being called is a function."""
+        if the method being called is a function. Also appends the variables needed
+        to time the method's execution if specified by the test.
+        """
+        #This method only gets called if we are the main executable being tested.
         if type(self.executable).__name__ == "Function":
             lines.append("{}{}".format(spacer, self.executable.definition("_fpy")))
 
-    def _code_call(self, lines, spacer):
+        if self.timed(testid):
+            lines.append("{}real(dp) :: fpy_start, fpy_end, fpy_elapsed = 0".format(spacer))
+
+    def _code_call(self, lines, spacer, testid):
         """Appends the code to call the executable that this method finder represents."""
+        #If we are timing the executable, we want to get the time before and after the
+        #execution of just this method and then add it to the elapsed time.
+        if self.timed(testid):
+            lines.append("{}call cpu_time(fpy_start)".format(spacer))
+
         #This is either a call to a subroutine or a function. We need to make
         #sure that we handle any mapping tags or call tags in the docstrings
         if type(self.executable).__name__ == "Subroutine":
@@ -1447,6 +1509,10 @@ class MethodFinder(object):
                     calllist.append(param.name)
             lines.append("{}{}{}({})".format(spacer, prefix, self.executable.name,
                                               self._present_params(calllist, spacing)))        
+
+        if self.timed(testid):
+            lines.append("{}call cpu_time(fpy_end)".format(spacer))
+            lines.append("{}fpy_elapsed = fpy_elapsed + fpy_end - fpy_start".format(spacer))
 
     def _present_params(self, paramlist, spacing = 0):
         """Creates the (paramlist) for a method call formatted nicely for calls

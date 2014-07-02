@@ -1,3 +1,5 @@
+import re
+
 class DocGroup(object):
     """Represents a list of DocElements that have been logically grouped together."""
     
@@ -33,7 +35,10 @@ class DocElement(object):
          - parser: an instance of the DocStringParser() with compiled re objects.
         """
         if XMLElement is not None:
-            self.contents = XMLElement.text
+            if XMLElement.text is not None:
+                self.contents = re.sub("\s+", " ", XMLElement.text.replace("\n", ""))
+            else:
+                self.contents = ""
             self.doctype = XMLElement.tag
             self.xml = XMLElement
         else:
@@ -99,7 +104,7 @@ class DocElement(object):
         if "index" in dimension.attrib:
             result += ":" + dimension.attrib["index"]
 
-        result += "] " + dimension.text
+        result += "] " + re.sub("\s+", " ", dimension.text.replace("\n", " "))
         return result
 
     def parse(self, parser, xml):

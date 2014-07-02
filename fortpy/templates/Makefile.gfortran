@@ -3,9 +3,10 @@
 #--------------------------------------------------------------------------------
 
 # Standard flags (produce optimised code)
-FFLAGS  =  -O3 -ffree-line-length-none 
+FFLAGS  =  -O3 -ffree-line-length-none
 LDFLAGS = 
 
+# For automatic reallocation of LHS: -assume realloc_lhs
 # Options that REPLACE standard flags
 #................................................................................
 

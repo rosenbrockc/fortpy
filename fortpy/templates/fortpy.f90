@@ -3,7 +3,8 @@
 module fortpy
   implicit none
   private
-  public pysave, dp, sp, si, li, fpy_linevalue_count, fpy_newunit, pysave_integer_li
+  public pysave, dp, sp, si, li, fpy_linevalue_count, fpy_newunit, pysave_integer_li, &
+       fpy_value_count
 
   !!<member name="fileunit">I/O unit for the file to write the output to.</member>
   integer :: fileunit
@@ -361,7 +362,6 @@ contains
     do i = 1, length
        !indx will be zero if the current character is not a whitespace character.
        indx = index(whitespace, line(i:i))
-
        if (indx > 0 .and. prev == 0) then
           !We found the first whitespace after the end of a value we want.
           fpy_value_count = fpy_value_count + 1
@@ -369,15 +369,21 @@ contains
 
        prev = indx
     end do
+
+    !If the last value on the line ends right before \n, then we wouldn't have
+    !picked it up; add an extra one.
+    if (indx == 0) fpy_value_count = fpy_value_count + 1
   end function fpy_value_count
 
   !!<summary>Returns the number of lines in the file that aren't comments and
   !!the number of whitespace-separated values on the first non-comment line.</summary>
   !!<parameter name="filename">The name of the file to pass to open.</parameter>
+  !!<parameter name="n">The number of characters in 'filename'.</parameter>
   !!<parameter name="commentchar">A single character which, when present at the start
   !!of a line designates it as a comment.</parameter>
-  subroutine fpy_linevalue_count(filename, commentchar, nlines, nvalues)
-    character(len=:), allocatable, intent(in) :: filename
+  subroutine fpy_linevalue_count(filename, n, commentchar, nlines, nvalues)
+    character(n), intent(in) :: filename
+    integer, intent(in) :: n
     character(1), intent(in) :: commentchar
     integer, intent(out) :: nlines, nvalues
     character(len=:), allocatable :: cleaned
@@ -392,7 +398,7 @@ contains
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
        do
-          read(funit, *, iostat=ioerr) line
+          read(funit, "(A)", iostat=ioerr) line
           if (ioerr == 0) then
              cleaned = trim(adjustl(line))
              if (len(cleaned) .gt. 0 .and. cleaned(1:1) /= commentchar) then
@@ -400,7 +406,7 @@ contains
                 !We only need to get the number of values present in a line once.
                 !We restrict the file structure to have rectangular arrays.
                 if (nvalues == 0) then
-                   nvalues = fpy_value_count(line, len(line))
+                   nvalues = fpy_value_count(cleaned, len(cleaned))
                 end if
              end if
           else
@@ -408,6 +414,7 @@ contains
           end if
        end do
     end if
+    close(funit)
   end subroutine fpy_linevalue_count
 
   !!<summary>Returns lowest i/o unit number not in use.</summary>

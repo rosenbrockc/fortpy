@@ -5,6 +5,7 @@
 FFLAGS  =  -xW -O3 -fpic
 LDFLAGS = 
 
+# For automatic reallocation of LHS: -assume realloc_lhs
 # Options that REPLACE standard flags
 #................................................................................
 

@@ -283,6 +283,7 @@ class Evaluator(object):
         #We are only interested in the type of the variable immediately preceding our symbol
         #in the chain so we can list its members.
         chain = fullsymbol.split("%")
+
         #We assume that if symbol != fullsymbol, we have at least a % at the end that 
         #tricked the symbol regex.
         if len(chain) < 2:

@@ -1,8 +1,9 @@
+#!/apps/python/2.7.3/bin/python
 import argparse
 
 def initialize():    
     t = UnitTester(args["stagedir"], args["verbose"], args["templates"], args["fortpy"],
-                   args["rerun"])
+                   args["rerun"], debug=args["debug"])
 
     if args["compiler"]:
         t.compiler = args["compiler"]
@@ -11,10 +12,16 @@ def initialize():
     result = t.runall()
 
     for idk in result:
-        print("RESULT: {0} = {1:.2%} successful".format(idk, result[idk].percent))
+        totaltime = result[idk].totaltime
+        if totaltime is not None:
+            timestr = "{0:.4f}".format(totaltime*1000)
+        else:
+            timestr = "<untimed>"
+        print("RESULT: {0} = {1:.2%} success in {2} ms".format(idk, result[idk].percent,
+                                                               timestr))
 
 #Create a parser so that the script can receive arguments
-parser = argparse.ArgumentParser(description="Fortpy File Comparison Tool")
+parser = argparse.ArgumentParser(description="Fortpy Automated Unit Testing Tool")
 
 #Add arguments to decide which of the systems and penalties to process.
 parser.add_argument("codedir", help="Specify the path to the directory of code files to run tests for.")
@@ -28,6 +35,8 @@ parser.add_argument("-rerun", help="If specified, the tests are re-run with mini
                     action="store_true")
 parser.add_argument("-compiler", help="Specify the compiler to use for the unit testing")
 parser.add_argument("-pypath", help="Specify a path to add to sys.path before running the tests.")
+parser.add_argument("-debug", help="Compile the executables with DEBUG=true", 
+                    action="store_true")
 
 #Parse the args from the commandline that ran the script, call initialize
 args = vars(parser.parse_args())

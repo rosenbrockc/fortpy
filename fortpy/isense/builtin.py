@@ -4,6 +4,9 @@ import re
 import xml.etree.ElementTree as ET
 from fortpy.elements import ValueElement, Subroutine, Function
 from fortpy.docelements import DocElement
+import fortpy.config
+import sys
+config = sys.modules["config"]
 
 def load(parser, serializer):
     """Returns a dictionary of builtin functions for Fortran. Checks the
@@ -29,6 +32,19 @@ def load(parser, serializer):
 
     return result
 
+def _isense_builtin_symbol(symbol):
+    """Returns the symbol with modifications according to settings in the
+    <isense> configuration section.
+    """
+    if "builtin" in config.isense and "uppercase" in config.isense["builtin"]:
+        if config.isense["builtin"]["uppercase"] == "true":
+            return symbol.upper()
+        else:
+            return symbol.lower()
+    else:
+        #Make it lowercase by default
+        return symbol.lower()
+
 def _load_builtin_xml(xmlpath, parser):
     """Loads the builtin function specifications from the builtin.xml file.
 
@@ -50,6 +66,10 @@ def _parse_xml(child, parser):
     """Parses the specified child XML tag and creates a Subroutine or
     Function object out of it."""
     name, modifiers, dtype, kind = _parse_common(child)
+
+    #Handle the symbol modification according to the isense settings.
+    name = _isense_builtin_symbol(name)
+
     if child.tag == "subroutine":
         parent = Subroutine(name, modifiers, None)
     elif child.tag == "function":

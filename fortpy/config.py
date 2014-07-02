@@ -18,6 +18,11 @@ class _config(types.ModuleType):
             self._initialized = True      
 
     @property
+    def isense(self):
+        """Returns the isense configuration dictionary."""
+        return self.property_get("isense")
+
+    @property
     def implicit_XML(self):
         """Returns the path to the XML file that stores the config info."""
         return self.property_get("FORTPY_CONFIG")
@@ -80,7 +85,20 @@ class _config(types.ModuleType):
                     self._load_mapping(child)
                 elif child.tag == "ssh":
                     self._load_ssh(child)
+                elif child.tag == "isense":
+                    self._load_isense(child)
       
+    def _load_isense(self, tag):
+        """Loads isense configuration as a dict of dicts into vardict."""
+        isense = {}
+        for child in tag:
+            if child.tag in isense:
+                isense[child.tag].update(child.attrib)
+            else:
+                isense[child.tag] = child.attrib
+
+        self._vardict["isense"] = isense
+
     def _load_ssh(self, tag):
         """Loads the SSH configuration into the vardict."""
         for child in tag:

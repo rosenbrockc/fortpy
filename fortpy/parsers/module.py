@@ -20,7 +20,7 @@ class ModuleParser(object):
         self._RX_MODULE = r"(\n|^)\s*module\s+(?P<name>[a-z0-9_]+)(?P<contents>.+?)end\s*module"
         self.RE_MODULE = re.compile(self._RX_MODULE, re.I | re.DOTALL)
         #Regex for use statements in a module
-        self._RX_USE = r"^\s*use\s+(?P<name>[^,]+?)(,\s+only:(?P<only>[A-Za-z0-9_\s,]+?))?$"
+        self._RX_USE = r"^\s*use\s+(?P<name>[^,]+?)(,\s+only\s*:(?P<only>[A-Za-z0-9_\s,]+?))?$"
         self.RE_USE = re.compile(self._RX_USE, re.I | re.M)
         #Regex for finding if the module is private
         self._RX_PRIV = "private.+?(type|contains)"

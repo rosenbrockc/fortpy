@@ -1,8 +1,9 @@
 import fortpy
 from .generator import TestGenerator
 from ..code import CodeParser, secondsToStr
-from os import system, path, mkdir
+from os import system, path, mkdir, remove
 from time import clock
+import time
 from shutil import copy, copyfile
 from fortpy.code import secondsToStr
 from .comparer import FileComparer
@@ -207,6 +208,7 @@ class TestResult(object):
       result represents.
     :attr cases: a dictionary of ExecutionResult objects with detail
       on how the system execution went for each case. Key is caseId
+    :attr paths: a dictionary of paths to the folders that were executed for each case.
     :attr outcomes: a dictionary of CompareResult objects with detail
       on how similar the new output files are to the model ones. Keys
       are the same caseIds used in self.cases.
@@ -222,12 +224,41 @@ class TestResult(object):
         self.identifier = identifier
         self.testid = testid
         self.cases = {}
+        self.paths = {}
         self.outcomes = {}
         self.compiled = None
 
         self.warnings = []
         self.failures = {}
         self.overtimes = {}
+
+    @property
+    def totaltime(self):
+        """Returns the total amount of time spent running *only* the unit tested
+        executable for *all* cases in this result."""
+        time = 0
+        for caseid in self.paths:
+            casetime = self.runtime(caseid)
+            if casetime is not None:
+                time += casetime
+
+        if time == 0:
+            return None
+        else:
+            return time
+
+    def runtime(self, caseid):
+        """Gets the absolute amount of time spent running *only* the executable
+        being unit tested for this result."""
+        time = None
+
+        if caseid in self.paths:
+            timepath = path.join(self.paths[caseid], "fpytiming.out")
+            if path.isfile(timepath):
+                with open(timepath) as f:
+                    time = float(f.readlines()[1].strip())
+
+        return time
 
     @property
     def percent(self):
@@ -265,7 +296,8 @@ class UnitTester(object):
     :arg libraryroot: the path to folder in which to stage the tests.
     """
     def __init__(self, libraryroot, verbose = False, compare_templates = None, 
-                 fortpy_templates=None, rerun = False, compiler="gfortran"):
+                 fortpy_templates=None, rerun = False, compiler="gfortran",
+                 debug=False):
         self.libraryroot = path.abspath(libraryroot)
         self.parser = CodeParser()
         self.parser.verbose = verbose
@@ -273,6 +305,7 @@ class UnitTester(object):
         self.tgenerator = TestGenerator(self.parser, self.libraryroot, 
                                         self.fortpy_templates, rerun)
         self.compiler = compiler
+        self.debug = debug == True
         self._compiler_exists()
         
         #A flag to track whether the generator has already written
@@ -281,17 +314,21 @@ class UnitTester(object):
         #The user's raw value for the compare_templates directory
         self._compare_templates = compare_templates
 
-    @property
-    def tests(self):
+    def tests(self, identifier):
         """Returns a dictionary of all the tests that need to be run for the
-        current configuration of the test generator."""
-        return self.tgenerator.xgenerator.writer.tests
+        specified module.executable identifier."""
+        if identifier in self.tgenerator.xtests:
+            return self.tgenerator.xtests[identifier]
+        else:
+            return {}
 
-    @property
-    def writer(self):
+    def writer(self, identifier):
         """Returns the underlying executable writer that has a list of ordered
         method/assignment dependencies."""
-        return self.tgenerator.xgenerator.writer
+        if identifier in self.tgenerator.xwriters:
+            return self.tgenerator.xwriters[identifier]
+        else:
+            return None
         
     def _compiler_exists(self):
         """Tests whether the specified compiler is available on the machine. If
@@ -398,7 +435,13 @@ class UnitTester(object):
         #make and check the exit code.
         target = path.join(self.libraryroot, identifier)
         print("\n\n")
-        code = system("cd {}; make -f 'Makefile.{}' F90={}".format(target, testid, self.compiler))
+        if self.debug:
+            codestr = "cd {}; make -f 'Makefile.{}' F90={} DEBUG=true"
+            code = system(codestr.format(target, testid, self.compiler))
+        else:
+            codestr = "cd {}; make -f 'Makefile.{}' F90={}"
+            code = system(codestr.format(target, testid, self.compiler))
+
         print("\n")
         return code == 0
 
@@ -422,9 +465,11 @@ class UnitTester(object):
 
         #Get the absolute path to the executable that we created
         exepath = path.join(self.libraryroot, identifier, "{}.x".format(testid))
+
         #Since we have already split out all the tests that need to be run and 
         #we have a 'testid' for the current test to run, just run that test.
-        self._run_folder(self.tests[testid], tests, result, exepath)
+        self._run_folder(self.tests(identifier)[testid], tests, result, exepath,
+                         self.writer(identifier))
 
         #Now that we have run all of the executables, we can analyze their
         #output to see if it matches.
@@ -432,7 +477,7 @@ class UnitTester(object):
             xres = result.cases[case]
             xres.test(case, result)
 
-    def _run_folder(self, testspec, testsfolder, result, exepath):
+    def _run_folder(self, testspec, testsfolder, result, exepath, testwriter):
         """Runs the executable for the sources in the folder doctag.
 
         :arg testspec: a TestSpecification instance for this unit test.
@@ -440,12 +485,15 @@ class UnitTester(object):
         :arg result: a TestResult instance that execution results can be
           added to as they complete.
         :arg expath: the full path to the executable to run in the folder.
+        :arg testwriter: the MethodWriter instance that generated the test
+          that will be run.
         """
         #We can use the same outcome tester afterwards for all of the cases.
-        tester = OutcomeTester(testspec, self._codefolder, self.comparer, self.parser.verbose)
+        tester = OutcomeTester(testspec, self._codefolder, self.comparer, 
+                               self.parser.verbose)
 
         #The execution can either be case-based or once-off.
-        if testspec.cases is not None and len(testspec.inputs) > 0:
+        if testspec.cases is not None:
             #We need to run the executable multiple times, once for each case
             #Each case has input files specified relative to the code folder.
             for case in testspec.cases:
@@ -459,10 +507,12 @@ class UnitTester(object):
                     for i in testspec.inputs:
                         i.copy(self._codefolder, casepath, case)
                     #Also copy any assignment file dependencies.
-                    self.writer.copy(self._codefolder, casepath, case)
+                    testwriter.copy(self._codefolder, casepath, case)
                     #Clean the testing folder to remove any target variable output files
                     #from any earlier test runs.
                     testspec.clean(casepath)
+                    #Save the path to the folder for execution in the result.
+                    result.paths[caseid] = casepath
 
                     print("Executing {}.x for case {}".format(testspec.identifier, case))
 
@@ -472,10 +522,12 @@ class UnitTester(object):
                     result.cases[caseid] = ExecutionResult(casepath, code, clock() - start_time, 
                                                            tester, case)
 
+                    self._write_success(casepath, code)
                     #Add some whitespace for readability between tests
                     print("")
                 else:
-                    result.warnings.append("Duplicate CASES specified for unit testing: {}".format(caseid))
+                    result.warnings.append("Duplicate CASES specified for unit testing:" + 
+                                           " {}".format(caseid))
         else:
             #Create a folder for this test specification to run in.
             testpath = path.join(testsfolder, testspec.identifier)
@@ -487,16 +539,31 @@ class UnitTester(object):
             for i in testspec.inputs:
                 i.copy(self._codefolder, testpath)
             #Also copy any assignment file dependencies.
-            self.writer.copy(self._codefolder, testpath, "")
+            testwriter.copy(self._codefolder, testpath, "")
             #Clean the testing folder to remove any target variable output files
             #from any earlier test runs.
             testspec.clean(testpath)
-
+            #Save the path to the folder for execution in the result.
+            result.paths[testspec.identifier] = testpath
 
             start_time = clock()                              
             code = system("cd {}; {}".format(testpath, exepath))
             result.cases[testspec.identifier] = ExecutionResult(
                 testpath, code, clock() - start_time, tester)
+            self._write_success(testpath, code)
 
             #Add some whitespace for readability between tests
             print("")        
+
+    def _write_success(self, testpath, code):
+        """Creates a SUCCESS file in the specified testpath if code==0 that has
+        the time of the last execution. If code != 0, any existing SUCCESS file
+        is deleted.
+        """
+        sucpath = path.join(testpath, "SUCCESS")
+        if code == 0:
+            with open(sucpath, 'w') as f:
+                f.write(time.strftime("%c"))
+        else:
+            if path.isfile(sucpath):
+                remove(sucpath)

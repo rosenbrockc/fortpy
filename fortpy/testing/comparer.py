@@ -497,7 +497,8 @@ class FileComparer(object):
         """
         source = os.path.expanduser(path)
         if not os.path.exists(source):
-            print("ERROR: can't create representation for {}. File does not exist.\n".format(source))            
+            print("ERROR: can't create representation for {}.".format(source) + 
+                  " File does not exist.\n")            
             return None
 
         with open(source) as f:
@@ -511,7 +512,8 @@ class FileComparer(object):
         #load a template based on the source name and use it for both
         if self.template is None:
             self.template = self._load_template(source, sf)
-        if self.template is None and template.lower() in self.templates:
+        if (self.template is None and template is not None and
+            template.lower() in self.templates):
             self.template = self.templates[template.lower()]
 
         stemplate = self._get_file_template(self.template, sv)

@@ -13,7 +13,7 @@ class MethodWriter(object):
        find a code element in the code parser that is referenced in the docstrings.
     """
     def __init__(self, method, parser, fatal_if_missing = True):
-        self.method = MethodFinder(method, parser, None, fatal_if_missing)
+        self.method = MethodFinder(method, parser, None, fatal_if_missing, True)
 
         #Dictionary of dependencies for the methods that need be executed in the
         #pre-req chain. Keys are the module names and values are the method names.
@@ -76,7 +76,7 @@ class MethodWriter(object):
         #constant-input testing. These make sure that if the input values come from
         #multiple files, that we have the same number of input values from each file.
         self.method.group.code(testid, "validate", result, "  ")
-        self._code_once_off(result, "  ")
+        self._code_once_off(result, "  ", testid)
 
         #If the test has any constant-input specifcations, we need to run a loop
         #over each set of values in the input files.
@@ -92,14 +92,13 @@ class MethodWriter(object):
         #that the developer finds interesting.
         if self.tests[testid].constant:
             self.method.group.code(testid, "before", result, "    ")
-            self._code_repeats(result, "    ")
+            self._code_repeats(result, "    ", testid)
             self.method.group.code(testid, "after", result, "    ")
             result.append("    !---------CLEANUP SEPARATOR---------------------------")
         else:
             self.method.group.code(testid, "before", result, "  ")
-            self._code_repeats(result, "  ")
+            self._code_repeats(result, "  ", testid)
             self.method.group.code(testid, "after", result, "  ")
-            result.append("  !---------CLEANUP SEPARATOR---------------------------")
 
         #The group code for 'after' would have saved the values of any variables that
         #we needed, so we can deallocate now.
@@ -112,9 +111,13 @@ class MethodWriter(object):
         result.append("")
         self.method.group.code(testid, "final", result, "  ")
 
+        #Also, if we were timing this method, save its timing results. We only do
+        #timing of the main method being tested.
+        self.method.code(result, "final", "  ", testid)
+
         return "\n".join(result)
 
-    def _code_repeats(self, lines, spacer):
+    def _code_repeats(self, lines, spacer, testid):
         """Appends lines for calls to methods and variable assignments that
         need to happen *every time* the main method is called."""
         #See the comment in _code_once_off about the arrangement of methods
@@ -122,11 +125,11 @@ class MethodWriter(object):
         for methodk in self._ordered:
             method = self._method_dict[methodk]
             if isinstance(method, MethodFinder) and method.repeats:
-                method.code(lines, "call", spacer)
+                method.code(lines, "call", spacer, testid)
             elif isinstance(method, Assignment):
                 method.code(lines, "before", spacer)
 
-    def _code_once_off(self, lines, spacer):
+    def _code_once_off(self, lines, spacer, testid):
         """Appends lines for calls to methods and variable assignments that 
         only need to happen once in a specific order before the main method
         being unit tested is called.
@@ -138,7 +141,7 @@ class MethodWriter(object):
         for methodk in self._ordered:
             method = self._method_dict[methodk]
             if isinstance(method, MethodFinder) and not method.repeats:
-                method.code(lines, "call", spacer)
+                method.code(lines, "call", spacer, testid)
             elif isinstance(method, Assignment):
                 method.code(lines, "assign", spacer)
 
@@ -174,7 +177,7 @@ class MethodWriter(object):
         for methodk in self._ordered:
             method = self._method_dict[methodk]
             if isinstance(method, MethodFinder):
-                method.code(lines, "vars", spacer)
+                method.code(lines, "vars", spacer, testid)
 
     def _code_assignments(self, lines, position, spacer):
         """Appends the relevant lines from all assignments in this unit test based

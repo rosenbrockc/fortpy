@@ -23,6 +23,10 @@ class TestGenerator(object):
       .f90 program files for performing the unit tests.
     :attr dependfiles: a list of additional files to be copied from the
       fortpy templates directory that are needed for the unit testing.
+    :attr xtests: a dictionary of the test collections for each of the
+      executables visited by this generator.
+    :attr xwriters: a dictionary of the writers from each executable that
+      was visited by the generator.
     """
     def __init__(self, parser, libraryroot, fortpy_templates, rerun = False):
         self.parser = parser
@@ -30,8 +34,9 @@ class TestGenerator(object):
         self.xgenerator = ExecutableGenerator(parser, libraryroot)
         self.rerun = rerun
 
-        self.dependfiles = [ "timing.c", "timing.h", "timing.o", "fortpy.f90", 
-                             "Makefile.ifort", "Makefile.gfortran" ]
+        self.dependfiles = [ "fortpy.f90", "Makefile.ifort", "Makefile.gfortran" ]
+        self.xtests = {}
+        self.xwriters = {}
         self._fortpy = fortpy_templates
 
         #Stores the identifiers of unit tests whose files changed so they
@@ -76,8 +81,15 @@ class TestGenerator(object):
             found = False
             i = 0
 
+            #The executable must have a testing group *and* be marked as public
+            #in its parent module (either via a public modifier or via the public
+            #keyword in the module).
             if anexec.test_group is not None:
-                self._write_executable(module, anexec)
+                if "public" in anexec.modifiers or anexec.name in module.publics:
+                    self._write_executable(module, anexec)
+                else:
+                    print("\nWARNING: executable {} has a testing ".format(anexec.name) +
+                          "group, but is not marked as public in the module.\n")
 
     def _write_executable(self, module, executable):
         """Generates the fortran program for the specified executable code
@@ -103,6 +115,14 @@ class TestGenerator(object):
         for needk in needs:
             needed = self.parser.modules[needk]
             moddate = modification_date(needed.filepath)
+            #We also consider a module altered if its XML file has changed since
+            #we last parsed it.
+            xmlpath = needed.xmlpath
+            if os.path.isfile(xmlpath):
+                xmoddate = modification_date(xmlpath)
+                if xmoddate > moddate:
+                    moddate = xmoddate
+
             #Get the path to the code file in the executable directory so that
             #we can copy it over if it doesn't exist.
             if needk not in self.parser.mappings:
@@ -132,8 +152,8 @@ class TestGenerator(object):
         #or testid.x files from the directories to force a re-write.
         if not different:
             for testid in self.xgenerator.writer.tests:
-                codefile = os.path.join(self.libraryroot, "{}.f90".format(testid))
-                xfile = os.path.join(self.libraryroot, "{}.x".format(testid))
+                codefile = os.path.join(self.libraryroot, identifier, "{}.f90".format(testid))
+                xfile = os.path.join(self.libraryroot, identifier, "{}.x".format(testid))
                 if not os.path.exists(codefile) or not os.path.exists(xfile):
                     different = True
                     break
@@ -150,6 +170,8 @@ class TestGenerator(object):
                 self.xgenerator.write(testid)
                 self.xgenerator.makefile(testid)
                 self._changed.append("{}|{}".format(identifier, testid))
+                self.xtests[identifier] = self.xgenerator.writer.tests
+                self.xwriters[identifier] = self.xgenerator.writer
                 print("\tWROTE TEST: {}\n".format(testid))
 
             #Overwrite the file date values for this executable in the archive

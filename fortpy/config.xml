@@ -19,4 +19,7 @@
       <map module="utilities_module" file="utilities.f90" />
     </mappings>
   </ssh>
+  <isense>
+    <builtin uppercase="false" />
+  </isense>
 </config>

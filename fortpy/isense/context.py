@@ -105,7 +105,7 @@ class UserContext(object):
         """Gets the full symbol excluding the character under the cursor."""
         if self._short_full_symbol is None:
             self._short_full_symbol = self._symbol_extract(cache.RE_FULL_CURSOR,
-                                                           False)
+                                                           False, True)
 
         return self._short_full_symbol
 
@@ -122,19 +122,38 @@ class UserContext(object):
         """Returns the symbol under the cursor AND additional contextual
         symbols in the case of %-separated lists of type members."""
         if self._full_symbol is None:
-            self._full_symbol = self._symbol_extract(cache.RE_FULL_CURSOR)
+            self._full_symbol = self._symbol_extract(cache.RE_FULL_CURSOR, brackets=True)
 
         return self._full_symbol
     
-    def _symbol_extract(self, regex, plus = True):
+    def _symbol_extract(self, regex, plus = True, brackets=False):
         """Extracts a symbol or full symbol from the current line, 
         optionally including the character under the cursor.
 
         :arg regex: the compiled regular expression to use for extraction.
         :arg plus: when true, the character under the cursor *is* included.
+        :arg brackets: when true, matching pairs of brackets are first removed
+          before the regex is run.
         """
         charplus = self.pos[1] + (1 if plus else -1)
         consider = self.current_line[:charplus][::-1]
+
+        #We want to remove matching pairs of brackets so that derived types
+        #that have arrays still get intellisense.
+        if brackets==True:
+            #The string has already been reversed, just run through it.
+            rightb = []
+            lastchar = None
+            for i in range(len(consider)):
+                if consider[i] == ")":
+                    rightb.append(i)
+                elif consider[i] == "(" and len(rightb) > 0:
+                    lastchar = i
+                    rightb.pop()
+
+            if lastchar is not None:
+                consider = '%' + consider[lastchar+1:]
+
         rematch = regex.match(consider)
         if rematch is not None:
             return rematch.group("symbol")[::-1]

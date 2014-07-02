@@ -206,6 +206,15 @@ class ValueElement(CodeElement):
     def __str__(self):
         return self.definition()
 
+    @property
+    def D(self):
+        """Returns the integer number of dimensions that this variable
+        is declared as having."""
+        if self.dimension is None:
+            return 0
+        else:
+            return self.dimension.count(",") + 1
+
     def definition(self, suffix = ""):
         """Returns the fortran code string that would define this value element.
 
@@ -771,6 +780,14 @@ class Module(CodeElement, Decoratable):
         self._chars = []
         self._contains_index = None
 
+    @property
+    def xmlpath(self):
+        """Returns the full path to this module's accompanying XML file."""
+        if self.filepath is None:
+            return None
+        else:
+            return self.parent.get_xmldoc_path(self.filepath)
+
     def rt_update(self, statement, linenum, mode, modulep, lineparser):
         """Uses the specified line parser to parse the given statement.
 
@@ -895,7 +912,8 @@ class Module(CodeElement, Decoratable):
             start = self.linenum(max_t)[0]
             max_i = 10 if max_t > 0 else len(self._lines)
 
-            while self._contains_index is None and i < max_i:
+            while (self._contains_index is None and i < max_i
+                   and start + i < len(self._lines)):
                 if "contains" in self._lines[start + i].lower():
                     self._contains_index = start + i
                 i += 1
