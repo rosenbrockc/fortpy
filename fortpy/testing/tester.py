@@ -8,6 +8,7 @@ from shutil import copy, copyfile
 from fortpy.code import secondsToStr
 from .comparer import FileComparer
 from fortpy.testing.results import print_compare_result
+from fortpy.testing import profiling
 
 class ExecutionResult(object):
     """The result of running the executable on the system, NOT the
@@ -297,7 +298,7 @@ class UnitTester(object):
     """
     def __init__(self, libraryroot, verbose = False, compare_templates = None, 
                  fortpy_templates=None, rerun = False, compiler="gfortran",
-                 debug=False):
+                 debug=False, profile=False):
         self.libraryroot = path.abspath(libraryroot)
         self.parser = CodeParser()
         self.parser.verbose = verbose
@@ -307,6 +308,7 @@ class UnitTester(object):
         self.compiler = compiler
         self.debug = debug == True
         self._compiler_exists()
+        self.profile = self._profiler_exists(profile)
         
         #A flag to track whether the generator has already written
         #the executables.
@@ -329,6 +331,22 @@ class UnitTester(object):
             return self.tgenerator.xwriters[identifier]
         else:
             return None
+
+    def _profiler_exists(self, profile):
+        """Tests whether we have gprof available to do the profiling of the methods
+        to unit test.
+        
+        :arg profile: the value specified in the UnitTester constructor.
+        """
+        if profile==True:
+            gprof = self.which("gprof")
+            if gprof is None:
+                print("ERROR: gprof is required to run profiling with fortpy.")
+                exit(1)
+            else:
+                return True
+        else:
+            return False
         
     def _compiler_exists(self):
         """Tests whether the specified compiler is available on the machine. If
@@ -435,13 +453,16 @@ class UnitTester(object):
         #make and check the exit code.
         target = path.join(self.libraryroot, identifier)
         print("\n\n")
-        if self.debug:
-            codestr = "cd {}; make -f 'Makefile.{}' F90={} DEBUG=true"
-            code = system(codestr.format(target, testid, self.compiler))
-        else:
-            codestr = "cd {}; make -f 'Makefile.{}' F90={}"
-            code = system(codestr.format(target, testid, self.compiler))
 
+        options = ""
+        if self.debug:
+            options += " DEBUG=true"
+        if self.profile:
+            options += " GPROF=true"
+
+        codestr = "cd {}; make -f 'Makefile.{}' F90={}" + options
+        code = system(codestr.format(target, testid, self.compiler))
+        
         print("\n")
         return code == 0
 
@@ -501,59 +522,50 @@ class UnitTester(object):
                 if not caseid in result.cases:
                     #Make a separate directory for the case and copy all its inputs.
                     casepath = path.join(testsfolder, caseid)
-                    if not path.exists(casepath):
-                        mkdir(casepath)
-
-                    for i in testspec.inputs:
-                        i.copy(self._codefolder, casepath, case)
-                    #Also copy any assignment file dependencies.
-                    testwriter.copy(self._codefolder, casepath, case)
-                    #Clean the testing folder to remove any target variable output files
-                    #from any earlier test runs.
-                    testspec.clean(casepath)
-                    #Save the path to the folder for execution in the result.
-                    result.paths[caseid] = casepath
-
-                    print("Executing {}.x for case {}".format(testspec.identifier, case))
-
-                    #We need to time the execution as one of the possible outcome tests.
-                    start_time = clock()                    
-                    code = system("cd {}; {}".format(casepath, exepath))
-                    result.cases[caseid] = ExecutionResult(casepath, code, clock() - start_time, 
-                                                           tester, case)
-
-                    self._write_success(casepath, code)
-                    #Add some whitespace for readability between tests
-                    print("")
+                    self._execute_testpath(testspec, testwriter, casepath, exepath, 
+                                           result, tester, caseid, case)
                 else:
                     result.warnings.append("Duplicate CASES specified for unit testing:" + 
                                            " {}".format(caseid))
         else:
             #Create a folder for this test specification to run in.
             testpath = path.join(testsfolder, testspec.identifier)
-            if not path.exists(testpath):
-                mkdir(testpath)
-            print("Executing {}.x in explicit folder {}".format(testspec.identifier, testpath))
+            self._execute_testpath(testspec, testwriter, testpath, exepath, result, 
+                                   tester, testspec.identifier)
 
-            #Copy across all the input files we need to run.
-            for i in testspec.inputs:
-                i.copy(self._codefolder, testpath)
-            #Also copy any assignment file dependencies.
-            testwriter.copy(self._codefolder, testpath, "")
-            #Clean the testing folder to remove any target variable output files
-            #from any earlier test runs.
-            testspec.clean(testpath)
-            #Save the path to the folder for execution in the result.
-            result.paths[testspec.identifier] = testpath
+    def _execute_testpath(self, testspec, testwriter, testpath, exepath, result, 
+                          tester, caseid, case=""):
+        """Executes the unit test in the specified testing folder for 'case'."""
+        if not path.exists(testpath):
+            mkdir(testpath)
 
-            start_time = clock()                              
-            code = system("cd {}; {}".format(testpath, exepath))
-            result.cases[testspec.identifier] = ExecutionResult(
-                testpath, code, clock() - start_time, tester)
-            self._write_success(testpath, code)
+        #Copy across all the input files we need to run.
+        for i in testspec.inputs:
+            i.copy(self._codefolder, testpath, case)
+        #Also copy any assignment file dependencies.
+        testwriter.copy(self._codefolder, testpath, case)
+        #Clean the testing folder to remove any target variable output files
+        #from any earlier test runs.
+        testspec.clean(testpath)
+        #Save the path to the folder for execution in the result.
+        result.paths[caseid] = testpath
 
-            #Add some whitespace for readability between tests
-            print("")        
+        print("Executing {}.x in folder {}".format(testspec.identifier, testpath))
+        start_time = clock()                              
+        code = system("cd {}; {}".format(testpath, exepath))
+        if case == "":
+            result.cases[caseid] = ExecutionResult(testpath, code, clock() - start_time, tester)
+        else:
+            result.cases[caseid] = ExecutionResult(testpath, code, clock() - start_time, tester, case)
+        self._write_success(testpath, code)
+
+        #See if we need to run the post-execution profiling
+        if self.profile:
+            profiling.profile(testpath, testspec.testgroup.method_fullname, 
+                              exepath, self.compiler)
+
+        #Add some whitespace for readability between tests
+        print("")        
 
     def _write_success(self, testpath, code):
         """Creates a SUCCESS file in the specified testpath if code==0 that has

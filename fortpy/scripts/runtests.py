@@ -3,7 +3,7 @@ import argparse
 
 def initialize():    
     t = UnitTester(args["stagedir"], args["verbose"], args["templates"], args["fortpy"],
-                   args["rerun"], debug=args["debug"])
+                   args["rerun"], debug=args["debug"], profile=args["profile"])
 
     if args["compiler"]:
         t.compiler = args["compiler"]
@@ -37,7 +37,8 @@ parser.add_argument("-compiler", help="Specify the compiler to use for the unit 
 parser.add_argument("-pypath", help="Specify a path to add to sys.path before running the tests.")
 parser.add_argument("-debug", help="Compile the executables with DEBUG=true", 
                     action="store_true")
-
+parser.add_argument("-profile", help="Compile and link with profiling enabled. Analyze profile.",
+                    action="store_true")
 #Parse the args from the commandline that ran the script, call initialize
 args = vars(parser.parse_args())
 

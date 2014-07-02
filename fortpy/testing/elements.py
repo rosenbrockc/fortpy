@@ -1219,6 +1219,13 @@ class TestingGroup(object):
         self._init_codes()
 
     @property
+    def method_fullname(self):
+        """Returns the full module.method name of the executable that this
+        group decorates.
+        """
+        return "{}.{}".format(self.element.module.name, self.element.name)
+
+    @property
     def name(self):
         """Returns the name of the underlying DocGroup."""
         return self.group.name

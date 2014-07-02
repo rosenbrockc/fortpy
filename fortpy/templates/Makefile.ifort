@@ -21,6 +21,10 @@ ifeq ($(DEBUG),true)
    LDFLAGS = 
 endif
 
+ifeq ($(GPROF),true)
+   FFLAGS += -p
+   LDFLAGS += -p
+endif
 
 # Options that add to standard flags (do NOT replace standard flags)
 #................................................................................

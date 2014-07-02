@@ -20,7 +20,7 @@ class _config(types.ModuleType):
     @property
     def isense(self):
         """Returns the isense configuration dictionary."""
-        return self.property_get("isense")
+        return self.property_get("isense", {})
 
     @property
     def implicit_XML(self):

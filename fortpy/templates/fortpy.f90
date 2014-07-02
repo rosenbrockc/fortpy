@@ -180,14 +180,13 @@ contains
     integer, intent(in) :: n
     character(n), intent(in) :: filename
     integer :: c, i
+    character(20) :: FMT
 
     c = size(variable, 1)
+    write(FMT, *) c
+
     call file_open(filename, n, 'integer')
-
-    do i = 1, c
-       write(fileunit, '(i12)') variable(c)
-    end do
-
+    write(fileunit, '('// adjustl(FMT) // 'i12)') variable
     call file_close()
   end subroutine pysave_integer_1d
 
@@ -200,11 +199,11 @@ contains
 
     r = size(variable, 1)
     c = size(variable, 2)
-    write(FMT, *)
+    write(FMT, *) c
 
     call file_open(filename, n, 'integer')
     do i = 1, r
-       write(fileunit, '('// adjustl(FMT) // 'i12)') variable(r, :)
+       write(fileunit, '('// adjustl(FMT) // 'i12)') variable(i, :)
     end do
 
     call file_close()
@@ -226,14 +225,13 @@ contains
     integer, intent(in) :: n
     character(n), intent(in) :: filename
     integer :: c, i
+    character(20) :: FMT
 
     c = size(variable, 1)
+    write(FMT, *) c
+
     call file_open(filename, n, 'integer')
-
-    do i = 1, c
-       write(fileunit, '(i25)') variable(c)
-    end do
-
+    write(fileunit, '('// adjustl(FMT) // 'i25)') variable
     call file_close()
   end subroutine pysave_integer_1d_li
 
@@ -246,11 +244,12 @@ contains
 
     r = size(variable, 1)
     c = size(variable, 2)
-    write(FMT, *)
+
+    write(FMT, *) c
 
     call file_open(filename, n, 'integer')
     do i = 1, r
-       write(fileunit, '('// adjustl(FMT) // 'i25)') variable(r, :)
+       write(fileunit, '('// adjustl(FMT) // 'i25)') variable(i, :)
     end do
 
     call file_close()
@@ -272,12 +271,13 @@ contains
     integer, intent(in) :: n
     character(n), intent(in) :: filename
     integer :: c, i
+    character(20) :: FMT
 
     c = size(variable, 1)
+    write(FMT, *) c
+
     call file_open(filename, n, 'float')
-    do i = 1, c
-       write(fileunit, '(f12.7)') variable(c)
-    end do
+    write(fileunit, '('// adjustl(FMT) // 'f12.7)') variable
     call file_close()
   end subroutine pysave_real_1d
 
@@ -290,11 +290,11 @@ contains
 
     r = size(variable, 1)
     c = size(variable, 2)
-    write(FMT, *)
+    write(FMT, *) c
 
     call file_open(filename, n, 'float')
     do i = 1, r
-       write(fileunit, '(' // adjustl(FMT) // 'f12.7)') variable(r, :)
+       write(fileunit, '(' // adjustl(FMT) // 'f12.7)') variable(i, :)
     end do
 
     call file_close()
