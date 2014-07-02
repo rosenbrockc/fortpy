@@ -19,6 +19,14 @@ If you install Fortpy using `pip install` the dependencies will automatically ge
 
     pip install fortpy
 
+### Fortpy Configuration
+
+In most real-usage scenarios, the out-of-the-box support for multiple libraries is incomplete. A [configuration file](https://github.com/rosenbrockc/fortpy/wiki/Fortpy-Global-Configuration) can be created that gives additional information about source code folders to parse, server information for SSH editing over tramp and auto-completion configuration settings. After you have created a `config.xml` file on your system, you need to configure an environment variable to tell Fortpy where to find it:
+
+`export FORTPY_CONFIG="~/path/to/config.xml"`
+
+NOTE: Environment variables for emacs are set when it first starts; adding a config.xml file will not affect the emacs isense support until you restart emacs.
+
 Screenshots
 ------
 
