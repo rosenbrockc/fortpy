@@ -95,7 +95,7 @@ class TemplateLine(object):
             if self.operator == "count":
                 value = len(valuedict[self.fromtag])
             else:
-                msg.err"referenced 'from' attribute/operator {} not in xml dictionary.".format(self.fromtag)
+                msg.err("referenced 'from' attribute/operator {} not in xml dictionary.".format(self.fromtag))
                 exit(1)
         else:
             msg.err("a required line {} had no value or default specified.".format(self.identifier))
