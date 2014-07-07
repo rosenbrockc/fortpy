@@ -8,6 +8,7 @@ from .serialize import Serializer
 import sys
 from . import tramp
 from . import settings
+from . import msg
 from functools import reduce
 
 config = sys.modules["config"]
@@ -104,7 +105,7 @@ class CodeParser(object):
                 for depend in self.modules[key].collection("dependencies"):
                     base = depend.split(".")[0]
                     if self.verbose and base.lower() not in self.modules:
-                        print("DEPENDENCY: {}".format(base))
+                        msg.info("DEPENDENCY: {}".format(base))
                     self.load_dependency(base, dependencies and recursive, recursive, greedy)
 
     def _parse_docstrings(self, filepath):
@@ -218,7 +219,7 @@ class CodeParser(object):
         #Keep track of parsing times if we are running in verbose mode.
         if self.verbose:
             start_time = clock()
-            print("WORKING on {0}".format(abspath))
+            msg.okay("WORKING on {0}".format(abspath))
 
         if fname not in self._modulefiles:
             self._modulefiles[fname] = []
@@ -251,12 +252,12 @@ class CodeParser(object):
             self.serialize.save_module(abspath, pmodules)
 
         if self.verbose:
-            print("PARSED: {} modules in {} in {}".format(len(pmodules), fname, 
+            msg.info("PARSED: {} modules in {} in {}".format(len(pmodules), fname, 
                                                           secondsToStr(clock() - start_time)))
             for module in pmodules:
-                print("\t{}".format(module.name))
+                msg.gen("\t{}".format(module.name))
             if len(pmodules) > 0:
-                print("")
+                msg.blank()
 
         self._parse_dependencies(pmodules, dependencies, recursive, greedy)
 
@@ -281,10 +282,11 @@ class CodeParser(object):
             elif key in self.mappings and self.mappings[key] in self._pathfiles:
                 #See if they have a mapping specified to a code file for this module name.
                 if self.verbose:
-                    print("MAPPING: using {} as the file name for module {}".format(self.mappings[key], key))
+                    msg.info("MAPPING: using {} as the file".format(self.mappings[key]) + 
+                             " name for module {}".format(key))
                 self.parse(self._pathfiles[self.mappings[key]], dependencies, recursive)
             else:
-                print(("FATAL: could not find module {}. Enable greedy search or"
+                msg.err(("could not find module {}. Enable greedy search or"
                        " add a module filename mapping.".format(key)))
                 if self.austere:
                     exit(1)

@@ -1,3 +1,4 @@
+from .. import msg
 import re
 from ..elements import Subroutine, Function, Dependency, Executable, Module
 import pyparsing
@@ -257,8 +258,8 @@ class ExecutableParser(object):
                 try:
                     dependent = self.nester.parseString(execline).asList()[0]           
                 except:
-                    print("PARSING ERROR: executable dependency call {}".format(anexec.name))
-                    print("\t" + execline)
+                    msg.err("parsing executable dependency call {}".format(anexec.name))
+                    msg.gen("\t" + execline)
             
                 #Sometimes the parameter passed to a subroutine or function is 
                 #itself a function call. These are always the first elements in

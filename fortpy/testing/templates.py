@@ -1,3 +1,4 @@
+from .. import msg
 from .results import DictResult, ListResult
 import xml.etree.ElementTree as ET
 import re
@@ -170,7 +171,7 @@ class FileLine(object):
             try:
                 count = int(stored[count])
             except ValueError:
-                print("Can't understand how to use {} for count".format(count))
+                msg.warn("Can't understand how to use {} for count".format(count))
                 return
         else:
             count = 1
@@ -357,7 +358,7 @@ class FileLine(object):
                     else:
                         current.append(val)
                 except ValueError:
-                    print("\nFATAL: [{}] could not parse value '{}' of type '{}'.\n".format(
+                    msg.err("[{}] could not parse value '{}' of type '{}'.\n".format(
                         self.identifier, val, dtype))
                     exit(1)
 
@@ -423,8 +424,8 @@ class LineComparer(object):
                     self.tolerance = eval(self.tolerance)
                     self.numeric = True
                 except ValueError:
-                    print("""WARNING: tolerance for comparison {} should be a number but can't
-be evaluated.""".format(element.attrib["id"]))
+                    msg.warn("tolerance for comparison {} ".format(element.attrib["id"]) + 
+                             "should be a number but can't be evaluated.")
                     self.tolerance = None
         else:
             self.tolerance = None
@@ -479,8 +480,8 @@ be evaluated.""".format(element.attrib["id"]))
                     s1 = eval(self.tolerance.replace("$", "value1"))
                     return value1[self.name] - value2[self.name] <= s1
                 except ValueError:
-                    print("""WARNING: could not generate dynamic tolerance for comparison
-{} and tolerance {}""".format(self.name, self.tolerance))
+                    msg.warn("could not generate dynamic tolerance for comparison" +
+                             "{} and tolerance {}""".format(self.name, self.tolerance))
                     return False
         #We can't perform a finite difference calculation unless a tolerance
         #was specified.
@@ -688,8 +689,8 @@ class FileTemplate(object):
                     self.contents[v] = TemplateContents()                    
             self._xml_load_versions(root)
         else:
-            print("The XML template {} is not a valid fortpy template file.".format(
-                self.filepath))
+            msg.warn("The XML template {} is not".format(self.filepath) + 
+                     " a valid fortpy template file.")
 
     def _xml_load_versions(self, root):
         """Loads the template from XML tracking important version information."""
@@ -767,7 +768,7 @@ class FileTemplate(object):
             if (child.tag == "line" or child.tag == "lines") and "id" in child.attrib:
                 fline = FileLine(child)
             else:
-                print("WARNING: non line-type tag in preamble/body {}".format(element))
+                msg.warn("non line-type tag in preamble/body {}".format(element))
 
             for v in versions:
                 if element.tag == "preamble":

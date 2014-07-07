@@ -6,6 +6,7 @@ Revision 1.0.9
 
 - Fixed a bug when comparing two simple representations where the second file has more entries than the first one.
 - Fixed a misrepresentation of match success in the testing. The framework was using `common_match` in the `percent_match` routine which made wrong results seem a lot better.
+- Added coloring to the terminal output for all packages.
 
 Revision 1.0.8
 ------

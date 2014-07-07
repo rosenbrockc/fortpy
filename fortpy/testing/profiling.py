@@ -1,3 +1,4 @@
+from .. import msg
 from os import path, system
 #What I learned. gprof is a tool that does exactly what we want and would
 #work with both ifort and gfortran (both using the -pg option for compiling
@@ -34,7 +35,7 @@ def profile(testpath, identifier, exepath, compiler):
 
     profpath = path.join(testpath, "profiling.out")
     if path.isfile(profpath):
-        print("PROFILING: successfully executed for {}".format(identifier))
+        msg.okay("PROFILING: successfully executed for {}".format(identifier))
 
 def _after_ifort(identifier):
     """Performs post-execution cleanup of the ifort profiling data in the test

@@ -1,4 +1,5 @@
 import os
+from .. import msg
 import re
 import xml.etree.ElementTree as ET
 from fortpy.testing.comparer import FileComparer
@@ -16,7 +17,7 @@ class TemplateLine(object):
         if "type" in element.attrib:
             self.dtype = re.split(",\s*", element.attrib["type"])
         else:
-            print("WARNING: no type specified for {}. Assuming string.".format(self.identifier))
+            msg.warn("no type specified for {}. Assuming string.".format(self.identifier))
             self.dtype = [ "string" ]
 
         #Values specifies how many variable values are present in the file
@@ -27,7 +28,7 @@ class TemplateLine(object):
                 if self.values[i].isdigit():
                     self.values[i] = int(self.values[i])
         elif "from" not in element.attrib:
-            print("WARNING: no value count specified for {}. Assuming *.".format(self.identifier))
+            msg.warn("no value count specified for {}. Assuming *.".format(self.identifier))
             self.values = [ "*" ]
         else:
             self.values = []
@@ -94,17 +95,17 @@ class TemplateLine(object):
             if self.operator == "count":
                 value = len(valuedict[self.fromtag])
             else:
-                "FATAL: referenced 'from' attribute/operator {} not in xml dictionary.".format(self.fromtag)
+                msg.err"referenced 'from' attribute/operator {} not in xml dictionary.".format(self.fromtag)
                 exit(1)
         else:
-            print("FATAL: a required line {} had no value or default specified.".format(self.identifier))
+            msg.err("a required line {} had no value or default specified.".format(self.identifier))
             exit(1)            
 
         #Before we generate the result, validate the choices if they exist
         if len(self.choices) > 0:
             for single in value:
                 if str(single) not in self.choices:
-                    print("WARNING: failed choices validation for {} in {} (line {})".format(
+                    msg.warn("failed choices validation for {} in {} (line {})".format(
                         single, self.choices, self.identifier))
 
         result = []
@@ -146,7 +147,7 @@ class TemplateLine(object):
                     result.extend(rest)
                     break
         else:
-            print("WARNING: no results for parsing {} using line {}".format(element.tag, self.identifier))
+            msg.warn("no results for parsing {} using line {}".format(element.tag, self.identifier))
 
         return result
 
@@ -155,7 +156,7 @@ class TemplateLine(object):
         try:
             return int(value)
         except ValueError:
-            print("Cannot convert {} to int for line {}.".format(value, self.identifier))
+            msg.err("Cannot convert {} to int for line {}.".format(value, self.identifier))
             exit(1)
 
     def _cast_float(self, value):
@@ -163,7 +164,7 @@ class TemplateLine(object):
         try:
             return float(value)
         except ValueError:
-            print("Cannot convert {} to float for line {}.".format(value, self.identifier))
+            msg.err("Cannot convert {} to float for line {}.".format(value, self.identifier))
             exit(1)
 
 class TemplateGroup(object):
@@ -197,7 +198,7 @@ class TemplateGroup(object):
                 self.order.append(tline.identifier)
                 self.lines[tline.identifier] = tline
             else:
-                print("WARNING: no id element in {}. Ignored. (group._load)".format(child))
+                msg.warn("no id element in {}. Ignored. (group._load)".format(child))
 
     def parse(self, element):
         """Extracts the values from the specified XML element that is being converted."""
@@ -296,11 +297,11 @@ class FileTemplate(object):
                 if "autoname" in root.attrib:
                     self.name = root.attrib["autoname"]
             else:
-                print("""FATAL: the specified template {} is missing the mode and 
-                direction attributes.""".format(self.path))
+                msg.err("the specified template {} ".format(self.path) + 
+                        "is missing the mode and direction attributes.")
                 exit(1)
         else:
-            print("FATAL: could not find the template {}.".format(self.path))
+            msg.err("could not find the template {}.".format(self.path))
             exit(1)
 
     def parse(self, root):
@@ -363,7 +364,7 @@ class FileTemplate(object):
                 self.versions[v].entries[tline.identifier] = tline
                 self.versions[v].order.append(tline.identifier)
             else:
-                print("WARNING: no id element in {}. Ignored. (_line)".format(element))
+                msg.warn("no id element in {}. Ignored. (_line)".format(element))
     
     def _group(self, element):
         """Parses the XML element as a group of [unknown] number of lines."""
@@ -373,7 +374,7 @@ class FileTemplate(object):
                 self.versions[v].entries[g.identifier] = g
                 self.versions[v].order.append(g.identifier)
             else:
-                print("WARNING: no name element in {}. Ignored. (_group)".format(element))            
+                msg.warn("no name element in {}. Ignored. (_group)".format(element))            
         
 def _get_xml_version(element):
     """Extracts a list of versions that an xml element references. Returns
@@ -471,5 +472,5 @@ class InputConverter(FileConverter):
             self.templates[template] = FileTemplate(tpath, name)
             return (expath, self.templates[template], root)
         else:
-            print("WARNING: the input file {} is missing the mode attribute.".format(path))
+            msg.warn("the input file {} is missing the mode attribute.".format(path))
             return None

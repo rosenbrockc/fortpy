@@ -1,3 +1,4 @@
+from .. import msg
 import fortpy
 from .generator import TestGenerator
 from ..code import CodeParser, secondsToStr
@@ -362,7 +363,7 @@ class UnitTester(object):
         if profile==True:
             gprof = self.which("gprof")
             if gprof is None:
-                print("ERROR: gprof is required to run profiling with fortpy.")
+                msg.err("gprof is required to run profiling with fortpy.")
                 exit(1)
             else:
                 return True
@@ -373,7 +374,7 @@ class UnitTester(object):
         """Tests whether the specified compiler is available on the machine. If
         it isn't give an error and exit."""
         if self.which(self.compiler) is None:
-            print("ERROR: compiler {} not found. Exiting.".format(self.compiler))
+            msg.err("compiler {} not found. Exiting.".format(self.compiler))
             exit(1)
         
     def which(self, program):
@@ -453,7 +454,7 @@ class UnitTester(object):
 
             return result
         else:
-            print("WARNING: you can't run tests until the executables have been written. Exiting.")
+            msg.warn("you can't run tests until the executables have been written. Exiting.")
             return None
        
     def _run_single(self, identifier, testid):
@@ -473,7 +474,7 @@ class UnitTester(object):
         #Find the target folder that has the executables etc then run
         #make and check the exit code.
         target = path.join(self.libraryroot, identifier)
-        print("\n\n")
+        msg.blank(2)
 
         options = ""
         if self.debug:
@@ -484,7 +485,7 @@ class UnitTester(object):
         codestr = "cd {}; make -f 'Makefile.{}' F90={}" + options
         code = system(codestr.format(target, testid, self.compiler))
         
-        print("\n")
+        msg.blank()
         return code == 0
 
     def _run_exec(self, identifier, testid, result):
@@ -548,6 +549,9 @@ class UnitTester(object):
                 else:
                     result.warnings.append("Duplicate CASES specified for unit testing:" + 
                                            " {}".format(caseid))
+
+            #This is the extra space for readablity in multi-case mode
+            msg.blank()
         else:
             #Create a folder for this test specification to run in.
             testpath = path.join(testsfolder, testspec.identifier)
@@ -571,7 +575,7 @@ class UnitTester(object):
         #Save the path to the folder for execution in the result.
         result.paths[caseid] = testpath
 
-        print("Executing {}.x in folder {}".format(testspec.identifier, testpath))
+        msg.okay("Executing {}.x in folder {}".format(testspec.identifier, testpath))
         start_time = clock()                              
         code = system("cd {}; {}".format(testpath, exepath))
         if case == "":
@@ -586,7 +590,8 @@ class UnitTester(object):
                               exepath, self.compiler)
 
         #Add some whitespace for readability between tests
-        print("")        
+        if case == "":
+            msg.blank()
 
     def _write_success(self, testpath, code):
         """Creates a SUCCESS file in the specified testpath if code==0 that has

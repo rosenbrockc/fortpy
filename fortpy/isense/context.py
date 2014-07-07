@@ -1,3 +1,4 @@
+from .. import msg
 from . import cache
 from fortpy.elements import Function, Subroutine, ValueElement, Executable, Module
 import re
@@ -186,7 +187,7 @@ class UserContext(object):
                     clean = [n for n in nl if not isinstance(n, list) and n != ","]
                     self._call_index = len(clean)
                 except:
-                    print("ARG INDEX: lookup failed on bracket parsing.")
+                    msg.warn("ARG INDEX: lookup failed on bracket parsing.")
             
         return self._call_index
 

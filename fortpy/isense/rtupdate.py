@@ -1,3 +1,4 @@
+from .. import msg
 import re
 from difflib import SequenceMatcher
 from fortpy.elements import Executable, CustomType, Module
@@ -339,7 +340,7 @@ class Operation(object):
                     #end character indices anymore.
                     result[key][0].extend(list(docs))
             except ET.ParseError:
-                print(doctext)
+                msg.warn(doctext)
 
         return result
 

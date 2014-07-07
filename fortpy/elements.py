@@ -1,4 +1,5 @@
 import re
+from . import msg
 from fortpy.testing.elements import TestingGroup
 
 #This module has all the classes for holding the structure of a fortran
@@ -302,7 +303,7 @@ class Dependency(object):
                 if len(result) > 0:
                     result[-1] = result[-1] + "(*{})".format(len(self.clean(arg)))
                 elif "/" not in arg[0]:
-                    print("WARNING: argument to function call unrecognized. {}".format(arg))
+                    msg.warn("argument to function call unrecognized. {}".format(arg))
             else:
                 cleaner = re.sub("[:,]+", "", arg).strip()
                 if len(cleaner) > 0:

@@ -1,3 +1,4 @@
+from .. import msg
 from .executable import ExecutableGenerator
 from shutil import copy
 import xml.etree.ElementTree as ET
@@ -88,12 +89,15 @@ class TestGenerator(object):
                 if "public" in anexec.modifiers or anexec.name in module.publics:
                     self._write_executable(module, anexec)
                 else:
-                    print("\nWARNING: executable {} has a testing ".format(anexec.name) +
-                          "group, but is not marked as public in the module.\n")
+                    msg.warn("executable {} has a testing ".format(anexec.name) +
+                             "group, but is not marked as public in the module.")
 
     def _write_executable(self, module, executable):
         """Generates the fortran program for the specified executable code
         element."""
+        #Each test written needs separated from the others
+        msg.blank()
+
         #The way this works is that the latest copy of each module that
         #this executable needs to run is copied to a staging folder
         #where it can be compiled.
@@ -133,7 +137,7 @@ class TestGenerator(object):
             if needed.filepath not in previous or \
                (needed.filepath in previous and previous[needed.filepath] < moddate) or \
                not os.path.exists(target):
-                print("COPY {}".format(needed.filepath))
+                msg.info("COPY {}".format(needed.filepath))
                 copy(needed.filepath, self.xgenerator.folder)
                 different = True
             files[needed.filepath] = moddate
@@ -144,7 +148,7 @@ class TestGenerator(object):
             target = os.path.join(self.xgenerator.folder, dfile)
             if not os.path.exists(target):
                 source = os.path.join(self._fortpy, dfile)
-                print("COPY: {}".format(source))
+                msg.info("COPY: {}".format(source))
                 copy(source, self.xgenerator.folder)
                 different = True
 
@@ -161,8 +165,8 @@ class TestGenerator(object):
         #All the code files needed for compilation are now in the directory.
         #Create the executable file and the makefile for compilation
         if different:
-            print("UNITTEST: writing executable(s) for {}".format(type(executable).__name__) + 
-                  " {}".format(executable.name))
+            msg.okay("UNITTEST: writing executable(s) for {}".format(type(executable).__name__) + 
+                     " {}".format(executable.name))
             #It is possible that multiple tests were defined for the executable
             #being unit tested. We need to write a *.f90 PROGRAM file for each
             #test scenario *and* a separate makefile for the executable.
@@ -172,7 +176,7 @@ class TestGenerator(object):
                 self._changed.append("{}|{}".format(identifier, testid))
                 self.xtests[identifier] = self.xgenerator.writer.tests
                 self.xwriters[identifier] = self.xgenerator.writer
-                print("\tWROTE TEST: {}\n".format(testid))
+                msg.info("\tWROTE TEST: {}\n".format(testid))
 
             #Overwrite the file date values for this executable in the archive
             #Also, save the archive in case something goes wrong in the next
@@ -180,7 +184,7 @@ class TestGenerator(object):
             self.archive[identifier] = files
             self._xml_save()
         else:            
-            print("\nUNITTEST: ignored '{}' because code hasn't changed.".format(executable.name))
+            msg.gen("UNITTEST: ignored '{}' because code hasn't changed.".format(executable.name))
 
     def _xml_get(self):
         """Returns an XML tree for the documont that tracks dates for code

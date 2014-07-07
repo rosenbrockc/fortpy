@@ -1,3 +1,4 @@
+from .. import msg
 from fortpy.testing.templates import FileLine
 from fortpy.docelements import DocElement
 from os import path, remove
@@ -105,8 +106,8 @@ class GlobalDeclaration(object):
         """Returns the fortran declaration that defines a global variable."""
         result = []
         if "type" not in self.attributes or "name" not in self.attributes:
-            print("FATAL: required variable for execution missing some attributes. {}".format(
-                self.attributes))
+            msg.err("required variable for execution missing some attributes." + 
+                    " {}".format(self.attributes))
             exit(1)
 
         result.append(self.attributes["type"])
@@ -1337,8 +1338,8 @@ class TestingGroup(object):
             #to add it again.
             existing = self.variables[name]
             if not existing.compare(doc):
-                print("FATAL: variables in the calling namespace have the same name," + \
-                    " but different types: \n{}{}".format(existing.element, doc))
+                msg.err("variables in the calling namespace have the same name," + \
+                        " but different types: \n{}{}".format(existing.element, doc))
                 exit(1)
 
     def _parse_mappings(self):

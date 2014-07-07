@@ -1,5 +1,21 @@
 #!/usr/bin/env python
+from termcolor import cprint
 import argparse
+
+def print_result(testkey, percent, time, common):
+    """Prints the specified result to the terminal with coloring based
+    on how successful it was.
+    """
+    printkey = testkey.replace("|", " | ")
+    if percent > .99:
+        color = "green"
+    elif percent > .50:
+        color = "yellow"
+    else:
+        color = "red"
+
+    text = "\nRESULT: {0} = {1:.2%} success ({3:.2%} common) in {2} ms"
+    cprint(text.format(printkey, percent, time, common), color)
 
 def initialize():    
     t = UnitTester(args["stagedir"], args["verbose"], args["templates"], args["fortpy"],
@@ -17,8 +33,8 @@ def initialize():
             timestr = "{0:.4f}".format(totaltime*1000)
         else:
             timestr = "<untimed>"
-        print("RESULT: {0} = {1:.2%} success ({3:.2%} common) in {2} ms".format(idk, result[idk].percent,
-                                                                                timestr, result[idk].common))
+        print_result(idk, result[idk].percent, timestr, result[idk].common)
+
 
 #Create a parser so that the script can receive arguments
 parser = argparse.ArgumentParser(description="Fortpy Automated Unit Testing Tool")
