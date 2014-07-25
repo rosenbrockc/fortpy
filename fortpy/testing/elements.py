@@ -110,12 +110,19 @@ class GlobalDeclaration(object):
                     " {}".format(self.attributes))
             exit(1)
 
-        result.append(self.attributes["type"])
+        #You can't actually declare a variable as a 'class'; we need to use the type
+        #keyword. Class represents any of the types in the inheritance chain of a
+        #derived type.
+        if self.attributes["type"].lower() != "class":
+            result.append(self.attributes["type"])
+        else:
+            result.append("type")
+
         if "kind" in self.attributes and self.attributes["kind"] is not None:
             result.append("({})".format(self.attributes["kind"]))
 
         if "modifiers" in self.attributes:
-            mods = self.attributes["modifiers"].split(",")
+            mods = re.split(",\s*", self.attributes["modifiers"])
             smods = self._clean_mods(mods)
         else:
             smods = ""
@@ -124,7 +131,7 @@ class GlobalDeclaration(object):
             result.append(", " + smods)
         result.append(" :: ")
         result.append(self.attributes["name"])
-        
+
         if "dimensions" in self.attributes:
             result.append("({})".format(self.attributes["dimensions"]))
 
@@ -209,7 +216,7 @@ class AssignmentValue(object):
         self.embedded = None
         self.function = None
         self.repeats = None
-        self.prereq = None
+        self.prereqs = None
         self.paramlist = None
 
         self._derived_type = None
@@ -241,8 +248,9 @@ class AssignmentValue(object):
         """Returns true if the variable assigned by this object should be allocated."""
         return (self.parent.allocate and 
                 ("allocatable" in self.parent.variable.modifiers or
-                 "pointer" in self.parent.variable.modifiers))        
-
+                 "pointer" in self.parent.variable.modifiers or
+                 (self.parent.variable.D > 0 and ":" in self.parent.variable.dimension)))
+ 
     def copy(self, coderoot, testroot, case):
         """Copies the input files needed for this value to set a variable.
 
@@ -270,14 +278,14 @@ class AssignmentValue(object):
             target = var.kind
             self._derived_type = self.parent.parser.tree_find(target, var.module, "types")
 
-            if derived_type is None:
+            if self._derived_type is None:
                 raise ValueError("The type for embedded method {} cannot be found.".format(self.embedded))
 
-            if self.prereq:
-                if derived_type.pointsto is not None:
-                    key = "{}.{}".format(derived_type.module, derived_type.pointsto)
+            if self.prereqs:
+                if self._derived_type.pointsto is not None:
+                    key = "{}.{}".format(self._derived_type.module, self._derived_type.pointsto)
                 else:
-                    key = "{}.{}".format(derived_type.module, derived_type.name)
+                    key = "{}.{}".format(self._derived_type.module, self._derived_type.name)
 
                 self.parent.add_prereq(key, self.parent.element)
  
@@ -321,13 +329,20 @@ class AssignmentValue(object):
         if not self.prereqs and self._derived_type is not None:
             #This is a simple exercise in calling the embedded method. We just 
             #need to track down the parameters list.
+            target = self._derived_type.executables[self.embedded].target
             if self.paramlist is None:
-                target = self._derived_type.target
-                params = ", ".join(target.ordered_parameters)
+                params = ", ".join([p.name for p in target.ordered_parameters])
             else:
                 params = self.paramlist
-            lines.append("{}{}%{}({})".format(spacer, self.parent.name, 
-                                          self.embedded, paramlist))
+
+            if type(target).__name__  == "Subroutine":
+                call = "call "
+            else:
+                raise ValueError("Embedded type initialization routines must be"
+                                 " subroutines, functions aren't supported.")
+
+            lines.append("{}{}{}%{}({})".format(call, spacer, self.parent.name, 
+                                                self.embedded, params))
         #if it does have pre-reqs, they will be handled by the method writer and we
         #don't have to worry about it.
 
@@ -418,10 +433,10 @@ class AssignmentValue(object):
             self.repeats = self.xml.attrib["repeats"].lower() == "true"
         else:
             self.repeats = False
-        if "prereq" in self.xml.attrib:
-            self.prereq = self.xml.attrib["prereq"].lower() == "true"
+        if "prereqs" in self.xml.attrib:
+            self.prereqs = self.xml.attrib["prereqs"].lower() == "true"
         else:
-            self.prereq = False
+            self.prereqs = False
 
 class Condition(object):
     """Represents a single if, elseif or else block to execute."""
@@ -547,6 +562,11 @@ class Assignment(object):
         # - from the contents of a file.
         # - by calling an embedded method within a derived type.
         self._parse_xml()
+
+    @property
+    def parser(self):
+        """Returns this Assignment's parent's CodeParser instance."""
+        return self.parent.parser
 
     @property
     def variable(self):
@@ -1202,6 +1222,13 @@ class TestingGroup(object):
       variables.
     :attr children: a list of the DocElement instances who belong to this
       testing group.
+    :attr assignments: a dict of variable assignments for changing variable
+      values. The actual assignments are made as part of the executable chaining
+      to make sure that values get changed in the correct order. However, we
+      need some information about the assignment when declaring the variables;
+      so we need some duplication here. We merely store the XML <assignment>
+      tags as the values of the dict and the lowered variable name as key (i.e.
+      the name of variable being assigned.
     :attr finder: the MethodFinder instance that this group belongs to.
     """
     def __init__(self, group, element):
@@ -1216,6 +1243,7 @@ class TestingGroup(object):
         self.mappings = {}
         self.variables = {}
         self.children = []
+        self.assignments = {}
 
         #The order in which the global declarations appear in the group.
         self._variable_order = []
@@ -1280,6 +1308,9 @@ class TestingGroup(object):
             if child.doctype == "test":
                 test = TestSpecification(child.xml, self)
                 self.tests[test.identifier] = test
+            elif child.doctype == "assignment":
+                varname = child.xml.attrib["name"].lower()
+                self.assignments[varname] = child.xml
 
         self._parse_mappings()
         self._parse_variables()
@@ -1317,6 +1348,19 @@ class TestingGroup(object):
             self._global_clean_param(result, "modifiers", ", ".join(param.modifiers))
             self._global_clean_param(result, "dimensions", param.dimension)
             self._global_clean_param(result, "default", param.default)
+            
+            #if the variable is a deferred shape array and we have been told to allocate
+            #it during the initializing phase then we must add "allocatable" as a modifier
+            #if it isn't already allocatable or a pointer.
+            if name in self.assignments and param.D > 0:
+                allocate = ("allocate" in self.assignments[name].attrib and
+                            self.assignments[name].attrib["allocate"] == "true")
+                if ("modifiers" in result.attributes and not
+                    ("allocatable" in param.modifiers or
+                     "pointer" in param.modifiers)):
+                    result.attributes["modifiers"] += ", allocatable"
+                elif "modifiers" not in result.attributes:
+                    result.attributes["modifiers"] = "allocatable"
             return result
         else:
             return None

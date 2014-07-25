@@ -5,6 +5,7 @@ from . import evaluator
 import re
 import os
 import fortpy.settings as settings
+from .classes import BaseDefinition
 
 class Script(object):
     """
@@ -114,33 +115,12 @@ class Script(object):
 
     def goto_definitions(self):
         """
-        Return the definitions of a the path under the cursor.  goto function!
-        This follows complicated paths and returns the end, not the first
-        definition. The big difference between :meth:`goto_assignments` and
-        :meth:`goto_definitions` is that :meth:`goto_assignments` doesn't
-        follow imports and statements. Multiple objects may be returned,
-        because Python itself is a dynamic language, which means depending on
-        an option you can have two different versions of a function.
-
-        :rtype: list of :class:`classes.Definition`
+        Return the definition of a the symbol under the cursor via exact match.
+        Goes to that definition with a buffer.
         """
-
-    def goto_assignments(self):
-        """
-        Return the first definition found. Imports and statements aren't
-        followed. Multiple objects may be returned, because Python itself is a
-        dynamic language, which means depending on an option you can have two
-        different versions of a function.
-
-        :rtype: list of :class:`classes.Definition`
-        """
-
-    def _goto(self, add_import_name=False):
-        """
-        Used for goto_assignments and usages.
-
-        :param add_import_name: Add the the name (if import) to the result.
-        """
+        element = self._evaluator.get_definition()
+        definition = BaseDefinition(self._user_context, element)
+        return definition
 
     def usages(self, additional_module_paths=()):
         """

@@ -45,6 +45,7 @@ class UserContext(object):
         self.element = None
         self._call_index = None
         self._cachedstr = None
+        self._exact_match = None
 
         #Setup all the regular expressions by grabbing cached versions so
         #we don't have to recompile them the whole time.
@@ -91,6 +92,35 @@ class UserContext(object):
     def current_line(self):
         """Gets the text of the line under the cursor."""
         return self._source[self.pos[0]]
+
+    @property
+    def exact_match(self):
+        """Returns the symbol under the cursor looking both directions as part
+        of a definition lookup for an exact match.
+        """
+        #We don't have to worry about grouping or anything else fancy. Just
+        #loop through forward and back until we hit a character that can't be
+        #part of a variable or function name.
+        if self._exact_match is None:
+            i = self.pos[1]
+            start = None
+            end = None
+            line = self.current_line
+            terminators = ['(', ')', '\n', ' ', '=', '%', ',']
+            while i >= 0 and start is None:
+                if line[i] in terminators:
+                    start = i + 1
+                i -= 1
+
+            i = self.pos[1]
+            while i < len(line) and end is None:
+                if line[i] in terminators:
+                    end = i
+                i += 1
+
+            self._exact_match = line[start:end].lower()
+
+        return self._exact_match
 
     @property
     def short_symbol(self):

@@ -122,5 +122,14 @@ class DocElement(object):
             self.attributes[key] = xml.get(key)
             
     def __str__(self):
-        return "{}: {}\nAttributes: {}\nDecorates: {}\n\n".format(self.doctype, self.contents,
-                                                                self.attributes, self.decorates)
+        lines = ["  {}: {}".format(self.doctype.upper(), self.contents)]
+        if len(self.attributes) > 0:
+            strattr = []
+            for key, value in self.attributes.items():
+                strattr.append("{} -> {}".format(key, value))
+            lines.append("    Attributes:" + "; ".join(strattr))
+
+        if self.decorates is not None:
+            lines.append("    Decorates: {}".format(self.decorates))
+            
+        return "\n".join(lines)

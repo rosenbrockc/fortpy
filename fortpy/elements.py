@@ -558,6 +558,12 @@ class Function(Executable):
                                                     params, info)
 
     @property
+    def signature(self):
+        """Returns the signature definition for the function."""
+        return "{}FUNCTION {}({})".format(self.returns, self.name,
+                                          self.parameters_as_string())
+        
+    @property
     def end_token(self):
         """Gets the end [code type] token for this instance."""
         return "end function"
@@ -619,6 +625,13 @@ class Subroutine(Executable):
             info = ""
 
         return "{} SUBROUTINE {}({}){}".format(mods, self.name, params, info)
+
+    @property
+    def signature(self):
+        """Returns the signature definition for the subroutine."""
+        mods = ", ".join(self.modifiers)
+        return "{} SUBROUTINE {}({})".format(mods, self.name,
+                                             self.parameters_as_string())
 
     @property
     def end_token(self):
@@ -684,6 +697,12 @@ class CustomType(CodeElement, Decoratable):
         allexecs = "\n\t  - {}".format(execs) if len(self.executables) > 0 else ""
         mems = "\n\t - ".join([x.__str__() for x in self.members ])
         return "TYPE {} ({}){}\nMEMBERS\n\t{}".format(self.name, mods, allexecs, mems)
+
+    @property
+    def signature(self):
+        """Returns the signature definition for the derived type."""
+        mods = ", ".join(self.modifiers)
+        return "TYPE {} ({})".format(self.name, mods)
 
     @property
     def end_token(self):

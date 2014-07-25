@@ -1,6 +1,17 @@
 FORTPY: Revision History
 ======
 
+Revision 1.0.11
+------
+
+- Debugged the first real unit test case of an embedded method unit test.
+- Debugged some additional allocation problems with auto-generated parameters in the unit testing.
+
+Revision 1.0.10
+------
+
+- Fixed a bug that was preventing deferred shape arrays from being allocated automatically by fortpy in unit testing.
+
 Revision 1.0.9
 ------
 

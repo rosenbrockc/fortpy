@@ -128,6 +128,18 @@ class Evaluator(object):
         else:
             return []
 
+    def get_definition(self):
+        """Checks variable and executable code elements based on the current
+        context for a code element whose name matches context.exact_match
+        perfectly.
+        """
+        #Check the variables first, then the functions.
+        match = self._bracket_exact_var(self.context.exact_match)
+        if match is None:
+           match = self._bracket_exact_exec(self.context.exact_match)
+
+        return match
+
     def _bracket_exact_var(self, symbol):
         """Checks local first and then module global variables for an exact
         match to the specified symbol name."""
