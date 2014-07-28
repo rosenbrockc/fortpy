@@ -1,6 +1,11 @@
 FORTPY: Revision History
 ======
 
+Revision 1.0.12
+------
+
+- Debugged error where the first parameter to an embedded procedure on a derived type was still being explicitly passed in to the embedded procedure. Since the compiler does that automatically, it was choking.
+
 Revision 1.0.11
 ------
 

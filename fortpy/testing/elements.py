@@ -331,7 +331,15 @@ class AssignmentValue(object):
             #need to track down the parameters list.
             target = self._derived_type.executables[self.embedded].target
             if self.paramlist is None:
-                params = ", ".join([p.name for p in target.ordered_parameters])
+                #This should be easy, but the compiler automatically passes in the
+                #derived type instance as the first parameter in the method; since
+                #that still shows up in the executable parameter list, we need to
+                #filter it out based on its kind. We assume that it would be first in
+                #the list and have the same kind as the derived type.
+                orig_params = list(target.ordered_parameters)
+                if orig_params[0].kind == self._derived_type.name:
+                    del orig_params[0]
+                params = ", ".join([p.name for p in orig_params])
             else:
                 params = self.paramlist
 
