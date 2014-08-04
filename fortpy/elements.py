@@ -109,7 +109,7 @@ class CodeElement(object):
     def summary(self):
         """Returns the docstring summary for the code element if it exists."""
         if self._summary is None:
-            self._summary = ""
+            self._summary = "No summary for element."
             for doc in self.docstring:
                 if doc.doctype == "summary":
                     self._summary = doc.contents
@@ -206,6 +206,14 @@ class ValueElement(CodeElement):
 
     def __str__(self):
         return self.definition()
+
+    @property
+    def strtype(self):
+        """Returns a string representing the type and kind of this value element."""
+        if self.kind is not None:
+            return "{}({})".format(self.dtype, self.kind)
+        else:
+            return self.dtype
 
     @property
     def D(self):
@@ -360,6 +368,20 @@ class Executable(ValueElement, Decoratable):
         self.incomplete = False
         self._parameters = {}
         self._assignments = []
+        #Lazy assignment for this variable; see the property with the similar name.
+        self._is_type_target = None
+
+    def __getstate__(self):
+        """Cleans up the object so that it can be pickled without any pointer
+        issues.
+        """
+        odict = self.__dict__.copy() # copy the dict since we change it
+        del odict["_is_type_target"]
+        return odict
+
+    def __setstate__(self, dict):
+        self._is_type_target = None
+        self.__dict__.update(dict)
 
     def unpickle(self, parent):
         """Sets the parent pointer references for the module *and* all of its
@@ -408,6 +430,26 @@ class Executable(ValueElement, Decoratable):
             self.parent.executables[name] = self
             del self.parent.executables[self.name]
             self.name = name
+
+    @property
+    def is_type_target(self):
+        """Returns the CustomType instance if this executable is an embedded 
+        procedure in a custom type declaration; else False.
+        """
+        if self._is_type_target is None:
+            #All we need to do is search through the custom types in the parent
+            #module and see if any of their executables points to this method.
+            self._is_type_target = False
+            for tkey in self.module.types:
+                custype = self.module.types[tkey]
+                for execkey in custype.executables:
+                    if custype.executables[execkey].target is self:
+                        self._is_type_target = custype
+                        break
+                if self._is_type_target:
+                    break
+
+        return self._is_type_target
 
     @property
     def refstring(self):
@@ -494,7 +536,7 @@ class Executable(ValueElement, Decoratable):
         """Returns the ValueElement corresponding to the parameter
         at the specified index."""
         result = None
-        if index > 0 and index < len(self.paramorder):
+        if index < len(self.paramorder):
             key = self.paramorder[index]
             if key in self._parameters:
                 result = self._parameters[key]
@@ -757,6 +799,172 @@ class CustomType(CodeElement, Decoratable):
         else:
             return ""
 
+class Interface(CodeElement):
+    """Represetns a fortran assignment, operator or generic interface."""
+    def __init__(self, name, modifiers, parent, symbol=None):
+        if name in ["operator", "assignment"]:
+            if symbol is not None:
+                name = "{}|{}".format(name, symbol.lower())
+            else:
+                raise ValueError("Operator and assignment interfaces require a symbol "
+                                 "to identify them in the code.")
+
+        super(Interface, self).__init__(name, modifiers, parent)
+
+        self.procedures = []
+        self.symbol = symbol
+        self.operator = (name == "operator")
+        self.assignment = (name == "assignment")
+
+        #This is a dict of the actual CodeElement instances of the module procedures
+        #referenced in the generic interface.
+        self._targets = None
+        #This is the first module procedure in the list for which we have a valid
+        #code element reference.
+        self._first = None
+
+    @property
+    def parameters(self):
+        """Returns the list of parameters from the first valid reference of an
+        embedded module procedure in the interface.
+        """
+        if self.first:
+            return self.first.parameters
+        else:
+            return []
+
+    @property
+    def ordered_parameters(self):
+        """Returns the list ordered parameters from the first valid reference of an
+        embedded module procedure in the interface.
+        """
+        if self.first:
+            return self.first.ordered_parameters
+        else:
+            return []
+
+    @property
+    def subroutine(self):
+        """Returns true if the embedded module procedures in this interface are subroutines.
+        """
+        return isinstance(self.first, Subroutine)
+
+    def changed(self, name):
+        """Returns true if the parameter with the specified name has its value changed by
+        the *first* module procedure in the interface.
+
+        :arg name: the name of the parameter to check changed status for.
+        """
+        if self.first:
+            return self.first.changed(name)
+        else:
+            return False
+
+    def get_parameter(self, index):
+        """Gets the list of parameters at the specified index in the calling argument
+        list for each of the module procedures in the interface.
+
+        :arg index: the 0-based index of the parameter in the argument list.
+        """
+        result = []
+        for target in self.targets:
+            if target is not None:
+                result.append(target.get_parameter(index))
+
+        return result
+        
+    def find_docstring(self):
+        """Sets the docstring of this interface using the docstrings of its embedded
+        module procedures that it is an interface for.
+        """
+        #The docstrings for the interface are compiled from the separate docstrings
+        #of the module procedures it is an interface for. We choose the first of these
+        #procedures by convention and copy its docstrings over.
+        #Just use the very first embedded method that isn't None and has a docstring.
+        if self.first and len(self.docstring) == 0:
+            self.docstring = self.first.docstring
+
+    def describe(self):
+        """Returns a home-grown description that includes a summary of the calling interface
+        for all the module procedures embedded in this interface.
+        """
+        #Interfaces are tricky because we can have an arbitrary number of embedded procedures
+        #that each have different calling interfaces and return types. We are trying to 
+        #summarize that information in a single interface. Interfaces can't mix executable
+        #types; they are either all subroutines or all functions. 
+        self.find_docstring()
+        if not self.subroutine:
+            #We have a return type to worry about, compile it from all the targets
+            ret_type = []
+            for target in self.targets:
+                if target.returns not in ret_type:
+                    ret_type.append(target.returns)
+
+            ret_text = ', '.join(ret_type)
+        else:
+            ret_text = ""
+
+        #The list of types it accepts is constructed the same way for functions and subroutines.
+        act_type = []
+        for target in self.targets:
+            param = target.ordered_parameters[0]
+            if param.strtype not in act_type:
+                act_type.append(param.strtype)
+
+        act_text = ', '.join(act_type)
+
+        if self.subroutine:
+            return "SUMMARY: {} | ACCEPTS: {}".format(self.summary, act_text)
+        else:
+            return "SUMMARY: {} | RETURNS: {} | ACCEPTS: {}".format(self.summary, ret_text, act_text)
+
+    def __getstate__(self):
+        """Cleans up the object so that it can be pickled without any pointer
+        issues. Saves the full names of parents etc. so that they can be 
+        restored once the unpickling is completed."""
+        odict = self.__dict__.copy() # copy the dict since we change it
+        del odict['_targets']
+        del odict['_first']
+        return odict
+
+    def __setstate__(self, dict):
+        self._targets = None
+        self._first = None
+        self.__dict__.update(dict)
+
+    @property
+    def first(self):
+        """Returns the first module procedure embedded in the interface that has a valid
+        instance of a CodeElement.
+        """
+        if self._first is None:
+            for target in self.targets:
+                if target is not None:
+                    self._first = target
+                    break
+            else:
+                self._first = False
+
+        return self._first                
+
+    @property
+    def targets(self):
+        """Provides an ordered list of CodeElement instances for each of the embedded
+        module procedures in the generic interface.
+        """
+        if self._targets is None:
+            self._targets = {}
+            for key in self.procedures:
+                element = self.module.parent.get_executable(key)
+                if element is not None:
+                    self._targets[key] = element
+                else:
+                    self._targets[key] = None
+                    msg.warn("unable to locate module procedure {}".format(key) +
+                             " in interface {}".format(self.name))
+
+        return [self._targets[key] for key in self.procedures]
+
 class Module(CodeElement, Decoratable):
     """Represents a fortran module."""
     
@@ -772,6 +980,7 @@ class Module(CodeElement, Decoratable):
         #using the public keyword in the body of the module (vs. as a 
         #modifier on the member itself).
         self.publics = publics
+        self.interfaces = {}
         #A list of ValueElements() that were declared in the body of the module.
         self.members = {}
         #A list of CustomType() declared in the module using fortran type...end type
@@ -869,19 +1078,22 @@ class Module(CodeElement, Decoratable):
             if "." in depend:
                 #We know the module name and the executable name, easy
                 if depend.split(".")[1] == symbol.lower():
-                    found = depend
+                    found = self.parent.get_executable(depend)
                     break
             else:
                 #We only have the name of a module, we have to search
                 #the whole module for the element.
                 fullname = "{}.{}".format(depend, symbol)
                 if self.parent.get_executable(fullname) is not None:
-                    found = fullname
+                    found = self.parent.get_executable(fullname)
+                    break
+                if self.parent.get_interface(fullname) is not None:
+                    found = self.parent.get_interface(fullname)
                     break
         else:
             return None
 
-        return self.parent.get_executable(found)
+        return found
 
     def completions(self, symbol, attribute, recursive = False):
         """Finds all possible symbol completions of the given symbol that belong
@@ -967,7 +1179,7 @@ class Module(CodeElement, Decoratable):
         return self._filter_execs(False)
         
     def subroutines(self):        
-        """Returns a dictionary of all the functions in the module."""
+        """Returns a dictionary of all the subroutines in the module."""
         return self._filter_execs(True)
 
     def _filter_execs(self, isSubroutine):
@@ -1006,7 +1218,8 @@ class Module(CodeElement, Decoratable):
             "publics": self.publics,
             "members": self.members,
             "types": self.types,
-            "executables": self.executables
+            "executables": self.executables,
+            "interfaces": self.interfaces
         }[attribute]
 
     def update_refstring(self, string):
@@ -1114,7 +1327,6 @@ class Module(CodeElement, Decoratable):
             #We only need to search through the executables
             tempresult = None
             maxstart = 0
-
             for iexec in self.executables:
                 if (ichar >= self.executables[iexec].absstart):
                     if self.executables[iexec].absstart > maxstart:

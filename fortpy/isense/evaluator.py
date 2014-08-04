@@ -1,4 +1,5 @@
-from fortpy.elements import Function, Subroutine, CustomType, ValueElement, Module, Executable
+from fortpy.elements import Function, Subroutine, CustomType, ValueElement
+from fortpy.elements import Module, Executable, Interface
 from fortpy.docelements import DocElement
 from . import cache
 from .classes import Completion
@@ -160,6 +161,9 @@ class Evaluator(object):
         if symbol in self.context.module.executables:
             return self.context.module.executables[symbol]
 
+        if symbol in self.context.module.interfaces:
+            return self.context.module.interfaces[symbol]
+
         if symbol in cache.builtin:
             return cache.builtin[symbol]
 
@@ -176,6 +180,8 @@ class Evaluator(object):
                 summary = iexec.returns + "| " + iexec.summary
             elif isinstance(iexec, Subroutine) and len(iexec.modifiers) > 0:
                 summary = ", ".join(iexec.modifiers) + " | " + iexec.summary
+            elif isinstance(iexec, Interface):
+                summary = iexec.describe()
             else:
                 summary = iexec.summary
 
@@ -193,31 +199,31 @@ class Evaluator(object):
         a second. The real workhorse of the intellisense. Decides what kind
         of intellisense is needed and returns the relevant response."""
         #See if we are calling a function inside a module or other function.
+        result = []
         if (self.context.el_section == "body" and
             self.context.el_call in [ "sub", "fun" ]):
             #Do a signature completion for the function/subroutine call.
-            return self.signature()
-        else:
+            result = self.signature()
+
+        if result == []:
             return self.complete()
+
+        return result
 
     def signature(self):
         """Gets completion or call signature information for the current cursor."""
         #We can't really do anything sensible without the name of the function
         #whose signature we are completing.
         iexec = self.context.parser.tree_find(self.context.el_name, 
-                                       self.context.module, "executables")
+                                              self.context.module, "executables")
+        if iexec is None:
+            #Look in the interfaces next using a tree find as well
+            iexec = self.context.parser.tree_find(self.context.el_name, self.context.module,
+                                                  "interfaces")
         if iexec is None:
             return []
 
-        #If the symbol is "", then we want to return the call signature with
-        #the relevant parameter active and its description. Otherwise, we
-        #want to show a completion list with possible entries.
-        symbol = self.context.symbol
-
-        if symbol == "":
-            return self._signature_index(iexec)
-        else:
-            return self.complete()
+        return self._signature_index(iexec)
 
     def _signature_index(self, iexec):
         """Determines where in the call signature the cursor is to decide which
@@ -232,7 +238,7 @@ class Evaluator(object):
             paramlist = [ p.name for p in iexec.ordered_parameters ]
             paramlist[call_index] = "*{}*".format(paramlist[call_index])
 
-            if param is not None:
+            if not isinstance(param, list) and param is not None:
                 #Write a nice description that includes the parameter type and
                 #intent as well as dimension.
                 summary = "{} | {}".format(str(param), param.summary)
@@ -241,6 +247,17 @@ class Evaluator(object):
                 changedby = iexec.changed(param.name)
                 if changedby is not None:
                     summary += " *MODIFIED*"
+            elif isinstance(param, list) and len(param) > 0:
+                act_type = []
+                for iparam in param:
+                    if iparam.strtype not in act_type:
+                        act_type.append(iparam.strtype)
+
+                act_text = ', '.join(act_type)
+                summary = "SUMMARY: {} | ACCEPTS: {}".format(param[0].summary, act_text)
+
+                if iexec.changed(param[0].name):
+                    summary += " | *MODIFIED*"
             else:
                 summary = "No matching variable definition."
 
@@ -322,17 +339,32 @@ class Evaluator(object):
             return {}
 
         result = {}
+        #We might know what kind of symbol to limit the completion by depending on whether
+        #it was preceded by a "call " for example. Check the context's el_call
         if symbol != "":
-            for mkey in target.members:
-                if self._symbol_in(symbol, mkey):
-                    result[mkey] = target.members[mkey]
+            if self.context.el_call != "sub":
+                for mkey in target.members:
+                    if self._symbol_in(symbol, mkey):
+                        result[mkey] = target.members[mkey]
 
             for ekey in target.executables:
-                if self._symbol_in(symbol, ekey):
-                    result[ekey] = target.executables[ekey]
+                if (self._symbol_in(symbol, ekey)):
+                    if self.context.el_call == "sub":
+                        if (isinstance(target.executables[ekey], Subroutine)):
+                            result[ekey] = target.executables[ekey]
+                    else:
+                        if (isinstance(target.executables[ekey], Function)):
+                            result[ekey] = target.executables[ekey]
         else:
-            result.update(target.members)
-            result.update(target.executables)
+            if self.context.el_call != "sub":
+                result.update(target.members)
+                subdict = {k: target.executables[k] for k in target.executables
+                           if isinstance(target.executables[k].target, Function)}
+                result.update(subdict)
+            else:
+                subdict = {k: target.executables[k] for k in target.executables
+                           if isinstance(target.executables[k].target, Subroutine)}
+                result.update(subdict)
 
         return result
 
@@ -341,6 +373,10 @@ class Evaluator(object):
         #Return a list of valid parameters for the function being called
         fncall = self.context.el_name
         iexec = self.context.parser.tree_find(fncall, self.context.module, "executables")
+
+        if iexec is None:
+            #Try the interfaces as a possible executable to complete.
+            iexec = self.context.parser.tree_find(fncall, self.context.module, "interfaces")
 
         if iexec is not None:
             if symbol == "":
@@ -362,18 +398,46 @@ class Evaluator(object):
         if self.context.el_call in ["sub", "fun", "assign", "arith"]:
             if symbol == "":
                 #The only possibilities are local vars, global vars or functions
-                #presented in that order of likelihood.
+                #presented in that order of likelihood. 
                 return self._complete_values()
             else:
+                #It is also possible that subroutines are being called, but that
+                #the full name hasn't been entered yet.
                 return self._complete_values(symbol)
         else:
             return self.context.module.completions(symbol, attribute, True)        
+
+    def _generic_filter_execs(self, module):
+        """Filters the specified dict of executables to include only those that are not referenced
+        in a derived type or an interface.
+        
+        :arg module: the module whose executables should be filtered.
+        """
+        interface_execs = []
+        for ikey in module.interfaces:
+            interface_execs.extend(module.interfaces[ikey].procedures)
+
+        return {k: module.executables[k] for k in module.executables if 
+                ("{}.{}".format(module.name, k) not in interface_execs and 
+                 not module.executables[k].is_type_target)}
 
     def _complete_values(self, symbol = ""):
         """Compiles a list of possible symbols that can hold a value in
         place. These consist of local vars, global vars, and functions."""
         result = {}
-        #First add all the local vars if we are in an executable
+        #Also add the subroutines from the module and its dependencies.
+        moddict = self._generic_filter_execs(self.context.module)
+        self._cond_update(result, moddict, symbol)
+        self._cond_update(result, self.context.module.interfaces, symbol)
+        for depend in self.context.module.dependencies:
+            if depend in self.context.module.parent.modules:
+                #We don't want to display executables that are part of an interface, or that are embedded in
+                #a derived type, since those will be called through the type or interface
+                filtdict = self._generic_filter_execs(self.context.module.parent.modules[depend])
+                self._cond_update(result, filtdict, symbol)
+                self._cond_update(result, self.context.module.parent.modules[depend].interfaces, symbol)
+
+        #Add all the local vars if we are in an executable
         if (isinstance(self.context.element, Function) or 
             isinstance(self.context.element, Subroutine)):
             self._cond_update(result, self.element.members, symbol)

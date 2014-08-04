@@ -365,7 +365,7 @@ class CodeParser(object):
         :arg origin: an instance of a Module element who owns the text
           that is generate the find search.
         :arg attribute: one of ['dependencies', 'publics', 'members',
-          'types', 'executables'] that specifies which collection
+          'types', 'executables', 'interfaces'] that specifies which collection
           in the module should house the symbol's element.
         """
         #The symbol must be accessible to the origin module, otherwise
@@ -418,6 +418,19 @@ class CodeParser(object):
             if exname in module.executables:
                 result = module.executables[exname]
 
+        return result
+
+    def get_interface(self, fullname):
+        """Gets the interface corresponding to the specified full name.
+
+        :arg fullname: a string with modulename.interface.
+        """
+        result = None
+        [modname, iname] = fullname.split(".")
+        module = self.get(modname)
+        if module is not None:
+            if iname in module.interfaces:
+                result = module.interfaces[iname]
         return result
 
     def get(self, name):

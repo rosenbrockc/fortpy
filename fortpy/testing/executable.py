@@ -67,8 +67,7 @@ class ExecutableGenerator(object):
                 newi = result.index(modn)
                 self._process_module_needs(modn, newi, result)
         else:
-            msg.err("unable to find module {}.".format(module))
-            exit(1)
+            raise ValueError("unable to find module {}.".format(module))
 
     def reset(self, identifier, libraryroot, rerun = False):
         """Resets the writer to work with a new executable."""        

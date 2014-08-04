@@ -203,6 +203,7 @@ class UserContext(object):
                 #we can examine its parameters.
                 fncall = self.el_name
                 args = self.current_line[:self.pos[1]].split(fncall)[1]
+
                 #This handles the case of the bracket-complete.
                 if args == "":
                     return 0
@@ -215,7 +216,13 @@ class UserContext(object):
                 try:
                     nl = cache.nester.parseString(args).asList()[0]
                     clean = [n for n in nl if not isinstance(n, list) and n != ","]
-                    self._call_index = len(clean)
+                    #We need to specially handle the case where they have started typing the
+                    #name of the first parameter but haven't put a ',' in yet. In that case, 
+                    #we are still on the first argument.
+                    if clean[-1][-1] != ',':
+                        self._call_index = len(clean) - 1
+                    else:
+                        self._call_index = len(clean)
                 except:
                     msg.warn("ARG INDEX: lookup failed on bracket parsing.")
             
@@ -327,6 +334,9 @@ class UserContext(object):
             else:
                 self.el_call = "assign"
             self.el_name = self._source[line].split("=")[0].strip()
+        elif re.match("\s*call\s+", self._source[line]):
+            self.el_call = "sub"
+            self.el_name = self._source[line].split("call ")[1]
         else:
             #The only thing left (and the hardest to nail down) is
             #the arithmetic catch all type.

@@ -4,6 +4,7 @@ from .docstring import DocStringParser
 from .variable import VariableParser
 from .types import TypeParser
 from .executable import ExecutableParser
+from .interface import InterfaceParser
 
 class ModuleParser(object):
     """Extracts modules from fortran code files."""
@@ -11,6 +12,7 @@ class ModuleParser(object):
         self.setup_regex()
         self.vparser = VariableParser()
         self.docparser = DocStringParser()
+        self.iparser = InterfaceParser(self.docparser)
         self.tparser = TypeParser(self.vparser, self.docparser)
         self.xparser = ExecutableParser(self.vparser, self.docparser)
     
@@ -20,7 +22,7 @@ class ModuleParser(object):
         self._RX_MODULE = r"(\n|^)\s*module\s+(?P<name>[a-z0-9_]+)(?P<contents>.+?)end\s*module"
         self.RE_MODULE = re.compile(self._RX_MODULE, re.I | re.DOTALL)
         #Regex for use statements in a module
-        self._RX_USE = r"^\s*use\s+(?P<name>[^,]+?)(,\s+only\s*:(?P<only>[A-Za-z0-9_\s,]+?))?$"
+        self._RX_USE = r"^\s*use\s+(?P<name>[^,]+?)(\s*,\s+only\s*:(?P<only>[A-Za-z0-9_\s,]+?))?$"
         self.RE_USE = re.compile(self._RX_USE, re.I | re.M)
         #Regex for finding if the module is private
         self._RX_PRIV = "private.+?(type|contains)"
@@ -117,7 +119,7 @@ class ModuleParser(object):
         matches = self.RE_MODULE.finditer(string)
         result = []
         for rmodule in matches:
-            name = rmodule.group("name")
+            name = rmodule.group("name").lower()
             contents = rmodule.group("contents")
             module = self._process_module(name, contents, parent, rmodule)
             #Check whether the docparser found docstrings for the module.
@@ -167,6 +169,7 @@ class ModuleParser(object):
 
         #It is possible for the module to have members, parse those
         self._parse_members(contents, result)
+        self.iparser.parse(result)
 
         #Now we can update the docstrings for the types. They rely on data
         #extracted during parse_members() which is why they have to run
@@ -180,7 +183,9 @@ class ModuleParser(object):
         """Extracts use dependencies from the innertext of a module."""
         result = {}
         for ruse in self.RE_USE.finditer(string):
-            name = ruse.group("name").strip()
+            #We also handle comments for individual use cases, the "only" section
+            #won't pick up any comments.
+            name = ruse.group("name").split("!")[0].strip()
             if ruse.group("only"):
                 only = ruse.group("only").split(",")
                 for method in only:
@@ -230,6 +235,11 @@ class ModuleParser(object):
             keep = module.refstring[cur_end:rem[0] + signature]
             cur_end = rem[1]
             retain.append(keep)
+
+        #If there weren't any types in the module, we still want to get at the docs in
+        #the preamble.
+        if len(remove) == 0:
+            retain = module.preamble
 
         docsearch = "".join(retain)
         module.predocs = self.docparser.parse_docs(docsearch, module)

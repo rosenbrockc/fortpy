@@ -349,7 +349,7 @@ class AssignmentValue(object):
                 raise ValueError("Embedded type initialization routines must be"
                                  " subroutines, functions aren't supported.")
 
-            lines.append("{}{}{}%{}({})".format(call, spacer, self.parent.name, 
+            lines.append("{}{}{}%{}({})".format(spacer, call, self.parent.name, 
                                                 self.embedded, params))
         #if it does have pre-reqs, they will be handled by the method writer and we
         #don't have to worry about it.
@@ -1337,12 +1337,24 @@ class TestingGroup(object):
         of paramater decorations."""
         for name in self.element.parameters:
             param = self.element.parameters[name]
-            for doc in param.docstring:
-                if doc.doctype == "parameter" and \
-                   "regular" in doc.attributes and doc.attributes["regular"] == "true":
-                    glob = self._global_from_param(name)
-                    if glob is not None:
-                        self._global_add(name, glob)
+            #If the executable we are handling parameters for is an embedded procedure
+            #in a custom type, then we want to initialize the variable instance for
+            #the type, even if there is no reglar="true"; developers will seldom put
+            #a <parameter> tag on the first argument to an embedded procedure because
+            #it is always the class instance.
+            if self.element.is_type_target and param.kind == self.element.is_type_target.name:
+                #is_type_target is the instance of the CustomType that owns it.
+                glob = self._global_from_param(name)
+                if glob is not None:
+                    self._global_add(name, glob)
+            else:
+                #Check the docstrings for a regular="true" attribute.
+                for doc in param.docstring:
+                    if doc.doctype == "parameter" and \
+                       "regular" in doc.attributes and doc.attributes["regular"] == "true":
+                        glob = self._global_from_param(name)
+                        if glob is not None:
+                            self._global_add(name, glob)
 
     def _global_from_param(self, name):
         """Creates a global DocElement from the specified executable's parameter "name"."""
@@ -1416,7 +1428,7 @@ class MethodFinder(object):
     :attr main: when true, this instance is for the *main* method being unit tested.
     """
     def __init__(self, identifier, parser, element, fatal_if_missing = True, main=False):
-        self.identifiers = identifier.split(".")
+        self.identifiers = identifier.lower().split(".")
         self.name = identifier
         self.methods = []
         self.element = element

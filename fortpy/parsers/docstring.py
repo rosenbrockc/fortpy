@@ -1,3 +1,5 @@
+# Using the magic encoding
+# -*- coding: utf-8 -*-
 from .. import msg
 import xml.etree.ElementTree as ET
 import re
@@ -25,7 +27,7 @@ class DocStringParser(object):
         #decorated by docstrings.
         self._RX_DECOR = (r"((?P<type>character|real|type|logical|integer)?"
                           r"(?P<kind>\([a-z0-9_]+\))?)?(,?(?P<modifiers>[^\n]+?))?"
-                          r"\s*(?P<codetype>subroutine|function|type|module)\s+(?P<name>[^(]+)")
+                          r"\s*(?P<codetype>subroutine|function|type|module|interface)\s+(?P<name>[^(]+)")
         self.RE_DECOR = re.compile(self._RX_DECOR, re.I)
         #Regex for getting the docstrings decorating one or more modules in a code file,
         #Since they aren't contained inside any other code element, we can't just use
