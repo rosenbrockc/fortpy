@@ -15,7 +15,7 @@ class Serializer(object):
     """Serializes parsed module contents to optimizie loading for modules
     whose contents don't change very often."""
     
-    version = 10
+    version = 14
     """
     Version number (integer) for file system cache.
 
@@ -129,7 +129,8 @@ class Serializer(object):
     def clear_cache(self):
         """Removes the cached directory and all of its contents so that we don't
         have any more cached modules."""
-        shutil.rmtree(self._cache_directory())
+        from shutil import rmtree
+        rmtree(self._cache_directory())
 
     def _get_hashed_path(self, path):
         """Returns an md5 hash for the specified file path."""
@@ -146,4 +147,7 @@ class Serializer(object):
     def _cache_directory(self):
         """Returns the full path to the cache directory as specified in settings.
         """
-        return os.path.join(settings.cache_directory, self.py_tag)
+        if settings.unit_testing_mode:
+            return os.path.join(settings.cache_directory.replace("Fortpy", "Fortpy_Testing"), self.py_tag)
+        else:
+            return os.path.join(settings.cache_directory, self.py_tag)

@@ -1,6 +1,13 @@
 FORTPY: Revision History
 ======
 
+Revision 1.1.0
+------
+
+- Added multiple cache support so that unit testing doesn't affect the "production" cache.
+- Fixed versioning issue where the cache was not being invalidated when incompatible changes are made to the structure of classes that get serialized.
+- Minor version release because of additional unit testing support and new support for interfaces.
+
 Revision 1.0.13
 ------
 
