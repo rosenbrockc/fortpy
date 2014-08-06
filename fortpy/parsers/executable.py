@@ -42,6 +42,12 @@ class ExecutableParser(object):
         self._RX_DEPEND = r"^\s*(?P<sub>call\s+)?(?P<exec>[a-z0-9_%]+\s*\([^\n]+)$"
         self.RE_DEPEND = re.compile(self._RX_DEPEND, re.M | re. I)
 
+        self._RX_DEPCLEAN = r"(?P<key>[a-z0-9_]+)\("
+        self.RE_DEPCLEAN = re.compile(self._RX_DEPCLEAN, re.I)
+
+        self._RX_CONST = '[^"]+(?P<const>"[^"]+")'
+        self.RE_CONST = re.compile(self._RX_CONST)
+
         self._RX_COMMENTS = r'\s*![^\n"]+?\n'
         self.RE_COMMENTS = re.compile(self._RX_COMMENTS)
 
@@ -206,8 +212,8 @@ class ExecutableParser(object):
         #Fortran allows lines to be continued using &. The easiest way
         #to deal with this is to remove all of those before processing
         #any of the regular expressions
-        decommented = "\n".join([ l.split("!")[0] for l in contents.split("\n") ])
-        cleaned = re.sub("&\s*", "", decommented)
+        cleaned = re.sub("&\s*", "", contents)
+        decommented = "\n".join([ l.split("!")[0] for l in cleaned.split("\n") ])
 
         #Finally, process the dependencies. These are calls to functions and
         #subroutines from within the executable body
@@ -252,9 +258,12 @@ class ExecutableParser(object):
         #have been parsed, we can do the associations at that level for linking.
         for dmatch in self.RE_DEPEND.finditer(contents):
             isSubroutine = dmatch.group("sub") is not None
-            execline = "(" + dmatch.group("exec").split("!")[0].replace(",", ", ") + ")"
+            if "!" in dmatch.group("exec"):
+                execline = self._depend_exec_clean(dmatch.group("exec"))
+            else:
+                execline = "(" + dmatch.group("exec").split("!")[0].replace(",", ", ") + ")"
+
             if not "::" in execline:
-                #We need to remove comments from any lines
                 try:
                     dependent = self.nester.parseString(execline).asList()[0]           
                 except:
@@ -266,19 +275,42 @@ class ExecutableParser(object):
                 #their nested lists.
                 self._process_dependlist(dependent, anexec, isSubroutine, mode)
 
+    def _depend_exec_clean(self, text):
+        """Cleans any string constants in the specified dependency text to remove
+        embedded ! etc. that break the parsing.
+        """
+        #First remove the escaped quotes, we will add them back at the end.
+        unquoted = text.replace('""', "_FORTPYDQ_").replace("''", "_FORTPYSQ_")
+        for cmatch in self.RE_CONST.finditer(unquoted):
+            string = cmatch.string[cmatch.start():cmatch.end()]
+            newstr = string.replace("!", "_FORTPYEX_")
+            unquoted = unquoted.replace(string, newstr)
+
+        requote = unquoted.split("!")[0].replace("_FORTPYDQ", '""').replace("_FORTPYSQ_", "''")
+        result = "(" + requote.replace("_FORTPYEX_", "!").replace(",", ", ") + ")"
+        return result
+
     def _process_dependlist(self, dependlist, anexec, isSubroutine, mode="insert"):
         """Processes a list of nested dependencies recursively."""
         for i in range(len(dependlist)):
             #Since we are looping over all the elements and some will
             #be lists of parameters, we need to skip any items that are lists.
-            if type(dependlist[i]) == type([]):
+            if isinstance(dependlist[i], list):
                 continue
 
             key = dependlist[i].lower()
             if len(dependlist) > i + 1:
-                has_params = type(dependlist[i + 1]) == type([])
+                has_params = isinstance(dependlist[i + 1], list)
             else:
                 has_params = False
+
+            #Clean the dependency key to make sure we are only considering valid
+            #executable symbols.
+            cleanmatch = self.RE_DEPCLEAN.match(key + "(")
+            if not cleanmatch:
+                continue
+            else:
+                key = cleanmatch.group("key")
 
             #We need to handle if and do constructs etc. separately
             if key not in ["then", ",", "", "elseif"] and has_params \
@@ -318,6 +350,7 @@ class ExecutableParser(object):
         """Determines whether the item in the dependency list is a valid function
         call by excluding local variables and members."""
         #First determine if the reference is to a derived type variable
+        lkey = key.lower()
         if "%" in key:
             #Find the type of the base variable and then perform a tree
             #search at the module level to determine if the final reference
@@ -334,15 +367,19 @@ class ExecutableParser(object):
                 if end is not None and isinstance(end, Executable):
                     d = Dependency(dependlist[i], dependlist[i + 1], isSubroutine, anexec)
                     anexec.add_dependency(d)
-        else:
+        elif lkey not in ["for", "forall", "do"]:
             #This is a straight forward function/subroutine call, make sure that
             #the symbol is not a local variable or parameter, then add it
-            if not key in anexec.members and not key in anexec.parameters \
-               and not key.lower() in self._intrinsic:                
+            if not lkey in anexec.members and not lkey in anexec.parameters \
+               and not lkey in self._intrinsic:                
+                #One issue with the logic until now is that some one-line statements
+                #like "if (cond) call subroutine" don't trigger the subroutine flag
+                #of the dependency.
+                if dependlist[i-1] == "call":
+                    isSubroutine = True
                 d = Dependency(dependlist[i], dependlist[i + 1], isSubroutine, anexec)
                 anexec.add_dependency(d)
                 
-
     def _process_docs(self, anexec, docblocks, parent, module, docsearch):
         """Associates the docstrings from the docblocks with their parameters."""
         #The documentation for the parameters is stored outside of the executable
@@ -426,5 +463,5 @@ class ExecutableParser(object):
                 'COMPL', 'COT', 'CSMG', 'DSHIFTL', 'DSHIFTR', 'EQV', 'FCD', 'IBCHNG', 'ISHA', 'ISHC', 'ISHL',
                 'LEADZ', 'LENGTH', 'LOC', 'NEQV', 'POPCNT', 'POPPAR', 'SHIFT', 'SHIFTA', 'SHIFTL',
                 'SHIFTR', 'TIMEF', 'UNIT', 'XOR', 'MPI_SIZEOF', 'malloc', 'realloc', 'open', 'close',
-                'allocate', 'deallocate', 'write', 'flush', '.not.present'])
+                    'allocate', 'deallocate', 'write', 'flush', '.not.present', 'equal'])
         return [p.strip() for p in base]

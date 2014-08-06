@@ -1,6 +1,11 @@
 FORTPY: Revision History
 ======
 
+Revision 1.1.1
+------
+
+- Fixed parsing issues when identifying dependency calls inside of executables. This also fixed some isense issues caused by broken dependencies definitions.
+
 Revision 1.1.0
 ------
 

@@ -58,7 +58,10 @@ class CodeParser(object):
         #to if loaded
         self._modulefiles = {}
         #Keys are the full lowered paths, values are the short f90 names
-        self._pathfiles = {}        
+        self._pathfiles = {}       
+        #Keys are the lowered module names, values are the time stamps for the last mtime
+        #check/reload of the module from disk.
+        self._last_isense_check = {}
         #A list of module names that have already been parsed. This prevents code files
         #that have no modules from being parsed repeatedly.
         self._parsed = []
@@ -135,7 +138,7 @@ class CodeParser(object):
 
         for module in pmodules:
             module.change_time = file_mtime
-            module.filepath = filepath
+            module.filepath = filepath.lower()
             self.modules[module.name.lower()] = module
             self._modulefiles[fname].append(module.name.lower())
 
@@ -167,6 +170,12 @@ class CodeParser(object):
             if fname in self._modulefiles:
                 modulename = self._modulefiles[fname][0]
                 if modulename in self.modules:
+                    #Make sure that if there are modules with the same name but different
+                    #files, that we are working with the correct one.
+                    if filepath.lower() != self.modules[modulename].filepath:
+                        msg.warn("module {} parsed ".format(modulename) + 
+                                 "from {}, not {}".format(self.modules[modulename].filepath,
+                                                          filepath))
                     module_mtime = self.modules[modulename].change_time
 
             if module_mtime is not None:
@@ -199,6 +208,21 @@ class CodeParser(object):
             self.basepaths.append(dirpath)
             self.rescan()
 
+    def isense_parse(self, filepath, modulename):
+        """Parses the specified file from either memory, cached disk or full disk
+        depending on whether the fetch is via SSH or not and how long it has been
+        since we last checked the modification time of the file.
+        """
+        #We only want to check whether the file has been modified for reload
+        from datetime import datetime
+        if modulename not in self._last_isense_check:
+            self._last_isense_check[modulename] = datetime.utcnow()
+            self.parse(filepath, True)
+        else:
+            elapsed = (datetime.now() - self._last_isense_check[modulename]).seconds
+            if elapsed > 60:
+                self.parse(filepath, True)
+
     def parse(self, filepath, dependencies=False, recursive=False, greedy=False):
         """Parses the fortran code in the specified file.
 
@@ -227,7 +251,7 @@ class CodeParser(object):
         #Check if we can load the file from a pickle instead of doing a time
         #consuming file system parse.
         pickle_load = False
-        if len(mtime_check) == 1:
+        if len(mtime_check) == 1 and settings.use_filesystem_cache:
             #We use the pickler to load the file since a cached version might
             #be good enough.
             pmodules = self.serialize.load_module(abspath, mtime_check[0], self)
@@ -248,7 +272,7 @@ class CodeParser(object):
 
         #Add the filename to the list of files that have been parsed.
         self._parsed.append(abspath.lower())
-        if not pickle_load and len(pmodules) > 0:
+        if not pickle_load and len(pmodules) > 0 and settings.use_filesystem_cache:
             self.serialize.save_module(abspath, pmodules)
 
         if self.verbose:
@@ -412,7 +436,7 @@ class CodeParser(object):
         :arg fullname: a string with modulename.executable.
         """
         result = None
-        [modname, exname] = fullname.split(".")
+        modname, exname = fullname.split(".")
         module = self.get(modname)
         if module is not None:
             if exname in module.executables:

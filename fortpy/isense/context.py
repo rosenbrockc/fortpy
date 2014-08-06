@@ -202,7 +202,10 @@ class UserContext(object):
                 #Get hold of the element instance of the function being called so
                 #we can examine its parameters.
                 fncall = self.el_name
-                args = self.current_line[:self.pos[1]].split(fncall)[1]
+                if fncall in self.current_line[:self.pos[1]]:
+                    args = self.current_line[:self.pos[1]].split(fncall)[1]
+                else:
+                    args = ""
 
                 #This handles the case of the bracket-complete.
                 if args == "":
@@ -272,8 +275,7 @@ class UserContext(object):
         #Before we carry on with the rest of the context, find the separating
         #CONTAINS keyword so we know whether to look for types or subs/funcs.
         #If the code parser hasn't ever parsed this module, parse it now.
-        if not self.modulename in self.parser.modules:
-            self.parser.parse(self._orig_path, True, False, False)
+        self.parser.isense_parse(self._orig_path, self.modulename)
         self.module = self.parser.modules[self.modulename]
 
         if line > self.module.contains_index:

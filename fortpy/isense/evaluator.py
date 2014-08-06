@@ -185,6 +185,14 @@ class Evaluator(object):
             else:
                 summary = iexec.summary
 
+            #Add the name of the module who owns the method. Useful in case the
+            #same executable is defined in multiple modules, but only one is
+            #referenced in the current context.
+            if iexec.parent is not None:
+                summary += " | MODULE: {}".format(iexec.module.name)
+            else:
+                summary += " | BUILTIN"
+
             return dict(
                 params=[p.name for p in iexec.ordered_parameters],
                 index=0,
@@ -260,6 +268,9 @@ class Evaluator(object):
                     summary += " | *MODIFIED*"
             else:
                 summary = "No matching variable definition."
+
+            #Add the name of the module who owns the executable.
+            summary += " | MODULE: {}".format(iexec.module.name)
 
             return dict(
                 params=paramlist,

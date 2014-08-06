@@ -11,7 +11,7 @@ class VariableParser(object):
         #Regex for finding members of a type
         self._RX_MEMBERS = r"^\s*(?P<type>character|real|type|logical|integer|class)" + \
                            r"(?P<kind>\([A-Za-z0-9_]+\))?" + \
-                           r",?(?P<modifiers>[^:]+)?\s*::\s*(?P<names>[^\n!]+)" #Removed $ from end.
+                           r",?(?P<modifiers>[ \w\t:,()]+)?::\s*(?P<names>[^\n!]+)" #Removed $ from end.
         self.RE_MEMBERS = re.compile(self._RX_MEMBERS, re.M | re.I)
 
         self._RX_MULTIDEF = r"(?P<name>[^(,=]+)(?P<dimension>\([^)]+\))?(\s?=\s*(?P<default>.+))?"
@@ -34,7 +34,18 @@ class VariableParser(object):
         #to extract the mods.
         modifiers = member.group("modifiers")
         if modifiers is not None:
-            modifiers = re.split("[,\s]+", modifiers.strip())
+            #Unfortunately, the dimension can also be specified as a modifier and
+            #the dimensions can include variable names and functions. This introduces
+            #the possibility of nested lists.
+            if "dimension" in modifiers:
+                start, end = self._get_dim_modifier(modifiers)
+                dimension = modifiers[start+1:end]
+                dimtext = modifiers[modifiers.index("dimension"):end+1]
+                modifiers = re.split(",\s*", modifiers.replace(dimtext, "").strip())
+                modifiers.append("dimension")
+            else:
+                modifiers = re.split("[,\s]+", modifiers.strip())
+
             if "" in modifiers:
                 modifiers.remove("")
 
@@ -55,3 +66,24 @@ class VariableParser(object):
             result.append(ValueElement(name, modifiers, dtype, kind, default, dimension, parent))
 
         return result
+
+    def _get_dim_modifier(self, modifiers):
+        """Extracts the dimension information from the string of modifiers extracted by
+        the regex.
+        
+        :arg modifiers: the list of modifiers identified by the regex.
+        """
+        suffix = modifiers.split("dimension")[1]
+        start = modifiers.index("dimension") + len("dimension")
+        #We use a stack to monitor how many parenthesis we have traversed in the string.
+        #Once we reach the closing parenthesis, we know that we have the dimension info.
+        stack = []
+        args = []
+        for i in range(len(suffix)):
+            if suffix[i] == '(':
+                stack.append(i + start)
+            elif suffix[i] == ')':
+                args.append((stack.pop(), i + start))
+
+        #The last entry in args should be the indices of the entire dimension expression
+        return args[-1]

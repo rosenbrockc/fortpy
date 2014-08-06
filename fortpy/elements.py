@@ -275,6 +275,11 @@ class Dependency(object):
         self.parent = parent
 
     @property
+    def operator(self):
+        """Returns true if this dependency is to an operator interface."""
+        return self._name[0] == self._name[-1] and self._name[0] == "."
+
+    @property
     def name(self):
         """Returns the lower case name of the dependency."""
         return self._name.lower()
@@ -478,6 +483,9 @@ class Executable(ValueElement, Decoratable):
                 #see if any of them modify the parameter.
                 for dependlist in self.dependencies:
                     for dependency in self.dependencies[dependlist]:
+                        if dependency.operator:
+                            continue
+
                         iexec = self.module.parent.get_executable(dependency.external_name)
                         if iexec is not None and iexec.changed(symbol, checked) != "":
                             return dependency.external_name
