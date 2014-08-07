@@ -969,7 +969,7 @@ class TestTarget(object):
     def _parse_attributes(self):
         """Extracts implemented attributes from the test target."""
         if "name" in self.xml.attrib:
-            self.name = self.xml.attrib["name"]
+            self.name = self.xml.attrib["name"].lower()
         else:
             raise ValueError("'name' is a required attribute for a <target> tag.")
         if "varfile" in self.xml.attrib:

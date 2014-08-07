@@ -29,9 +29,6 @@ endif
 # Options that add to standard flags (do NOT replace standard flags)
 #................................................................................
 
-# Use precompiler
-FFLAGS += -fpp -save-temps -heap-arrays
-
 # Use MPI
 ifeq ($(UNCLE_MPI),true) # if you want to use MPI, set env variable UNCLE_MPI=true
    F90      = mpif90 

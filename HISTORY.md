@@ -1,6 +1,16 @@
 FORTPY: Revision History
 ======
 
+Revision 1.1.2
+------
+
+- Fixed a bug where parameters with `regular="true"` weren't being found because the dictionary had lower-case keys and the variable name was upper-case.
+- Fixed parser bug for displaying and saving modifiers on executables.
+- Fixed parser bug for determining the dependency modules.
+- Added support for identifying modules that require pre-processing before compilation.
+- Added configuration section `<libraries>` to fortpy `config.xml`. Allows libraries to be explicitly specified for inclusion when linking the unit testing executable.
+- Added rule to the auto-generated makefile for creating a shared library of the executable being unit tested and all of its dependencies.
+
 Revision 1.1.1
 ------
 

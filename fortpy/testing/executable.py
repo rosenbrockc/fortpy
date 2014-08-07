@@ -144,7 +144,8 @@ class ExecutableGenerator(object):
 
         #Now the standard entries for ifort. We will just have the ifort include
         #file so that the MPI and other options can be tested to.
-        lines.append(self._make_compiler_include())
+        allneeds = self.needs()
+        lines.append(self._make_compiler_include(allneeds))
         lines.append(".SILENT:")
         lines.append("")
 
@@ -152,7 +153,6 @@ class ExecutableGenerator(object):
         lines.append("LIBMODULESF90\t= \\")
         #Copy over the fortpy module in case we need it.
         lines.append("\t\tfortpy.f90 \\")
-        allneeds = self.needs()
         for modk in allneeds[0:len(allneeds)-1]:
             lines.append("\t\t{} \\".format(self._get_mapping(modk)))
         lines.append("\t\t{}".format(self._get_mapping(allneeds[-1])))
@@ -160,6 +160,12 @@ class ExecutableGenerator(object):
         lines.append("MAINF90\t\t= {}.f90".format(identifier))
         lines.append("SRCF90\t\t= $(LIBMODULESF90) $(MAINF90)")
         lines.append("OBJSF90\t\t= $(SRCF90:.f90=.o)")
+        lines.append("SLIBF90\t\t= $(LIBMODULESF90:.f90=.o)")
+        lines.append("")
+
+        #Add explicitly defined libraries that should be included when linking
+        #the unit testing executable.
+        linklibs = self._add_explicit_includes(lines)
         lines.append("")
 
         #We need to add the error handling commands to make debugging compiling easier.
@@ -168,24 +174,66 @@ class ExecutableGenerator(object):
 
         lines.append("all:	info $(EXENAME)")
         lines.append(self._make_info())
-        lines.append(self._make_exe())
+        lines.append(self._make_exe(linklibs, identifier))
         lines[-1] += "	make -f Makefile.{}".format(identifier)
 
         makepath = path.join(self.folder, "Makefile.{}".format(identifier))
         with open(makepath, 'w') as f:
             f.writelines("\n".join(lines))
 
-    def _make_compiler_include(self):
+    def _add_explicit_includes(self, lines):
+        """Adds any relevant libraries that need to be explicitly included according
+        to the fortpy configuration file. Libraries are appended to the specified
+        collection of lines. Returns true if relevant libraries were added.
+        """
+        from fortpy import config
+        import sys
+        includes = sys.modules["config"].includes
+        linklibs = False
+
+        if len(includes) > 0:
+            lines.append("LIBS\t\t= \\")
+            for library in includes:
+                addlib = False
+                if "modules" in library:
+                    #We need to loop over the modules specified for the library and see
+                    #if any of them are in our list of modules.
+                    for libmod in library["modules"]:
+                        if libmod.lower() in allneeds:
+                            addlib = True
+                            break
+                else:
+                    addlib = True
+
+                if addlib:
+                    linklibs = True
+                    lines.append("\t\t{} \\".format(library["path"]))
+
+        return linklibs
+
+    def _make_compiler_include(self, allneeds):
         """Returns the include statement for the compiler to use."""
-        return """ifeq ($(F90),ifort)
-  include Makefile.ifort
+        #We need to see whether to include the pre-compiler directive or not.
+        precompile = False
+        for needed in allneeds:
+            if self.parser.modules[needed].precompile:
+                precompile = True
+                break
+
+        base = """ifeq ($(F90),ifort)
+  include Makefile.ifort{}
 else
 ifeq ($(F90),gfortran)
-  include Makefile.gfortran
+  include Makefile.gfortran{}
 else
   include Makefile.error
 endif
 endif"""
+        if precompile:
+            insert = ["\n  FFLAGS += -fpp -save-temps -heap-arrays", "\n  FFLAGS += -cpp"]
+            return base.format(*insert)
+        else:
+            return base.format("", "")
 
     def _make_error(self):
         """Generates script for compile-time error handling."""
@@ -196,13 +244,14 @@ ERR		= ******************************* ERROR *******************************
 SHOW_LOG	= ( perl -pi -e 's/ [Ee]rror \#/\\n\\n\\n$(ERR)\\n*** error \#/' $(LOG); perl -pi -e 's/^\# 1 \"/\\n\\n$(NEWFILE)\\n\\n\\n/' $(LOG); grep -n -A3 -E "$(ERR)|$(NEWFILE)" $(LOG) )
 """
 
-    def _make_exe(self):
+    def _make_exe(self, linklibs, identifier):
         """Generates the script to run the compiling."""
-        return """
+        linktxt = "$(LIBS) " if linklibs else ""
+        base = """
 $(EXENAME): $(OBJSF90)
 	-rm $(EXENAME) 2> /dev/null
 	echo -n "Linking... "
-	-$(F90) $(LDFLAGS) -o $(EXENAME) $(OBJSF90) >> $(LOG) 2>> $(LOG)
+	-$(F90) $(LDFLAGS) -o $(EXENAME) $(OBJSF90) {0}>> $(LOG) 2>> $(LOG)
 	echo "done."
 	if test -e $(EXENAME); then echo "Produced executable: $(EXENAME)"; else $(SHOW_LOG); echo "Error."; fi
 
@@ -211,11 +260,17 @@ $(OBJSF90): %.o: %.f90
 	-$(F90) -c $(FFLAGS) $^ >> $(LOG) 2>> $(LOG)
 	echo "done."
 
+{1}.so: $(SLIBF90)
+	-rm $(EXENAME).so 2> /dev/null
+	echo -n "Creating shared library..."
+	-$(F90) -shared -fPIC $(FFLAGS) -o {1}.so $(SLIBF90) {0}>> $(LOG) 2>> $(LOG)
+
 clean:
 	-rm *.o *.mod *.i90 $(EXENAME)
 remake:
 	-rm *.o *.mod *.i90 $(EXENAME)
 """
+        return base.format(linktxt, identifier)
 
     def _make_info(self):
         """Generates the script for displaying compile-time info."""

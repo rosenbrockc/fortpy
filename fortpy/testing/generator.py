@@ -137,8 +137,8 @@ class TestGenerator(object):
             if needed.filepath not in previous or \
                (needed.filepath in previous and previous[needed.filepath] < moddate) or \
                not os.path.exists(target):
-                msg.info("COPY {}".format(needed.filepath))
-                copy(needed.filepath, self.xgenerator.folder)
+                msg.info("COPY {}".format(needed.compile_path))
+                copy(needed.compile_path, self.xgenerator.folder)
                 different = True
             files[needed.filepath] = moddate
 

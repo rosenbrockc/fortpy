@@ -8,6 +8,10 @@
   <mappings>
     <map module="utilities_module" file="utilities.f90" />
   </mappings>
+  <libraries>
+    <include path="~/codes/qhlib/libqhull.a" />
+    <include path="~/codes/uncle/trunk/timing.o" />
+  </libraries>
   <ssh>
     <server name="ssh.fsl.byu.edu" username="profcwr" pkey="~/.ssh/id_rsa"></server>
     <codes>

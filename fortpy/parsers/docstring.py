@@ -332,7 +332,7 @@ class DocStringParser(object):
                     self.process_execdocs(docs, member, kdecor)
                 else:
                     msg.warn("orphaned docstring. No member {} in module {}.".format(
-                        member, modname))
+                        memname, modname))
             else:
                 msg.warn("orphaned docstring from XML docfile for {}".format(kdecor))
 

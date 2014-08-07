@@ -21,8 +21,8 @@ class ExecutableParser(object):
         self.RE_CONTAINS = re.compile(self._RX_CONTAINS, re.M | re.I)
 
         #Setup a regex that can extract information about both functions and subroutines
-        self._RX_EXEC = r"\n\s*((?P<type>character|real|type|logical|integer)?" + \
-                        r"(?P<kind>\([a-z0-9_]+\))?)?((?P<modifiers>[\w,\s]+?))?\s*" + \
+        self._RX_EXEC = r"\n[ \t]*((?P<type>character|real|type|logical|integer)?" + \
+                        r"(?P<kind>\([a-z0-9_]+\))?)?((?P<modifiers>[\w, \t]+?))?[ \t]*" + \
                         r"(?P<codetype>subroutine|function)\s+(?P<name>[^(]+)" + \
                         r"\s*\((?P<parameters>[^)]+)\)(?P<contents>.+?)end\s*(?P=codetype)\s+(?P=name)"
         self.RE_EXEC = re.compile(self._RX_EXEC, re.DOTALL | re.I)
@@ -186,6 +186,10 @@ class ExecutableParser(object):
         #Get the matches that must be present for every executable.
         name = execmatch.group("name").strip()
         modifiers = execmatch.group("modifiers")
+        if modifiers is None:
+            modifiers = []
+        else:
+            modifiers = re.split(",[ \t]*", modifiers)
         codetype = execmatch.group("codetype")
         params = re.split("[\s,]+", execmatch.group("parameters"))
         contents = execmatch.group("contents")

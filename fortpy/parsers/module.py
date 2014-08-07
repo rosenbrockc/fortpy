@@ -34,6 +34,9 @@ class ModuleParser(object):
         self._RX_MEMBERS = "(?P<preamble>.+?)(\s+type[,\s]|contains)"
         self.RE_MEMBERS = re.compile(self._RX_MEMBERS, re.DOTALL | re.I)
 
+        self._RX_PRECOMP = r"#endif"
+        self.RE_PRECOMP = re.compile(self._RX_PRECOMP, re.I)
+
     def rt_update(self, statement, element, mode, linenum, lineparser):
         """Performs a real-time update of the specified statement that is in the body of the
         module.
@@ -120,7 +123,7 @@ class ModuleParser(object):
         result = []
         for rmodule in matches:
             name = rmodule.group("name").lower()
-            contents = rmodule.group("contents")
+            contents = re.sub("&[ ]*\n", "", rmodule.group("contents"))
             module = self._process_module(name, contents, parent, rmodule)
             #Check whether the docparser found docstrings for the module.
             if name in moddocs:                
@@ -163,6 +166,8 @@ class ModuleParser(object):
         result.start = match.start()
         result.end = match.end()
         result.refstring = match.string
+        if self.RE_PRECOMP.search(contents):
+            result.precompile = True
 
         self.xparser.parse(result)
         self.tparser.parse(result)

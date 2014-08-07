@@ -219,9 +219,10 @@ class CodeParser(object):
             self._last_isense_check[modulename] = datetime.utcnow()
             self.parse(filepath, True)
         else:
-            elapsed = (datetime.now() - self._last_isense_check[modulename]).seconds
+            elapsed = (datetime.utcnow() - self._last_isense_check[modulename]).seconds
             if elapsed > 60:
                 self.parse(filepath, True)
+                self._last_isense_check[modulename] = datetime.utcnow()
 
     def parse(self, filepath, dependencies=False, recursive=False, greedy=False):
         """Parses the fortran code in the specified file.
@@ -255,7 +256,7 @@ class CodeParser(object):
             #We use the pickler to load the file since a cached version might
             #be good enough.
             pmodules = self.serialize.load_module(abspath, mtime_check[0], self)
-            
+
             if pmodules is not None:
                 for module in pmodules:
                     self.modules[module.name.lower()] = module

@@ -39,6 +39,13 @@ class _config(types.ModuleType):
         return self.property_get("mappings", {})
 
     @property
+    def includes(self):
+        """Returns a list of libraries to include when linking the unit testing
+        executables.
+        """
+        return self.property_get("includes", [])
+
+    @property
     def server(self):
         """Returns the information required to connect to a server via SSH for
         tramp editing support."""
@@ -87,6 +94,8 @@ class _config(types.ModuleType):
                     self._load_ssh(child)
                 elif child.tag == "isense":
                     self._load_isense(child)
+                elif child.tag == "libraries":
+                    self._load_includes(child)
       
     def _load_isense(self, tag):
         """Loads isense configuration as a dict of dicts into vardict."""
@@ -108,6 +117,26 @@ class _config(types.ModuleType):
                 self._load_codes(child, True)
             elif child.tag == "mappings":
                 self._load_mapping(child, True)
+            elif child.tag == "libraries":
+                self._load_includes(child, True)
+
+    def _load_includes(self, tag, ssh=False):
+        """Extracts all additional libraries that should be included when linking
+        the unit testing executables.
+        """
+        import re
+        includes = []
+        for child in tag:
+            if child.tag == "include" and "path" in child.attrib:
+                incl = { "path": child.attrib["path"] }
+                if "modules" in child.attrib:
+                    incl["modules"] = re.split(",\s*", child.attrib["modules"].lower())
+                includes.append(incl)
+
+        if ssh == False:
+            self._vardict["includes"] = includes
+        else:
+            self._vardict["ssh.includes"] = includes
 
     def _load_codes(self, tag, ssh=False):
         """Extracts all the paths to additional code directories to 

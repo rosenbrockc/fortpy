@@ -191,7 +191,7 @@ class CodeElement(object):
 
     def clean_mods(self, modifiers):
         """Cleans the modifiers to remove empty entries."""
-        if "" in modifiers and type(modifiers) == type([]):
+        if "" in modifiers and isinstance(modifiers, list):
             modifiers.remove("")
 
 class ValueElement(CodeElement):
@@ -1011,11 +1011,32 @@ class Module(CodeElement, Decoratable):
         #changed keeps track of whether the module has had its refstring updated
         #via a real-time update since the sequencer last analyzed it.
         self.changed = False
+        #Does this module require pre-compilation; i.e. does it have pre-processor directives.
+        self.precompile = False
 
         #Lines and character counts for finding where matches fit in the file
         self._lines = []
         self._chars = []
         self._contains_index = None
+        #Lazy calculation of the adjusted compilation file path.
+        self._compile_path = None
+
+    @property
+    def compile_path(self):
+        """Returns the file path to this module taking the pre-processing into account.
+        If the module requires pre-processing, the extension is reported as F90; otherwise,
+        the regular self.filepath is returned.
+        """
+        if not self.precompile:
+            return self.filepath
+        else:
+            if self._compile_path is None:
+                segs = self.filepath.split('.')
+                segs.pop()
+                segs.append("F90")
+                self._compile_path = '.'.join(segs)
+
+            return self._compile_path
 
     @property
     def xmlpath(self):
@@ -1065,7 +1086,8 @@ class Module(CodeElement, Decoratable):
         output = []
         #Run statistics on the lines so it displays properly
         self.linenum(1)
-        output.append("MODULE {} ({} lines)\n\n".format(self.name, len(self._lines)))
+        preprocess = ", preprocess" if self.precompile else ""
+        output.append("MODULE {} ({} lines{})\n\n".format(self.name, len(self._lines), preprocess))
         uses = "\n\t".join(self.sorted_collection("dependencies"))
         output.append("USES:\n\t{}\n\n".format(uses))
 
