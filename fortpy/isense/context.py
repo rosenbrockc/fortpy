@@ -102,7 +102,7 @@ class UserContext(object):
         #loop through forward and back until we hit a character that can't be
         #part of a variable or function name.
         if self._exact_match is None:
-            i = self.pos[1]
+            i = self.pos[1] - 1
             start = None
             end = None
             line = self.current_line

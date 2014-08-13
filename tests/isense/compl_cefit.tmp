@@ -1,6 +1,6 @@
 ['in_function_call', 3087, 30]
 
-{'params': ['*k*', 'n', 'HNF', 'labeling', 'pLV', 'pBas', 'eps', 'sLV', 'aBas', 'spin', 'gIndx', 'x', 'L', 'S', 'minkowskiReduce'], 'description': 'integer, intent(in) :: k | No summary for element. | MODULE: enumeration_utilities', 'index': 0, 'call_name': 'map_enumStr_to_real_space'}
+{'description': 'integer, intent(in) :: k | No summary for element. | MODULE: enumeration_utilities', 'call_name': 'map_enumStr_to_real_space', 'index': 0, 'params': ['*k*', 'n', 'HNF', 'labeling', 'pLV', 'pBas', 'eps', 'sLV', 'aBas', 'spin', 'gIndx', 'x', 'L', 'S', 'minkowskiReduce']}
 
 ['in_function_call', 264, 17]
 
@@ -8,4 +8,13 @@
 
 None | No summary for element.
 
+ SUBROUTINE initializeRND(GA, setseed, printseed)
+  No summary for element.
 
+PARAMETERS
+type(GA_variables), intent(inout) :: GA
+  No summary for element.
+integer, optional :: setseed
+  No summary for element.
+logical, optional :: printseed
+  No summary for element.

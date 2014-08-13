@@ -3,17 +3,17 @@
 ['tests/isense/edits/signature.f90', 208, 30]
 ['this', 'g', 'ce', 'mc', 'pizzapi']
 ['this', 'g', 'ce', 'mc', 'pizzapi', 'extraparam']
-{'index': 2, 'call_name': 'single_corr', 'params': ['this', 'g', '*CE*', 'MC', 'pizzaPI', 'extraparam'], 'description': 'type(CE_variables), intent(in) :: CE | No summary for element.'}
+{'description': 'type(CE_variables), intent(in) :: CE | No summary for element. | MODULE: monte_orderparam', 'call_name': 'single_corr', 'index': 2, 'params': ['this', 'g', '*CE*', 'MC', 'pizzaPI', 'extraparam']}
 
 ['tests/isense/edits/docstring.f90', 208, 30]
-{'index': 2, 'call_name': 'single_corr', 'params': ['this', 'g', '*CE*', 'MC', 'pizzaPI', 'extraparam'], 'description': 'type(CE_variables), intent(in) :: CE | No summary for element.'}
+{'description': 'type(CE_variables), intent(in) :: CE | No summary for element. | MODULE: monte_orderparam', 'call_name': 'single_corr', 'index': 2, 'params': ['this', 'g', '*CE*', 'MC', 'pizzaPI', 'extraparam']}
 
 ['tests/isense/edits/variable.f90', 206, 9]
-{'pizzapi1': <fortpy.elements.ValueElement object at 0x108d56890>, 'pizzapin': <fortpy.elements.ValueElement object at 0x1090f3850>}
-{'pizzapi1': <fortpy.elements.ValueElement object at 0x108d56890>, 'pizzapin': <fortpy.elements.ValueElement object at 0x1090f3850>}
-[<Completion: pizzaPI1>, <Completion: generate_multilattice_pizza>, <Completion: pizzaPIN>]
+{'pizzapin': <fortpy.elements.ValueElement object at 0x10e7efcf8>, 'pizzapi1': <fortpy.elements.ValueElement object at 0x10e7efd30>}
+{'pizzapin': <fortpy.elements.ValueElement object at 0x10e7efcf8>, 'pizzapi1': <fortpy.elements.ValueElement object at 0x10e7efd30>}
+[<Completion: generate_multilattice_pizza>, <Completion: pizzaPIN>, <Completion: pizzaPI1>]
 
 ['tests/isense/edits/new_element.f90', 142, 4]
-'new_method' not found in ['flip_before', 'track', 'enabled', 'tracker_initialize', 'flip_after', 'single_corr']
+'new_method' not found in ['flip_after', 'enabled', 'single_corr', 'track', 'tracker_initialize', 'flip_before']
 ['a', 'b', 'c']
-[<Completion: DIM>, <Completion: generate_multilattice_pizza>, <Completion: OPEN>, <Completion: enabled>, <Completion: set_spin_at_g>, <Completion: new_method>, <Completion: SQRT>, <Completion: get_maxgFigLen>, <Completion: ABS>, <Completion: fileio>, <Completion: ALLOCATE>, <Completion: CLOSE>, <Completion: single_corr>, <Completion: ioerr>, <Completion: PRESENT>]
+[<Completion: fileio>, <Completion: DIM>, <Completion: generate_multilattice_pizza>, <Completion: get_maxgFigLen>, <Completion: set_spin_at_g>, <Completion: ioerr>, <Completion: enabled>, <Completion: single_corr>, <Completion: CLOSE>, <Completion: OPEN>, <Completion: new_method>, <Completion: ALLOCATE>, <Completion: ABS>, <Completion: SQRT>, <Completion: PRESENT>]

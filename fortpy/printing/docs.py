@@ -17,7 +17,7 @@ def format(element):
     elif isinstance(element, ValueElement):
         _format_value_element(result, element)
 
-    return '\n'.format(result)
+    return '\n'.join(result)
 
 def _format_executable(lines, element, spacer=""):
     """Performs formatting specific to a Subroutine or Function code

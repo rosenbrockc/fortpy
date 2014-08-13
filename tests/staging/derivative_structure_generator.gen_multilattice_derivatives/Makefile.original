@@ -19,9 +19,9 @@ LIBMODULESF90	= \
 		fortpy.f90 \
 		num_types.f90 \
 		numerical_utilities.f90 \
-		utilities_module.f90 \
-		vector_matrix_utilities.f90 \
 		enumeration_types.f90 \
+		vector_matrix_utilities.f90 \
+		utilities_module.f90 \
 		rational_mathematics.f90 \
 		io_utils.f90 \
 		derivative_structure_generator.f90

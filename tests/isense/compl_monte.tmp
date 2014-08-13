@@ -1,6 +1,6 @@
 ['in_function_call', 189, 30]
 
-{'params': ['this', 'g', '*CE*', 'MC', 'pizzaPI'], 'description': 'type(CE_variables), intent(in) :: CE | No summary for element. | MODULE: monte_orderparam', 'index': 2, 'call_name': 'single_corr'}
+{'description': 'type(CE_variables), intent(in) :: CE | No summary for element. | MODULE: monte_orderparam', 'call_name': 'single_corr', 'index': 2, 'params': ['this', 'g', '*CE*', 'MC', 'pizzaPI']}
 
 ['completions', 121, 12]
 
@@ -8,37 +8,47 @@
 
 integer | No summary for element.
 
-
-
+integer :: maxBoxSizeForCalcTotalE = 50
+  No summary for element.
 
 ['bracket_complete', 133, 25]
 
-{'params': [':,:'], 'description': 'real(dp), allocatable :: correlations(:,:) | [C:1] The set of correlations calculated at a certain temperature. [C:2] The relevant cluster in @CREF[this.clusters].', 'index': 0, 'call_name': 'correlations'}
+{'description': 'real(dp), allocatable :: correlations(:,:) | [C:1] The set of correlations calculated at a certain temperature. [C:2] The relevant cluster in @CREF[this.clusters].', 'call_name': 'correlations', 'index': 0, 'params': [':,:']}
 
 ['in_function_call', 141, 9]
 
-[<Completion: sin>, <Completion: size>, <Completion: single_corr>, <Completion: sinh>, <Completion: sign>, <Completion: bit_size>]
+[<Completion: sin>, <Completion: single_corr>, <Completion: size>, <Completion: bit_size>, <Completion: sinh>, <Completion: sign>]
 
 real, complex | Sine. Result type is same as X. 
 
+real, complex FUNCTION sin(X)
+   Sine. Result type is same as X. 
 
+PARAMETERS
+real, complex :: X
+  No summary for element.
+  PARAMETER:  Argument of sine, of type real or complex. 
+    Attributes:type -> real, complex; name -> X
+    Decorates: real, complex :: X
 
+  USAGE:  The result is the sine of X. If X is real, X is in radians. If X is complex, the real part of X is express in radians. EXAMPLES: SIN(0.0) is 0.0; SIN(X) where X is $\pi/2$ is 1.0; and SIN((1.0_P, 1.0_P)) is 1.29846 + 0.63496i of kind P. 
+    Decorates: real, complex FUNCTION sin(X)
 
 ['bracket_complete', 122, 12]
 
-{'params': [None], 'description': 'class(cluster_tracker), intent(inout) :: this', 'index': 0, 'call_name': 'this'}
+{'description': 'class(cluster_tracker), intent(inout) :: this', 'call_name': 'this', 'index': 0, 'params': [None]}
 
 ['bracket_complete', 191, 9]
 
-{'params': ['ARRAY', 'DIM', 'KIND'], 'description': 'integer |  Number of elements of an array or a dimension of an array. Result is a scalar of integer type with kind KIND if KIND is present, or otherwise, with the kind of default integer.  | BUILTIN', 'index': 0, 'call_name': 'size'}
+{'description': 'integer |  Number of elements of an array or a dimension of an array. Result is a scalar of integer type with kind KIND if KIND is present, or otherwise, with the kind of default integer.  | BUILTIN', 'call_name': 'size', 'index': 0, 'params': ['ARRAY', 'DIM', 'KIND']}
 
 ['bracket_complete', 311, 16]
 
-{'params': ['variable', 'filename', 'n'], 'description': 'SUMMARY: Provides a single call interface for integer and real data types for single values, 1D and 2D arrays. Also handles outputting true/false for logical type variables. | ACCEPTS: integer, integer(li), real(dp), logical | MODULE: fortpy', 'index': 0, 'call_name': 'pysave'}
+{'description': 'SUMMARY: Provides a single call interface for integer and real data types for single values, 1D and 2D arrays. Also handles outputting true/false for logical type variables. | ACCEPTS: integer, integer(li), real(dp), logical | MODULE: fortpy', 'call_name': 'pysave', 'index': 0, 'params': ['variable', 'filename', 'n']}
 
 ['in_function_call', 312, 29]
 
-{'params': ['variable', 'filename', '*n*'], 'description': 'SUMMARY: No summary for element. | ACCEPTS: integer | *MODIFIED* | MODULE: fortpy', 'index': 2, 'call_name': 'pysave'}
+{'description': 'SUMMARY: No summary for element. | ACCEPTS: integer | *MODIFIED* | MODULE: fortpy', 'call_name': 'pysave', 'index': 2, 'params': ['variable', 'filename', '*n*']}
 
 ['completions', 313, 11]
 
@@ -48,16 +58,14 @@ real, complex | Sine. Result type is same as X.
 
 
 
-
 ['in_function_call', 314, 19]
 
-{'params': ['*variable*', 'filename', 'n'], 'description': 'SUMMARY: No summary for element. | ACCEPTS: integer, integer(li), real(dp), logical | *MODIFIED* | MODULE: fortpy', 'index': 0, 'call_name': 'pysave'}
+{'description': 'SUMMARY: No summary for element. | ACCEPTS: integer, integer(li), real(dp), logical | *MODIFIED* | MODULE: fortpy', 'call_name': 'pysave', 'index': 0, 'params': ['*variable*', 'filename', 'n']}
 
 ['in_function_call', 315, 13]
 
-[<Completion: random_init>, <Completion: random_number>, <Completion: randomfpy>, <Completion: random_seed>]
+[<Completion: randomfpy>, <Completion: random_seed>, <Completion: random_number>, <Completion: random_init>]
 
-None | Initializes the seed of the random number generator.
 
 
 
@@ -69,3 +77,20 @@ None | Initializes the seed of the random number generator.
 method() | Saves the averaged correlation values over the entire flip simulation to file.
 
 
+
+['goto_definitions', 103, 24]
+
+<BaseDefinition None | No summary for element.>
+
+ SUBROUTINE read_clusters(Clusters, clustersFile, GA, eps)
+  No summary for element.
+
+PARAMETERS
+type(figure), pointer :: Clusters(:)
+  No summary for element.
+character(30), intent(in) :: clustersFile
+  No summary for element.
+type(GA_variables), intent(inout) :: GA
+  No summary for element.
+real(dp), intent(in) :: eps
+  No summary for element.

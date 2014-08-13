@@ -1424,7 +1424,10 @@ class Module(CodeElement, Decoratable):
         if len(self._lines) == 0:
             self.linenum(1)
 
-        return self._chars[line - 1] + column
+        if line < len(self._chars):
+            return self._chars[line - 1] + column
+        else:
+            return len(self.refstring)
 
     def linenum(self, index):
         """Gets the line number of the character at the specified index.

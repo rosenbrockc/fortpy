@@ -34,7 +34,8 @@ def get_completion_tests(key= "monte"):
                   ["bracket_complete", 122, 12], ["bracket_complete", 191, 9],
                   ["bracket_complete", 311, 16], ["in_function_call", 312, 29],
                   ["completions", 313, 11], ["in_function_call", 314, 19],
-                  ["in_function_call", 315, 13], ["completions", 316, 14]],
+                  ["in_function_call", 315, 13], ["completions", 316, 14],
+                  ["goto_definitions", 103, 24]],
         "deriv": [["completions", 207, 4], ["bracket_complete", 208, 4],
                   ["completions", 209, 8], ["in_function_call", 330, 22],
                   ["completions", 345, 8], ["in_function_call", 52, 27]],
@@ -68,17 +69,20 @@ def test_original(key="monte"):
         results.append(test)
         try:
             script = fortpy.isense.Script(original, test[1], test[2], fullpath)
-        except ValueError:
-            print [test, fullpath, key]
+            result = getattr(script, test[0])()
+            results.append(result)        
+        except:
+            print([test, fullpath, key])
             raise
-        result = getattr(script, test[0])()
-        results.append(result)
 
         #Also examine the description for in function calls and completions.
         if test[0] in ["in_function_call", "completions"] and len(result) > 0:
             if type(result) == list:
                 results.append(result[0].description)
                 results.append(result[0].fulldoc)
+
+        if test[0] == "goto_definitions":
+            results.append(result.fulldoc)
 
     return results
 
@@ -99,55 +103,52 @@ args = vars(parser.parse_known_args()[0])
 #if args["isense"]:
 settings.real_time_update = False
 keys = ["monte", "deriv", "cefit"]
-#with open(get_path("tests/isense/completion.tmp"), 'w') as f:
-#    f.write("\n\n".join([str(i) for i in test_original(True)]))
 for key in keys:
     with open(get_path("tests/isense/compl_{}.tmp".format(key)), 'w') as f:
         f.write("\n\n".join([str(i) for i in test_original(key)]))
-#else:
 
-# def test_real_time():
-#     """Tests all the real-time update machinery for the isense package."""
-#     #Get the unmodified original file to make changes to.
-#     original = get_script(source)
+def test_real_time():
+    """Tests all the real-time update machinery for the isense package."""
+    #Get the unmodified original file to make changes to.
+    original = get_script(source)
 
-#     #Technically, we should be able to run each of these edits in
-#     #turn, which each make a single adjustment.
-#     results = []
-#     for edit in edits:
-#         single = []
-#         try:
-#             single.append(edit[0:3])
-#             if edit[3] is not None and edit[4] in edit[3]:
-#                 single.append(getattr(edit[3][edit[4]], edit[5]))
-#             elif edit[3] is not None:
-#                 single.append("'{0}' not found in {1}".format(edit[4], 
-#                                                             list(edit[3].keys())))
-#             script = get_script(edit)
-#             result = script.in_function_call()
-#             if edit[3] is not None:
-#                 single.append(getattr(edit[3][edit[4]], edit[5]))
-#             single.append(result)
+    #Technically, we should be able to run each of these edits in
+    #turn, which each make a single adjustment.
+    results = []
+    for edit in edits:
+        single = []
+        try:
+            single.append(edit[0:3])
+            if edit[3] is not None and edit[4] in edit[3]:
+                single.append(getattr(edit[3][edit[4]], edit[5]))
+            elif edit[3] is not None:
+                single.append("'{0}' not found in {1}".format(edit[4], 
+                                                            list(edit[3].keys())))
+            script = get_script(edit)
+            result = script.in_function_call()
+            if edit[3] is not None:
+                single.append(getattr(edit[3][edit[4]], edit[5]))
+            single.append(result)
 
-#         except:
-#             print(single)
-#             raise
-#         results.append("\n".join([str(i) for i in single]))
+        except:
+            print(single)
+            raise
+        results.append("\n".join([str(i) for i in single]))
 
-#     return results
+    return results
 
-# import fortpy.isense.cache as cache
-# cache.parser().reparse(get_path(source[0]))
-# module = cache.parser().modules["monte_orderparam"]
-# edits = [["tests/isense/edits/signature.f90", 208, 30, 
-#           module.executables, "single_corr", "paramorder"], 
-#          ["tests/isense/edits/docstring.f90", 208, 30, None],
-#          ["tests/isense/edits/variable.f90", 206, 9, 
-#           module.executables, "flip_after", "members"], 
-#          ["tests/isense/edits/new_element.f90", 142, 4, 
-#           module.executables, "new_method", "paramorder" ]]
+import fortpy.isense.cache as cache
+cache.parser().reparse(get_path(source[0]))
+module = cache.parser().modules["monte_orderparam"]
+edits = [["tests/isense/edits/signature.f90", 208, 30, 
+          module.executables, "single_corr", "paramorder"], 
+         ["tests/isense/edits/docstring.f90", 208, 30, None],
+         ["tests/isense/edits/variable.f90", 206, 9, 
+          module.executables, "flip_after", "members"], 
+         ["tests/isense/edits/new_element.f90", 142, 4, 
+          module.executables, "new_method", "paramorder" ]]
 
-# settings.real_time_update = True
-# # with open(get_path("tests/isense/rtupdate.tmp"), 'w') as f:
-# #     f.write('\n\n')
-# #     f.write("\n\n".join([str(i) for i in test_real_time()]))
+settings.real_time_update = True
+with open(get_path("tests/isense/rtupdate.tmp"), 'w') as f:
+    f.write('\n\n')
+    f.write("\n\n".join([str(i) for i in test_real_time()]))

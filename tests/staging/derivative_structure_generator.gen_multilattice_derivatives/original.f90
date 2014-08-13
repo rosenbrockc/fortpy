@@ -1,28 +1,28 @@
 !!<summary>Auto-generated unit test for derivative_structure_generator.gen_multilattice_derivatives
-!!using FORTPY. Generated on 2014-08-07 16:28:23.158460.
+!!using FORTPY. Generated on 2014-08-13 15:52:33.711581.
 !!Original enumerations tests of basic structures</summary>
 PROGRAM UNITTEST_gen_multilattice_derivatives
   use io_utils, only: read_input
   use derivative_structure_generator
   use fortpy
 
-  real(dp) :: eps
-  logical :: conc_check
-  integer :: k
-  integer, pointer :: labelFull(:,:)
-  integer :: LatDim
-  real(dp) :: parlv(3,3)
   character(1) :: plattyp
-  character(80) :: fname = 'struct_enum.in'
+  integer :: LatDim
+  integer, pointer :: labelFull(:,:)
+  real(dp) :: eps
   integer :: nmax
-  integer, pointer :: equivalencies(:)
-  integer, pointer :: digitFull(:)
-  integer :: nmin
-  integer :: ndfull
-  logical :: full
   character(80) :: title
+  character(80) :: fname = 'struct_enum.in'
   real(dp), pointer :: dFull(:,:) => null()
+  integer :: ndfull
+  real(dp) :: parlv(3,3)
   integer, pointer :: cRange(:,:)
+  integer, pointer :: equivalencies(:)
+  logical :: conc_check
+  integer :: nmin
+  logical :: full
+  integer :: k
+  integer, pointer :: digitFull(:)
 
 
   call read_input(title, LatDim, parLV, nDFull, dFull, k, equivalencies, nMin, nMax, eps, &
