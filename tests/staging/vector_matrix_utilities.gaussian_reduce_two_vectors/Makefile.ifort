@@ -1,0 +1,57 @@
+# Makefile include for the ifort compiler
+#--------------------------------------------------------------------------------
+
+# Standard flags (produce optimised code)
+FFLAGS  =  -xW -O3 -fpic
+LDFLAGS = 
+
+# Options that REPLACE standard flags
+#................................................................................
+
+# Compiling on a Mac? (for GH)
+ifeq ($(UNAME),Darwin)
+   FFLAGS  =  -O3
+   LDFLAGS =
+endif
+
+# Debug flag
+ifeq ($(DEBUG),true)
+   FFLAGS  =  -g -error-limit 7 -traceback -check bounds -warn -fpic
+   LDFLAGS = 
+endif
+
+
+# Options that add to standard flags (do NOT replace standard flags)
+#................................................................................
+
+# Use precompiler
+FFLAGS += -fpp -save-temps -heap-arrays
+
+# Use MPI
+ifeq ($(UNCLE_MPI),true) # if you want to use MPI, set env variable UNCLE_MPI=true
+   F90      = mpif90 
+   FFLAGS  += -D__MPI__q
+endif
+
+# Use MKL
+ifeq ($(UNCLE_MKL),true) # if you want to use MPI, set env variable UNCLE_MPI=true
+   #FFLAGS  += -D__MKL__
+   #FFLAGS  += -mkl	
+endif
+
+# Use Profiler
+ifeq ($(UNCLE_PROF),true)  # add profiling flags
+   FFLAGS  += -p
+   LDFLAGS += -p 
+endif
+
+# Use OMP
+ifeq ($(UNCLE_OMP),true)   # add openmp flags
+   FFLAGS   += -openmp
+   LDFLAGS  += -openmp
+endif
+
+# Use special svm-library (required on some Ubuntu installations)
+ifeq ($(UNCLE_SVML),true)
+   LDFLAGS  += -lsvml
+endif

@@ -1,0 +1,91 @@
+EXENAME		= original.x
+SHELL		= /bin/bash
+UNAME		= $(shell uname)
+HOSTNAME	= $(shell hostname)
+LOG		= compile.log
+
+ifeq ($(F90),ifort)
+  include Makefile.ifort
+else
+ifeq ($(F90),gfortran)
+  include Makefile.gfortran
+else
+  include Makefile.error
+endif
+endif
+.SILENT:
+
+LIBMODULESF90	= \
+		fortpy.f90 \
+		num_types.f90 \
+		numerical_utilities.f90 \
+		utilities_module.f90 \
+		vector_matrix_utilities.f90 \
+		enumeration_types.f90 \
+		rational_mathematics.f90 \
+		io_utils.f90 \
+		derivative_structure_generator.f90
+MAINF90		= original.f90
+SRCF90		= $(LIBMODULESF90) $(MAINF90)
+OBJSF90		= $(SRCF90:.f90=.o)
+SLIBF90		= $(LIBMODULESF90:.f90=.o)
+
+LIBS		= \
+		~/codes/qhlib/libqhull.a \
+		~/codes/uncle/trunk/timing.o \
+
+
+# Error handling
+NEWFILE		= \#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#
+ERR		= ******************************* ERROR *******************************
+SHOW_LOG	= ( perl -pi -e 's/ [Ee]rror \#/\n\n\n$(ERR)\n*** error \#/' $(LOG); perl -pi -e 's/^\# 1 "/\n\n$(NEWFILE)\n\n\n/' $(LOG); grep -n -A3 -E "$(ERR)|$(NEWFILE)" $(LOG) )
+
+
+all:	info $(EXENAME)
+
+info: 
+	echo -e "\nCompile time:" > $(LOG)
+	date >> $(LOG)
+	echo "------------------------------------------------------"| tee -a $(LOG)
+	echo "                     FORTPY"                           | tee -a $(LOG)
+	echo "               >>> version 1.0 <<<                    "| tee -a $(LOG)         
+	echo "------------------------------------------------------"| tee -a $(LOG)
+	echo -e "Compiling on system  : $(UNAME)"                    | tee -a $(LOG)
+	echo -e "             machine : $(HOSTNAME)"                 | tee -a $(LOG)
+	echo "Compiling for module : derivative_structure_generator"                            | tee -a $(LOG)         
+	echo "              method : gen_multilattice_derivatives"                            | tee -a $(LOG)         
+	echo "------------------------------------------------------"| tee -a $(LOG)
+	echo -e "DEBUG mode\t:\t$(DEBUG)"                          | tee -a $(LOG)
+	echo -e "GPROF mode\t:\t$(GPROF)"                          | tee -a $(LOG)
+	echo "------------------------------------------------------"| tee -a $(LOG)
+	echo "F90    : $(F90)"                                       | tee -a $(LOG)
+	echo "FFLAGS : $(FFLAGS)"                                    | tee -a $(LOG)
+	echo "LDFLAGS: $(LDFLAGS)"                                   | tee -a $(LOG)
+	echo "MKLpath:$(MKL)"                                        | tee -a $(LOG)
+	echo "------------------------------------------------------"| tee -a $(LOG)
+	echo ""                                                      | tee -a $(LOG)
+
+
+
+$(EXENAME): $(OBJSF90)
+	-rm $(EXENAME) 2> /dev/null
+	echo -n "Linking... "
+	-$(F90) $(LDFLAGS) -o $(EXENAME) $(OBJSF90) $(LIBS) >> $(LOG) 2>> $(LOG)
+	echo "done."
+	if test -e $(EXENAME); then echo "Produced executable: $(EXENAME)"; else $(SHOW_LOG); echo "Error."; fi
+
+$(OBJSF90): %.o: %.f90
+	echo -n "Compiling: $^... "
+	-$(F90) -c $(FFLAGS) $^ >> $(LOG) 2>> $(LOG)
+	echo "done."
+
+original.so: $(SLIBF90)
+	-rm $(EXENAME).so 2> /dev/null
+	echo -n "Creating shared library..."
+	-$(F90) -shared -fPIC $(FFLAGS) -o original.so $(SLIBF90) $(LIBS) >> $(LOG) 2>> $(LOG)
+
+clean:
+	-rm *.o *.mod *.i90 $(EXENAME)
+remake:
+	-rm *.o *.mod *.i90 $(EXENAME)
+	make -f Makefile.original

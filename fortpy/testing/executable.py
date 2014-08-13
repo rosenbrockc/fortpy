@@ -43,6 +43,11 @@ class ExecutableGenerator(object):
 
     def _process_module_needs(self, module, i, result):
         """Adds the module and its dependencies to the result list."""
+        #Some code might decide to use the fortpy module methods for general
+        #development, ignore it since we know it will be present in the end.
+        if module == "fortpy":
+            return
+
         #See if the parser has alread loaded this module.
         if module not in self.parser.modules:
             self.parser.load_dependency(module, True, True, False)
@@ -154,7 +159,8 @@ class ExecutableGenerator(object):
         #Copy over the fortpy module in case we need it.
         lines.append("\t\tfortpy.f90 \\")
         for modk in allneeds[0:len(allneeds)-1]:
-            lines.append("\t\t{} \\".format(self._get_mapping(modk)))
+            if modk != "fortpy":
+                lines.append("\t\t{} \\".format(self._get_mapping(modk)))
         lines.append("\t\t{}".format(self._get_mapping(allneeds[-1])))
 
         lines.append("MAINF90\t\t= {}.f90".format(identifier))
@@ -314,7 +320,8 @@ info:
 
         #Last of all, we need to append the module that handles interaction with
         #the fortran results and the python testing framework.
-        uselist.append("use fortpy\n")
+        if "fortpy" not in alluses:
+            uselist.append("use fortpy\n")
 
         return self._tabjoin(uselist)
 

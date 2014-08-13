@@ -1,0 +1,71 @@
+['in_function_call', 189, 30]
+
+{'index': 2, 'call_name': 'single_corr', 'params': ['this', 'g', '*CE*', 'MC', 'pizzaPI'], 'description': 'type(CE_variables), intent(in) :: CE | No summary for element.'}
+
+['completions', 121, 12]
+
+[<Completion: maxBoxSizeForCalcTotalE>, <Completion: maxgFigLen>, <Completion: maxnSteps>]
+
+integer | No summary for element.
+
+
+
+
+['bracket_complete', 133, 25]
+
+{'index': 0, 'call_name': 'correlations', 'params': [':,:'], 'description': 'real(dp), allocatable :: correlations(:,:) | [C:1] The set of correlations calculated at a certain temperature. [C:2] The relevant cluster in @CREF[this.clusters].'}
+
+['in_function_call', 141, 9]
+
+[<Completion: bit_size>, <Completion: sinh>, <Completion: single_corr>, <Completion: sign>, <Completion: sin>, <Completion: size>]
+
+integer | Number of bits in the bit model. The result is an integer of the kind of I. 
+
+
+
+
+['bracket_complete', 122, 12]
+
+{'index': 0, 'call_name': 'this', 'params': [None], 'description': 'class(cluster_tracker), intent(inout) :: this'}
+
+['bracket_complete', 191, 9]
+
+{'index': 0, 'call_name': 'size', 'params': ['ARRAY', 'DIM', 'KIND'], 'description': 'integer |  Number of elements of an array or a dimension of an array. Result is a scalar of integer type with kind KIND if KIND is present, or otherwise, with the kind of default integer. '}
+
+['bracket_complete', 311, 16]
+
+{'index': 0, 'call_name': 'pysave', 'params': ['variable', 'filename', 'n'], 'description': 'SUMMARY: Provides a single call interface for integer and real data types for single values, 1D and 2D arrays. Also handles outputting true/false for logical type variables. | ACCEPTS: integer, integer(li), real(dp), logical'}
+
+['in_function_call', 312, 29]
+
+{'index': 2, 'call_name': 'pysave', 'params': ['variable', 'filename', '*n*'], 'description': 'SUMMARY: No summary for element. | ACCEPTS: integer | *MODIFIED*'}
+
+['completions', 313, 11]
+
+[<Completion: pysave>]
+
+
+
+
+
+
+['in_function_call', 314, 19]
+
+{'index': 0, 'call_name': 'pysave', 'params': ['*variable*', 'filename', 'n'], 'description': 'SUMMARY: No summary for element. | ACCEPTS: integer, integer(li), real(dp), logical | *MODIFIED*'}
+
+['in_function_call', 315, 13]
+
+[<Completion: randomfpy>, <Completion: random_seed>, <Completion: random_init>, <Completion: random_number>]
+
+
+
+
+
+
+['completions', 316, 14]
+
+[<Completion: end_track>, <Completion: flip_after>, <Completion: flip_before>, <Completion: initialize>, <Completion: track>, <Completion: tracker_finalize>]
+
+method() | Saves the averaged correlation values over the entire flip simulation to file.
+
+

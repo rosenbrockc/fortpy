@@ -1,0 +1,38 @@
+['completions', 207, 4]
+
+[<Completion: nL>, <Completion: perm>, <Completion: RotIndx>, <Completion: v>]
+
+integer | No summary for element.
+
+
+
+
+['bracket_complete', 208, 4]
+
+{'params': [':'], 'description': 'type(RotPermList) :: rpl(:)', 'index': 0, 'call_name': 'rpl'}
+
+['completions', 209, 8]
+
+[<Completion: nL>, <Completion: perm>, <Completion: RotIndx>, <Completion: v>]
+
+integer | No summary for element.
+
+
+
+
+['in_function_call', 330, 22]
+
+{'params': ['*aVecs*', 'atomType', 'input_pos', 'sg_op', 'sg_fract', 'eps_'], 'description': 'real(dp), intent(in) :: aVecs(3,3) | No summary for element. *MODIFIED* | MODULE: symmetry_module', 'index': 0, 'call_name': 'get_spaceGroup'}
+
+['completions', 345, 8]
+
+[<Completion: nL>, <Completion: perm>, <Completion: RotIndx>, <Completion: v>]
+
+integer | No summary for element.
+
+
+
+
+['in_function_call', 52, 27]
+
+{'params': ['*concTable*', 'volTable', 'cList', 'eps'], 'description': 'integer, intent(in) :: concTable(:,:) | No summary for element. | MODULE: derivative_structure_generator', 'index': 0, 'call_name': 'get_concentration_list'}

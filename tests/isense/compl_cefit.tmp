@@ -1,0 +1,11 @@
+['in_function_call', 3087, 30]
+
+{'params': ['*k*', 'n', 'HNF', 'labeling', 'pLV', 'pBas', 'eps', 'sLV', 'aBas', 'spin', 'gIndx', 'x', 'L', 'S', 'minkowskiReduce'], 'description': 'integer, intent(in) :: k | No summary for element. | MODULE: enumeration_utilities', 'index': 0, 'call_name': 'map_enumStr_to_real_space'}
+
+['in_function_call', 264, 17]
+
+[<Completion: initializeRND>]
+
+None | No summary for element.
+
+

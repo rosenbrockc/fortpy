@@ -218,6 +218,7 @@ class AssignmentValue(object):
         self.repeats = None
         self.prereqs = None
         self.paramlist = None
+        self.allocate = None
 
         self._derived_type = None
         self._codes = {
@@ -246,9 +247,13 @@ class AssignmentValue(object):
     @property
     def allocatable(self):
         """Returns true if the variable assigned by this object should be allocated."""
+        #We use the global declaration's attributes when deciding how to treat the 
+        #variable in the unit testing application. This is because the developer can
+        #override some of the variable's behavior with <global> tags and we need to
+        #honor those changes.
         return (self.parent.allocate and 
-                ("allocatable" in self.parent.variable.modifiers or
-                 "pointer" in self.parent.variable.modifiers or
+                ("allocatable" in self.parent.global_attr("modifiers", "") or
+                 "pointer" in self.parent.global_attr("modifiers", "") or
                  (self.parent.variable.D > 0 and ":" in self.parent.variable.dimension)))
  
     def copy(self, coderoot, testroot, case):
@@ -315,14 +320,33 @@ class AssignmentValue(object):
         """Appends code for assigning the value of the parent variable using
         this value specification."""
         if self.constant is not None:
+            self._code_setvar_allocate(lines, spacer)
             lines.append("{}{} = {}".format(spacer, self.parent.name, self.constant))
         elif self.function is not None:
+            self._code_setvar_allocate(lines, spacer)
             lines.append("{}{} = {}".format(spacer, self.parent.name, self.function))
         elif self.embedded is not None:
             self._code_embedded(lines, spacer)
         else:
             self._code_file(lines, spacer)
             
+    def _code_setvar_allocate(self, lines, spacer):
+        """Allocates the variables before a general value setting if they need to be
+        allocated.
+        """
+        #This only works if the value they specified includes a specific allocate dimension.
+        if self.allocate is None:
+            return
+
+        if (self.parent.variable.dimension is not None and
+            self.allocatable and self.parent.variable.D == 1):
+            lines.append("{}allocate({}({}))".format(spacer, self.parent.name, self.allocate))
+                    
+        if (self.parent.variable.dimension is not None and
+            self.parent.variable.D == 2 and self.allocatable):                  
+            allocstr = "{2}allocate({0}({1}))"
+            lines.append(allocstr.format(self.parent.name, self.allocate, spacer))
+
     def _code_embedded(self, lines, spacer):
         """Appends code for calling an embedded method in a derived type,
         optionally including all its dependencies."""
@@ -362,6 +386,10 @@ class AssignmentValue(object):
             flines = []
             flines.append("open(fpy_newunit({}_funit), ".format(self.iid) + 
                           "file='{}')".format(self.xname))
+
+            #It is possible that a single value could be read from the file.
+            if self.parent.variable.D == 0:
+                flines.append("read({}_funit, *) {}".format(self.iid, self.parent.name))
 
             #We are working with a vector or scalar. Check the dimensionality of
             #the actual variable and see if it needs to be allocated.
@@ -445,6 +473,8 @@ class AssignmentValue(object):
             self.prereqs = self.xml.attrib["prereqs"].lower() == "true"
         else:
             self.prereqs = False
+        if "allocate" in self.xml.attrib:
+            self.allocate = self.xml.attrib["allocate"]
 
 class Condition(object):
     """Represents a single if, elseif or else block to execute."""
@@ -575,6 +605,26 @@ class Assignment(object):
     def parser(self):
         """Returns this Assignment's parent's CodeParser instance."""
         return self.parent.parser
+
+    def global_attr(self, key, default=None):
+        """Retuns the value of attribute with the specified key from the GlobalDeclaration
+        instance for this variable being assigned.
+        """
+        g = self.globaldecl
+        if g is not None and key in g.attributes:
+            return g.attributes[key]
+        else:
+            return default
+
+    @property
+    def globaldecl(self):
+        """Returns the GlobalDeclaration instance for the current variable, which may have
+        different parameters and modifiers as the actual code element.
+        """
+        if self.name.lower() in self.parent.group.variables:
+            return self.parent.group.variables[self.name.lower()]
+        else:
+            return None
 
     @property
     def variable(self):

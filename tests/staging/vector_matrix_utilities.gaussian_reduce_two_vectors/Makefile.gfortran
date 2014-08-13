@@ -1,0 +1,32 @@
+# Makefile include for the gfortran compiler
+# This should compile with gfotran 4.4 or greater
+#--------------------------------------------------------------------------------
+
+# Standard flags (produce optimised code)
+FFLAGS  =  -O3 -ffree-line-length-none 
+LDFLAGS = 
+
+# Options that REPLACE standard flags
+#................................................................................
+
+# Debug flag
+ifeq ($(DEBUG),true)
+     FFLAGS  =  -g -fbacktrace -fbounds-check -ffree-line-length-none
+#   FFLAGS  =  -g -fbacktrace -fbounds-check -Wall -ffree-line-length-none 
+#   FFLAGS  =  -g -ffree-line-length-none 
+   LDFLAGS = 
+endif
+
+
+# Options that add to standard flags (do NOT replace standard flags)
+#................................................................................
+
+# Standard Fortran 95
+#FFLAGS  += -std=f95
+#FFLAGS  += -std=f2003
+
+# Use OMP
+ifeq ($(UNCLE_OMP),true)   # add openmp flags
+   FFLAGS   += -fopenmp
+   LDFLAGS  += -fopenmp
+endif

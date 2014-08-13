@@ -1,0 +1,33 @@
+['completions', 207, 4]
+
+[<Completion: nL>, <Completion: perm>, <Completion: RotIndx>, <Completion: v>]
+
+integer | No summary for element.
+
+
+
+
+['bracket_complete', 208, 4]
+
+{'params': [':'], 'index': 0, 'description': 'type(RotPermList) :: rpl(:)', 'call_name': 'rpl'}
+
+['completions', 209, 8]
+
+[<Completion: nL>, <Completion: perm>, <Completion: RotIndx>, <Completion: v>]
+
+integer | No summary for element.
+
+
+
+
+['in_function_call', 330, 22]
+
+{'params': ['*aVecs*', 'atomType', 'input_pos', 'sg_op', 'sg_fract', 'eps_'], 'index': 0, 'description': 'real(dp), intent(in) :: aVecs(3,3) | No summary for element. *MODIFIED* | MODULE: symmetry_module', 'call_name': 'get_spaceGroup'}
+
+['completions', 345, 8]
+
+[<Completion: nL>, <Completion: perm>, <Completion: RotIndx>, <Completion: v>]
+
+integer | No summary for element.
+
+
