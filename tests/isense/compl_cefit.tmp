@@ -1,6 +1,6 @@
 ['in_function_call', 3087, 30]
 
-{'description': 'integer, intent(in) :: k | No summary for element. | MODULE: enumeration_utilities', 'call_name': 'map_enumStr_to_real_space', 'index': 0, 'params': ['*k*', 'n', 'HNF', 'labeling', 'pLV', 'pBas', 'eps', 'sLV', 'aBas', 'spin', 'gIndx', 'x', 'L', 'S', 'minkowskiReduce']}
+{'index': 0, 'call_name': 'map_enumStr_to_real_space', 'params': ['*k*', 'n', 'HNF', 'labeling', 'pLV', 'pBas', 'eps', 'sLV', 'aBas', 'spin', 'gIndx', 'x', 'L', 'S', 'minkowskiReduce'], 'description': 'integer, intent(in) :: k | No summary for element. | MODULE: enumeration_utilities'}
 
 ['in_function_call', 264, 17]
 

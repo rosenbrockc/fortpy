@@ -3,17 +3,17 @@
 ['tests/isense/edits/signature.f90', 208, 30]
 ['this', 'g', 'ce', 'mc', 'pizzapi']
 ['this', 'g', 'ce', 'mc', 'pizzapi', 'extraparam']
-{'description': 'type(CE_variables), intent(in) :: CE | No summary for element. | MODULE: monte_orderparam', 'call_name': 'single_corr', 'index': 2, 'params': ['this', 'g', '*CE*', 'MC', 'pizzaPI', 'extraparam']}
+{'index': 2, 'call_name': 'single_corr', 'params': ['this', 'g', '*CE*', 'MC', 'pizzaPI', 'extraparam'], 'description': 'type(CE_variables), intent(in) :: CE | No summary for element. | MODULE: monte_orderparam'}
 
 ['tests/isense/edits/docstring.f90', 208, 30]
-{'description': 'type(CE_variables), intent(in) :: CE | No summary for element. | MODULE: monte_orderparam', 'call_name': 'single_corr', 'index': 2, 'params': ['this', 'g', '*CE*', 'MC', 'pizzaPI', 'extraparam']}
+{'index': 2, 'call_name': 'single_corr', 'params': ['this', 'g', '*CE*', 'MC', 'pizzaPI', 'extraparam'], 'description': 'type(CE_variables), intent(in) :: CE | No summary for element. | MODULE: monte_orderparam'}
 
 ['tests/isense/edits/variable.f90', 206, 9]
-{'pizzapin': <fortpy.elements.ValueElement object at 0x10e7efcf8>, 'pizzapi1': <fortpy.elements.ValueElement object at 0x10e7efd30>}
-{'pizzapin': <fortpy.elements.ValueElement object at 0x10e7efcf8>, 'pizzapi1': <fortpy.elements.ValueElement object at 0x10e7efd30>}
-[<Completion: generate_multilattice_pizza>, <Completion: pizzaPIN>, <Completion: pizzaPI1>]
+{'pizzapi1': <fortpy.elements.ValueElement object at 0x104b22290>, 'pizzapin': <fortpy.elements.ValueElement object at 0x10507ed50>}
+{'pizzapi1': <fortpy.elements.ValueElement object at 0x104b22290>, 'pizzapin': <fortpy.elements.ValueElement object at 0x10507ed50>}
+[<Completion: pizzaPI1>, <Completion: generate_multilattice_pizza>, <Completion: pizzaPIN>]
 
 ['tests/isense/edits/new_element.f90', 142, 4]
-'new_method' not found in ['flip_after', 'enabled', 'single_corr', 'track', 'tracker_initialize', 'flip_before']
+'new_method' not found in ['flip_before', 'track', 'enabled', 'tracker_initialize', 'flip_after', 'single_corr']
 ['a', 'b', 'c']
-[<Completion: fileio>, <Completion: DIM>, <Completion: generate_multilattice_pizza>, <Completion: get_maxgFigLen>, <Completion: set_spin_at_g>, <Completion: ioerr>, <Completion: enabled>, <Completion: single_corr>, <Completion: CLOSE>, <Completion: OPEN>, <Completion: new_method>, <Completion: ALLOCATE>, <Completion: ABS>, <Completion: SQRT>, <Completion: PRESENT>]
+[<Completion: DIM>, <Completion: generate_multilattice_pizza>, <Completion: OPEN>, <Completion: enabled>, <Completion: set_spin_at_g>, <Completion: new_method>, <Completion: SQRT>, <Completion: get_maxgFigLen>, <Completion: ABS>, <Completion: fileio>, <Completion: ALLOCATE>, <Completion: CLOSE>, <Completion: single_corr>, <Completion: ioerr>, <Completion: PRESENT>]

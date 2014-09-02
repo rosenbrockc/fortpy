@@ -38,7 +38,8 @@ def get_completion_tests(key= "monte"):
                   ["goto_definitions", 103, 24]],
         "deriv": [["completions", 207, 4], ["bracket_complete", 208, 4],
                   ["completions", 209, 8], ["in_function_call", 330, 22],
-                  ["completions", 345, 8], ["in_function_call", 52, 27]],
+                  ["completions", 345, 8], ["in_function_call", 52, 27],
+                  ["goto_definitions", 52, 27]],
         "cefit": [["in_function_call", 3087, 30], ["in_function_call", 264, 17]]
         }
     if key in scripts:

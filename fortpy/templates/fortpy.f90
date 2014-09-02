@@ -3,7 +3,7 @@
 module fortpy
   implicit none
   private
-  public pysave, fdp, fsp, fsi, fli, fpy_linevalue_count, fpy_newunit, pysave_integer_li, &
+  public pysave, dp, sp, si, li, fpy_linevalue_count, fpy_newunit, pysave_integer_li, &
        fpy_value_count
 
   !!<member name="fileunit">I/O unit for the file to write the output to.</member>
@@ -12,10 +12,10 @@ module fortpy
   !!already been seeded for this program execution.</member>
   logical :: seeded
 
-  integer, parameter:: fdp=selected_real_kind(15,307)
-  integer, parameter:: fsp=selected_real_kind(6,37)
-  integer, parameter:: fsi=selected_int_kind(1) ! very short integer -10..10 range
-  integer, parameter:: fli=selected_int_kind(18) ! Big integer -10^18..10^18 range
+  integer, parameter:: dp=selected_real_kind(15,307)
+  integer, parameter:: sp=selected_real_kind(6,37)
+  integer, parameter:: si=selected_int_kind(1) ! very short integer -10..10 range
+  integer, parameter:: li=selected_int_kind(18) ! Big integer -10^18..10^18 range
 
   !!<summary>Provides a single call interface for integer and real data types
   !!for single values, 1D and 2D arrays. Also handles outputting true/false for
@@ -40,22 +40,22 @@ module fortpy
   end interface fpyin_range
 contains  
   logical function in_range_real_2d(variable, min, max)
-    real(fdp), intent(in) :: variable(:,:)
-    real(fdp), intent(in) :: min, max
+    real(dp), intent(in) :: variable(:,:)
+    real(dp), intent(in) :: min, max
     in_range_real_2d = any(variable .ge. min .and. variable .le. max)
     return
   end function in_range_real_2d
 
   logical function in_range_real_1d(variable, min, max)
-    real(fdp), intent(in) :: variable(:)
-    real(fdp), intent(in) :: min, max
+    real(dp), intent(in) :: variable(:)
+    real(dp), intent(in) :: min, max
     in_range_real_1d = any(variable .ge. min .and. variable .le. max)
     return
   end function in_range_real_1d
 
   logical function in_range_real(variable, min, max)
-    real(fdp), intent(in) :: variable
-    real(fdp), intent(in) :: min, max
+    real(dp), intent(in) :: variable
+    real(dp), intent(in) :: min, max
     in_range_real = (variable .ge. min .and. variable .le. max)
     return
   end function in_range_real
@@ -82,8 +82,8 @@ contains
   end function in_range_integer
 
   subroutine random_real_2d(variable, min, max)
-    real(fdp), intent(out) :: variable(:,:)
-    real(fdp), intent(in) :: min, max
+    real(dp), intent(out) :: variable(:,:)
+    real(dp), intent(in) :: min, max
     integer :: r, c, i, j
 
     r = size(variable, 1)
@@ -96,8 +96,8 @@ contains
   end subroutine random_real_2d
 
   subroutine random_real_1d(variable, min, max)
-    real(fdp), intent(out) :: variable(:)
-    real(fdp), intent(in) :: min, max
+    real(dp), intent(out) :: variable(:)
+    real(dp), intent(in) :: min, max
     integer :: r, i
 
     r = size(variable, 1)
@@ -107,9 +107,9 @@ contains
   end subroutine random_real_1d
 
    subroutine random_real(variable, min, max)
-    real(fdp), intent(out) :: variable
-    real(fdp), intent(in) :: min, max
-    real(fdp) :: x
+    real(dp), intent(out) :: variable
+    real(dp), intent(in) :: min, max
+    real(dp) :: x
     !Since we only get real numbers in [0, 1], we have to set the value to be 
     !in the range manually.
     call random_number(x)    
@@ -144,7 +144,7 @@ contains
   subroutine random_integer(variable, min, max)
     integer, intent(out) :: variable
     integer, intent(in) :: min, max
-    real(fdp) :: x
+    real(dp) :: x
     !Since we only get real numbers, we have to set the value to be in the range
     !and then turn it to an integer.
     call random_number(x)    
@@ -210,7 +210,7 @@ contains
   end subroutine pysave_integer_2d
 
   subroutine pysave_integer_li(variable, filename, n)
-    integer(fli), intent(in) :: variable
+    integer(li), intent(in) :: variable
     integer, intent(in) :: n
     character(n), intent(in) :: filename
 
@@ -221,7 +221,7 @@ contains
   end subroutine pysave_integer_li
 
   subroutine pysave_integer_1d_li(variable, filename, n)
-    integer(fli), intent(in) :: variable(:)
+    integer(li), intent(in) :: variable(:)
     integer, intent(in) :: n
     character(n), intent(in) :: filename
     integer :: c, i
@@ -236,7 +236,7 @@ contains
   end subroutine pysave_integer_1d_li
 
   subroutine pysave_integer_2d_li(variable, filename, n)
-    integer(fli), intent(in) :: variable(:,:)
+    integer(li), intent(in) :: variable(:,:)
     integer, intent(in) :: n
     character(n), intent(in) :: filename
     character(20) :: FMT
@@ -256,7 +256,7 @@ contains
   end subroutine pysave_integer_2d_li
 
   subroutine pysave_real(variable, filename, n)
-    real(fdp), intent(in) :: variable
+    real(dp), intent(in) :: variable
     integer, intent(in) :: n
     character(n), intent(in) :: filename
 
@@ -267,7 +267,7 @@ contains
   end subroutine pysave_real
 
   subroutine pysave_real_1d(variable, filename, n)
-    real(fdp), intent(in) :: variable(:)
+    real(dp), intent(in) :: variable(:)
     integer, intent(in) :: n
     character(n), intent(in) :: filename
     integer :: c, i
@@ -282,7 +282,7 @@ contains
   end subroutine pysave_real_1d
 
   subroutine pysave_real_2d(variable, filename, n)
-    real(fdp), intent(in) :: variable(:,:)
+    real(dp), intent(in) :: variable(:,:)
     integer, intent(in) :: n
     character(n), intent(in) :: filename
     character(20) :: FMT

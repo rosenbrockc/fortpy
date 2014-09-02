@@ -1,6 +1,6 @@
 ['in_function_call', 189, 30]
 
-{'description': 'type(CE_variables), intent(in) :: CE | No summary for element. | MODULE: monte_orderparam', 'call_name': 'single_corr', 'index': 2, 'params': ['this', 'g', '*CE*', 'MC', 'pizzaPI']}
+{'index': 2, 'call_name': 'single_corr', 'params': ['this', 'g', '*CE*', 'MC', 'pizzaPI'], 'description': 'type(CE_variables), intent(in) :: CE | No summary for element. | MODULE: monte_orderparam'}
 
 ['completions', 121, 12]
 
@@ -13,42 +13,42 @@ integer :: maxBoxSizeForCalcTotalE = 50
 
 ['bracket_complete', 133, 25]
 
-{'description': 'real(dp), allocatable :: correlations(:,:) | [C:1] The set of correlations calculated at a certain temperature. [C:2] The relevant cluster in @CREF[this.clusters].', 'call_name': 'correlations', 'index': 0, 'params': [':,:']}
+{'index': 0, 'call_name': 'correlations', 'params': [':,:'], 'description': 'real(dp), allocatable :: correlations(:,:) | [C:1] The set of correlations calculated at a certain temperature. [C:2] The relevant cluster in @CREF[this.clusters].'}
 
 ['in_function_call', 141, 9]
 
-[<Completion: sin>, <Completion: single_corr>, <Completion: size>, <Completion: bit_size>, <Completion: sinh>, <Completion: sign>]
+[<Completion: bit_size>, <Completion: sinh>, <Completion: single_corr>, <Completion: sign>, <Completion: sin>, <Completion: size>]
 
-real, complex | Sine. Result type is same as X. 
+integer | Number of bits in the bit model. The result is an integer of the kind of I. 
 
-real, complex FUNCTION sin(X)
-   Sine. Result type is same as X. 
+integer FUNCTION bit_size(I)
+   Number of bits in the bit model. The result is an integer of the kind of I. 
 
 PARAMETERS
-real, complex :: X
+integer :: I
   No summary for element.
-  PARAMETER:  Argument of sine, of type real or complex. 
-    Attributes:type -> real, complex; name -> X
-    Decorates: real, complex :: X
+  PARAMETER:  Scalar or array of type integer. 
+    Attributes:modifier -> dimension; type -> integer; name -> I
+    Decorates: integer :: I
 
-  USAGE:  The result is the sine of X. If X is real, X is in radians. If X is complex, the real part of X is express in radians. EXAMPLES: SIN(0.0) is 0.0; SIN(X) where X is $\pi/2$ is 1.0; and SIN((1.0_P, 1.0_P)) is 1.29846 + 0.63496i of kind P. 
-    Decorates: real, complex FUNCTION sin(X)
+  USAGE:  The result is the number of bits z provided by the bit model. EXAMPLE: BIT_SIZE(I) where I is of default 32-bit integer type is 32. 
+    Decorates: integer FUNCTION bit_size(I)
 
 ['bracket_complete', 122, 12]
 
-{'description': 'class(cluster_tracker), intent(inout) :: this', 'call_name': 'this', 'index': 0, 'params': [None]}
+{'index': 0, 'call_name': 'this', 'params': [None], 'description': 'class(cluster_tracker), intent(inout) :: this'}
 
 ['bracket_complete', 191, 9]
 
-{'description': 'integer |  Number of elements of an array or a dimension of an array. Result is a scalar of integer type with kind KIND if KIND is present, or otherwise, with the kind of default integer.  | BUILTIN', 'call_name': 'size', 'index': 0, 'params': ['ARRAY', 'DIM', 'KIND']}
+{'index': 0, 'call_name': 'size', 'params': ['ARRAY', 'DIM', 'KIND'], 'description': 'integer |  Number of elements of an array or a dimension of an array. Result is a scalar of integer type with kind KIND if KIND is present, or otherwise, with the kind of default integer.  | BUILTIN'}
 
 ['bracket_complete', 311, 16]
 
-{'description': 'SUMMARY: Provides a single call interface for integer and real data types for single values, 1D and 2D arrays. Also handles outputting true/false for logical type variables. | ACCEPTS: integer, integer(li), real(dp), logical | MODULE: fortpy', 'call_name': 'pysave', 'index': 0, 'params': ['variable', 'filename', 'n']}
+{'index': 0, 'call_name': 'pysave', 'params': ['variable', 'filename', 'n'], 'description': 'SUMMARY: Provides a single call interface for integer and real data types for single values, 1D and 2D arrays. Also handles outputting true/false for logical type variables. | ACCEPTS: integer, integer(li), real(dp), logical | MODULE: fortpy'}
 
 ['in_function_call', 312, 29]
 
-{'description': 'SUMMARY: No summary for element. | ACCEPTS: integer | *MODIFIED* | MODULE: fortpy', 'call_name': 'pysave', 'index': 2, 'params': ['variable', 'filename', '*n*']}
+{'index': 2, 'call_name': 'pysave', 'params': ['variable', 'filename', '*n*'], 'description': 'SUMMARY: No summary for element. | ACCEPTS: integer | *MODIFIED* | MODULE: fortpy'}
 
 ['completions', 313, 11]
 
@@ -60,11 +60,11 @@ real, complex :: X
 
 ['in_function_call', 314, 19]
 
-{'description': 'SUMMARY: No summary for element. | ACCEPTS: integer, integer(li), real(dp), logical | *MODIFIED* | MODULE: fortpy', 'call_name': 'pysave', 'index': 0, 'params': ['*variable*', 'filename', 'n']}
+{'index': 0, 'call_name': 'pysave', 'params': ['*variable*', 'filename', 'n'], 'description': 'SUMMARY: No summary for element. | ACCEPTS: integer, integer(li), real(dp), logical | *MODIFIED* | MODULE: fortpy'}
 
 ['in_function_call', 315, 13]
 
-[<Completion: randomfpy>, <Completion: random_seed>, <Completion: random_number>, <Completion: random_init>]
+[<Completion: randomfpy>, <Completion: random_seed>, <Completion: random_init>, <Completion: random_number>]
 
 
 
