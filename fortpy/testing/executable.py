@@ -74,7 +74,7 @@ class ExecutableGenerator(object):
         else:
             raise ValueError("unable to find module {}.".format(module))
 
-    def reset(self, identifier, libraryroot, rerun = False):
+    def reset(self, identifier, libraryroot, rerun=None):
         """Resets the writer to work with a new executable."""        
         #A method writer has all the guts needed to generate the executable
         #We are just wrapping it and making sure the variable values get
@@ -90,7 +90,7 @@ class ExecutableGenerator(object):
 
         #If re-run is specified, delete the fortpy.f90 file to force
         #a quick re-compile and run of the tests.
-        if rerun:
+        if rerun is not None and (rerun == "*" or rerun in identifier.lower()):
             fortpath = path.join(self.folder, "fortpy.f90")
             if path.exists(fortpath):
                 remove(fortpath)

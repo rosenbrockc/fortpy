@@ -401,12 +401,14 @@ contains
           read(funit, "(A)", iostat=ioerr) line
           if (ioerr == 0) then
              cleaned = trim(adjustl(line))
-             if (len(cleaned) .gt. 0 .and. cleaned(1:1) /= commentchar) then
-                nlines = nlines + 1
-                !We only need to get the number of values present in a line once.
-                !We restrict the file structure to have rectangular arrays.
-                if (nvalues == 0) then
-                   nvalues = fpy_value_count(cleaned, len(cleaned))
+             if (len(cleaned) .gt. 0) then
+                if (cleaned(1:1) /= commentchar) then
+                   nlines = nlines + 1
+                   !We only need to get the number of values present in a line once.
+                   !We restrict the file structure to have rectangular arrays.
+                   if (nvalues == 0) then
+                      nvalues = fpy_value_count(cleaned, len(cleaned))
+                   end if
                 end if
              end if
           else

@@ -29,11 +29,14 @@ class TestGenerator(object):
     :attr xwriters: a dictionary of the writers from each executable that
       was visited by the generator.
     """
-    def __init__(self, parser, libraryroot, fortpy_templates, rerun = False):
+    def __init__(self, parser, libraryroot, fortpy_templates, rerun=None):
         self.parser = parser
         self.libraryroot = libraryroot
         self.xgenerator = ExecutableGenerator(parser, libraryroot)
-        self.rerun = rerun
+        if rerun is not None:
+            self.rerun = rerun.lower()
+        else:
+            self.rerun = rerun
 
         self.dependfiles = [ "fortpy.f90", "Makefile.ifort", "Makefile.gfortran" ]
         self.xtests = {}

@@ -1,6 +1,19 @@
 FORTPY: Revision History
 ======
 
+Revision 1.1.4
+------
+
+- Fixed an error in `fortpy.f90` where a failing condition on the first part of an if statement that used `.and.` wasn't exiting the condition without evaluating the second part. This seems to be a quirk of the gfortran compiler.
+- Fixed issue #19
+- Fixed issue #18
+- Fixed issue #17
+
+Revision 1.1.3
+------
+
+- Reversed the renaming of the variables kinds (e.g. `dp`) in `fortpy.f90` because they were breaking unit tests that previously functioned correctly. Opened an issue to address the problem.
+
 Revision 1.1.2
 ------
 

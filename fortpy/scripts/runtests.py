@@ -47,8 +47,11 @@ parser.add_argument("-outfile", help="Specify a path to save the comparison repo
 parser.add_argument("-verbose", help="Sets whether the comparison output is verbose.", action="store_true")
 parser.add_argument("-mode", help="Sets the strictness of the comparison.", default="default")
 parser.add_argument("-fortpy", help="The path to the fortpy templates directory.")
-parser.add_argument("-rerun", help="If specified, the tests are re-run with minimal compilation.",
-                    action="store_true")
+parser.add_argument("-rerun",
+                    help=("Specifies a filter for *module* names whose unit tests will be rerun. "
+                          "When a test is rerun, it is recompiled and tested, even if the code base "
+                          "has not changed since the last test. Value '*' reruns the unit "
+                          "tests of *all* modules in the code directory."))
 parser.add_argument("-compiler", help="Specify the compiler to use for the unit testing")
 parser.add_argument("-pypath", help="Specify a path to add to sys.path before running the tests.")
 parser.add_argument("-debug", help="Compile the executables with DEBUG=true", 

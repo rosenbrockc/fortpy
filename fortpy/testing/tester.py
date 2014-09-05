@@ -119,7 +119,12 @@ class OutcomeTester(object):
         compresults = []
         for i in range(len(self.testspec.targets)):
             target = self.testspec.targets[i]
-            exepath, outvar, isfile = self._run_get_paths(target, xresult.folder)
+            exepath, outvar, isfile, exists = self._run_get_paths(target, xresult.folder, caseid)
+            #Exists tells us if we have the necessary output to compare with. If we don't
+            #we can't complete the comparison.
+            if not exists:
+                self._add_failure(caseid, None, uresult)
+                continue
 
             #The third entry in the tuple identifies it as an explicit value
             #comparison as opposed to a file comparison.
@@ -179,7 +184,7 @@ class OutcomeTester(object):
             
         return result
 
-    def _run_get_paths(self, target, exefolder):
+    def _run_get_paths(self, target, exefolder, caseid):
         """Gets the file paths to the executable output and model output
         files that need to be compared. If the model output is not a file
         the third entry in the tuple will be False.
@@ -203,7 +208,14 @@ class OutcomeTester(object):
             raise ValueError("Target's compareto='{}' ".format(target.compareto) + 
                              "does not match any <output> tag.")
 
-        return (exe, outvar, outvar.filemode)
+        if outvar.filemode:
+            abspath = outvar.abspath(self.codefolder, caseid)
+            exists = path.isfile(abspath)
+            if not exists:
+                msg.warn("Model output file {} does not exist for case {}".format(abspath, caseid))
+            return (exe, outvar, True, exists)
+        else:
+            return (exe, outvar, False, True)
 
 class TestResult(object):
     """Represents a set of unit test results.
@@ -319,7 +331,7 @@ class UnitTester(object):
     :arg libraryroot: the path to folder in which to stage the tests.
     """
     def __init__(self, libraryroot, verbose = False, compare_templates = None, 
-                 fortpy_templates=None, rerun = False, compiler="gfortran",
+                 fortpy_templates=None, rerun=None , compiler="gfortran",
                  debug=False, profile=False):
         self.libraryroot = path.abspath(libraryroot)
         self.parser = CodeParser()
@@ -486,6 +498,44 @@ class UnitTester(object):
         code = system(codestr.format(target, testid, self.compiler))
         
         msg.blank()
+
+        #It turns out that the compiler still returns a code of zero, even if the compile
+        #failed because the actual compiler didn't fail; it did its job properly. We need to
+        #check for the existence of errors in the 'compile.log' file.
+        lcount = 0
+        errors = []
+        log = path.join(target, "compile.log")
+        with open(log) as f:
+            for line in f:
+                lcount += 1
+                if lcount > 21 and lcount < 32:
+                    errors.append(line)
+                elif lcount > 21:
+                    break
+
+        if len(errors) > 0:
+            #There are 21 lines in the compile.log file when everything runs correctly
+            #Overwrite code with a bad exit value since we have some other problems.
+            code = 1
+            #We want to write the first couple of errors to the console and give them the
+            #option to still execute if the compile only generated warnings.
+            msg.warn("compile generated some errors or warnings:")
+            msg.blank()
+            msg.info(''.join(errors))
+
+            #If the executable exists, we could still prompt them to run it (in case the
+            #additional lines were just warnings).
+            exe = path.join(target, "{}.x".format(testid))
+            if path.isfile(exe):
+                choice = raw_input("\nWould you still like to run the executable? ").lower()
+                code = 0 if "y" in choice else code
+                if "n" in choice:
+                    msg.err("Unit testing terminated by user.")
+                    exit(0)
+            else:
+                msg.err("Could not compile executable {}.x".format(testid))
+                exit(-1)
+
         return code == 0
 
     def _run_exec(self, identifier, testid, result):
