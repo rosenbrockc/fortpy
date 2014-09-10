@@ -12,6 +12,8 @@ class TestGenerator(object):
 
     :arg parser: an instance of the code parser that has code elements
       with all the docstrings.
+    :arg tester: an instance of UnitTester handling the overall testing
+      automation.
     :arg libraryroot: the path to the folder that will contain all the
       unit test code files and executables.
     :arg fortpy_templates: the path to the fortpy templates folder to
@@ -29,8 +31,9 @@ class TestGenerator(object):
     :attr xwriters: a dictionary of the writers from each executable that
       was visited by the generator.
     """
-    def __init__(self, parser, libraryroot, fortpy_templates, rerun=None):
+    def __init__(self, parser, libraryroot, fortpy_templates, tester, rerun=None):
         self.parser = parser
+        self.tester = tester
         self.libraryroot = libraryroot
         self.xgenerator = ExecutableGenerator(parser, libraryroot)
         if rerun is not None:
@@ -153,7 +156,9 @@ class TestGenerator(object):
         #These don't ever change, so we only need to check for existence
         for dfile in self.dependfiles:
             target = os.path.join(self.xgenerator.folder, dfile)
-            if not os.path.exists(target):
+            dversion = self.tester.get_fortpy_version(target)
+            tversion = self.tester.template_version(dfile)
+            if not os.path.exists(target) or dversion != tversion:
                 source = os.path.join(self._fortpy, dfile)
                 msg.info("COPY: {}".format(source))
                 copy(source, self.xgenerator.folder)

@@ -338,7 +338,7 @@ class UnitTester(object):
         self.parser.verbose = verbose
         self._set_fortpy_dir(fortpy_templates)
         self.tgenerator = TestGenerator(self.parser, self.libraryroot, 
-                                        self.fortpy_templates, rerun)
+                                        self.fortpy_templates, self, rerun)
         self.compiler = compiler
         self.debug = debug == True
         self._compiler_exists()
@@ -349,6 +349,36 @@ class UnitTester(object):
         self._written = False
         #The user's raw value for the compare_templates directory
         self._compare_templates = compare_templates
+        self._templatev = {}
+        """Holds the version number of the fortpy.f90 file."""
+
+    def template_version(self, filename):
+        """Returns the version number of the latest fortpy.f90 file."""
+        if filename not in self._templatev:
+            from os import path
+            tempath = path.join(self.get_fortpy_templates_dir(), filename)
+            self._templatev[filename] = self.get_fortpy_version(tempath)
+
+        return self._templatev[filename]
+
+    def get_fortpy_version(self, fortpath):
+        """Gets the fortpy version number from the first line of the specified file."""
+        result = []
+        with open(fortpath) as f:
+            for line in f:
+                if line[0:2] == "!!":
+                    vxml = "<doc>{}</doc>".format(line.split("!!")[1])
+                else:
+                    vxml = ""
+                break
+            
+        if "<fortpy" in vxml:
+            import xml.etree.ElementTree as ET
+            x = list(ET.XML(vxml))
+            if len(x) > 0:
+                result = map(int, x[0].attrib["version"].split("."))
+
+        return result
 
     def tests(self, identifier):
         """Returns a dictionary of all the tests that need to be run for the

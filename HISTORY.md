@@ -1,6 +1,11 @@
 FORTPY: Revision History
 ======
 
+Revision 1.1.5
+------
+
+- Fixed issue #20
+
 Revision 1.1.4
 ------
 
