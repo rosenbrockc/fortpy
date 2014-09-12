@@ -21,6 +21,9 @@ class ModuleParser(object):
         #Regex for extracting modules from the code
         self._RX_MODULE = r"(\n|^)\s*module\s+(?P<name>[a-z0-9_]+)(?P<contents>.+?)end\s*module"
         self.RE_MODULE = re.compile(self._RX_MODULE, re.I | re.DOTALL)
+        self._RX_PROGRAM = r"(\n|^)\s*program\s+(?P<name>[a-z0-9_]+)(?P<contents>.+?)end\s*program"
+        self.RE_PROGRAM = re.compile(self._RX_PROGRAM, re.I | re.DOTALL)
+
         #Regex for use statements in a module
         self._RX_USE = r"^\s*use\s+(?P<name>[^,]+?)(\s*,\s+only\s*:(?P<only>[A-Za-z0-9_\s,]+?))?$"
         self.RE_USE = re.compile(self._RX_USE, re.I | re.M)
@@ -113,7 +116,40 @@ class ModuleParser(object):
             if member in element.members:
                 del element.members[member]
 
-    def parse(self, string, parent):
+    def parse(self, string, parent, module=True):
+        """Extracts modules *and* programs from a fortran code file.
+
+        :arg string: the contents of the fortran code file.
+        :arg parent: the instance of CodeParser that will own the return Module.
+        :arg module: when true, the code file will be searched for modules; otherwise
+          it will be searched for programs.
+        """
+        if module:
+            return self._parse_modules(string, parent)
+        else:
+            return self._parse_programs(string, parent)
+    
+    def _parse_programs(self, string, parent):
+        """Extracts a PROGRAM from the specified fortran code file."""
+        #First, get hold of the docstrings  for all the modules so that we can
+        #attach them as we parse them.
+        moddocs = self.docparser.parse_docs(string)
+        #Now look for modules in the file and then match them to their decorators.
+        matches = self.RE_PROGRAM.finditer(string)
+        result = []
+        for rmodule in matches:
+            name = rmodule.group("name").lower()
+            contents = re.sub("&[ ]*\n", "", rmodule.group("contents"))
+            module = self._process_module(name, contents, parent, rmodule)
+            #Check whether the docparser found docstrings for the module.
+            if name in moddocs:                
+                module.docstring = self.docparser.to_doc(moddocs[name][0], name)
+                module.docstart, module.docend = module.absolute_charindex(string, moddocs[name][1],
+                                                                           moddocs[name][2])
+            result.append(module)
+        return result
+
+    def _parse_modules(self, string, parent):
         """Extracts any modules from the specified fortran code file."""
         #First, get hold of the docstrings  for all the modules so that we can
         #attach them as we parse them.
@@ -226,7 +262,7 @@ class ModuleParser(object):
             if module.types[t].start < lowest:
                 lowest = module.types[t].start
 
-        members = self.vparser.parse(contents[:lowest], module)
+        module.members.update(self.vparser.parse(contents[:lowest], module))
 
         #The docstrings for these members will appear as member tags in the same
         #preamble text. We can't use the entire preamble for this because member

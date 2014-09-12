@@ -35,7 +35,7 @@ def get_completion_tests(key= "monte"):
                   ["bracket_complete", 311, 16], ["in_function_call", 312, 29],
                   ["completions", 313, 11], ["in_function_call", 314, 19],
                   ["in_function_call", 315, 13], ["completions", 316, 14],
-                  ["goto_definitions", 103, 24]],
+                  ["goto_definitions", 103, 24], ["completions", 317, 9]],
         "deriv": [["completions", 207, 4], ["bracket_complete", 208, 4],
                   ["completions", 209, 8], ["in_function_call", 330, 22],
                   ["completions", 345, 8], ["in_function_call", 52, 27],
@@ -103,7 +103,7 @@ args = vars(parser.parse_known_args()[0])
 
 #if args["isense"]:
 settings.real_time_update = False
-keys = ["monte", "deriv", "cefit"]
+keys = ["monte"]#, "deriv", "cefit"]
 for key in keys:
     with open(get_path("tests/isense/compl_{}.tmp".format(key)), 'w') as f:
         f.write("\n\n".join([str(i) for i in test_original(key)]))

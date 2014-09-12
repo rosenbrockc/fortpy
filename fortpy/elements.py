@@ -118,7 +118,7 @@ class CodeElement(object):
             #If a parameter, member or local tag has dimensions or other children,
             #then the inner-text is not the right thing to use; find a grand-child
             #summary tag instead.
-            if self._summary == "" and len(self.docstring) > 0:
+            if self._summary == "No summary for element." and len(self.docstring) > 0:
                 summary = self.doc_children("summary")
                 if len(summary) > 0:
                     self._summary = summary[0].contents
@@ -1091,12 +1091,18 @@ class Module(CodeElement, Decoratable):
         uses = "\n\t".join(self.sorted_collection("dependencies"))
         output.append("USES:\n\t{}\n\n".format(uses))
 
-        types = "\n\t".join([ t[1].__str__() for t in list(self.types.items()) ])
-        output.append("TYPES:\n\t{}\n\n".format(types))
+        if len(self.types) > 0:
+            types = "\n\t".join([ t[1].__str__() for t in list(self.types.items()) ])
+            output.append("TYPES:\n\t{}\n\n".format(types))
 
-        functions = "\n\t".join([ x[1].__str__() for x in list(self.functions().items()) ])
-        subroutines = "\n\t".join([ x[1].__str__() for x in list(self.subroutines().items()) ])
-        output.append("EXECUTABLES:\n\t{}\n\n\t{}\n\n".format(functions, subroutines))
+        if len(self.executables) > 0:
+            functions = "\n\t".join([ x[1].__str__() for x in list(self.functions().items()) ])
+            subroutines = "\n\t".join([ x[1].__str__() for x in list(self.subroutines().items()) ])
+            output.append("EXECUTABLES:\n\t{}\n\n\t{}\n\n".format(functions, subroutines))
+
+        if len(self.members) > 0:
+            members = "\n\t".join([ x[1].__str__() for x in list(self.members.items()) ])
+            output.append("MEMBERS:\n\t{}\n\n".format(members))
 
         return "".join(output)
 

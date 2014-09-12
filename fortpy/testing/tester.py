@@ -364,6 +364,11 @@ class UnitTester(object):
     def get_fortpy_version(self, fortpath):
         """Gets the fortpy version number from the first line of the specified file."""
         result = []
+        #If the file doesn't exist yet, we don't try to find the version information.
+        from os import path
+        if not path.isfile(fortpath):
+            return result
+
         with open(fortpath) as f:
             for line in f:
                 if line[0:2] == "!!":

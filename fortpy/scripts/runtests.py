@@ -14,7 +14,7 @@ def print_result(testkey, percent, time, common):
     else:
         color = "red"
 
-    text = "\nRESULT: {0} = {1:.2%} success ({3:.2%} common) in {2} ms"
+    text = "RESULT: {0} \n\t{1:.2%} success ({3:.2%} common) in {2} ms\n"
     cprint(text.format(printkey, percent, time, common), color)
 
 def initialize():    
@@ -26,6 +26,7 @@ def initialize():
         
     t.writeall(args["codedir"])
     result = t.runall()
+    print("")
 
     for idk in result:
         totaltime = result[idk].totaltime

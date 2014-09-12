@@ -18,6 +18,8 @@ class CodeParser(object):
 
     :attr modulep: an instance of ModuleParser that can parse fortran module code.
     :attr modules: a dictionary of module code elements that have already been parsed.
+    :attr programs: a dictionary of module code elements representing fortran programs
+      that have already been parsed.
     :attr basepaths: a list of folders to search in for dependency modules.
     :attr mappings: a list of modulename -> filename mappings to use in dependency searches.
     :attr verbose: specifies the level of detail in print outputs to console.
@@ -31,6 +33,7 @@ class CodeParser(object):
         """Initializes a module parser for parsing Fortran code files."""
         self.modulep = ModuleParser()
         self.modules = {}
+        self.programs = {}
         self.ssh = ssh
         self.austere = austere
        
@@ -57,6 +60,9 @@ class CodeParser(object):
         #A dictionary of filenames and the modules that they correspond
         #to if loaded
         self._modulefiles = {}
+        self._programfiles = {}
+        """A dictionary of filenames and the programs that they correspond
+        to if loaded."""
         #Keys are the full lowered paths, values are the short f90 names
         self._pathfiles = {}       
         #Keys are the lowered module names, values are the time stamps for the last mtime
@@ -142,10 +148,17 @@ class CodeParser(object):
             self.modules[module.name.lower()] = module
             self._modulefiles[fname].append(module.name.lower())
 
+        pprograms = self.modulep.parse(string, self, False)
+        for program in pprograms:
+            program.change_time = file_mtime
+            program.filepath = filepath.lower()
+            self.programs[program.name.lower()] = program
+            self._programfiles[fname].append(program.name.lower())
+
         #There may be xml files for the docstrings that also need to be parsed.
         self._parse_docstrings(filepath)
 
-        return pmodules
+        return (pmodules, pprograms)
 
     def _check_parse_modtime(self, filepath, fname):
         """Checks whether the modules in the specified file path need
@@ -248,6 +261,8 @@ class CodeParser(object):
 
         if fname not in self._modulefiles:
             self._modulefiles[fname] = []
+        if fname not in self._programfiles:
+            self._programfiles[fname] = []
 
         #Check if we can load the file from a pickle instead of doing a time
         #consuming file system parse.
@@ -264,12 +279,12 @@ class CodeParser(object):
                 pickle_load = True
             else:
                 #We have to do a full load from the file system.
-                pmodules = self._parse_from_file(abspath, fname,
-                                                 dependencies, recursive, greedy)
+                pmodules, pprograms = self._parse_from_file(abspath, fname,
+                                                            dependencies, recursive, greedy)
         else:
             #We have to do a full load from the file system.
-            pmodules = self._parse_from_file(abspath, fname,
-                                  dependencies, recursive, greedy)
+            pmodules, pprograms = self._parse_from_file(abspath, fname,
+                                                        dependencies, recursive, greedy)
 
         #Add the filename to the list of files that have been parsed.
         self._parsed.append(abspath.lower())
@@ -277,11 +292,13 @@ class CodeParser(object):
             self.serialize.save_module(abspath, pmodules)
 
         if self.verbose:
-            msg.info("PARSED: {} modules in {} in {}".format(len(pmodules), fname, 
-                                                          secondsToStr(clock() - start_time)))
+            msg.info("PARSED: {} modules and {} ".format(len(pmodules), len(pprograms)) + 
+                     "programs in {} in {}".format(fname, secondsToStr(clock() - start_time)))
             for module in pmodules:
-                msg.gen("\t{}".format(module.name))
-            if len(pmodules) > 0:
+                msg.gen("\tMODULE {}".format(module.name))
+            for program in pprograms:
+                msg.gen("\tPROGRAM {}".format(program.name))
+            if len(pmodules) > 0 or len(pprograms) > 0:
                 msg.blank()
 
         self._parse_dependencies(pmodules, dependencies, recursive, greedy)

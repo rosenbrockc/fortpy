@@ -5,6 +5,7 @@ Revision 1.1.5
 ------
 
 - Fixed issue #20
+- Fixed a "No summary for element." error in the intellisense that was returning no summary when one actually existed.
 
 Revision 1.1.4
 ------
