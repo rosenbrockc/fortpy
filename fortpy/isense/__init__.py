@@ -119,8 +119,10 @@ class Script(object):
         Goes to that definition with a buffer.
         """
         element = self._evaluator.get_definition()
-        definition = BaseDefinition(self._user_context, element)
-        return definition
+        if element is not None:
+            return BaseDefinition(self._user_context, element)
+        else:
+            return None
 
     def usages(self, additional_module_paths=()):
         """

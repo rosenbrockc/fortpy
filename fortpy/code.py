@@ -267,6 +267,7 @@ class CodeParser(object):
         #Check if we can load the file from a pickle instead of doing a time
         #consuming file system parse.
         pickle_load = False
+        pprograms = []
         if len(mtime_check) == 1 and settings.use_filesystem_cache:
             #We use the pickler to load the file since a cached version might
             #be good enough.

@@ -35,7 +35,8 @@ def get_completion_tests(key= "monte"):
                   ["bracket_complete", 311, 16], ["in_function_call", 312, 29],
                   ["completions", 313, 11], ["in_function_call", 314, 19],
                   ["in_function_call", 315, 13], ["completions", 316, 14],
-                  ["goto_definitions", 103, 24], ["completions", 317, 9]],
+                  ["goto_definitions", 103, 24], ["completions", 317, 9],
+                  ["goto_definitions", 191, 8]],
         "deriv": [["completions", 207, 4], ["bracket_complete", 208, 4],
                   ["completions", 209, 8], ["in_function_call", 330, 22],
                   ["completions", 345, 8], ["in_function_call", 52, 27],
@@ -83,7 +84,10 @@ def test_original(key="monte"):
                 results.append(result[0].fulldoc)
 
         if test[0] == "goto_definitions":
-            results.append(result.fulldoc)
+            if result is not None:
+                results.append(result.fulldoc)
+            else:
+                results.append("None")
 
     return results
 
@@ -107,7 +111,7 @@ keys = ["monte"]#, "deriv", "cefit"]
 for key in keys:
     with open(get_path("tests/isense/compl_{}.tmp".format(key)), 'w') as f:
         f.write("\n\n".join([str(i) for i in test_original(key)]))
-
+#exit(0)
 def test_real_time():
     """Tests all the real-time update machinery for the isense package."""
     #Get the unmodified original file to make changes to.

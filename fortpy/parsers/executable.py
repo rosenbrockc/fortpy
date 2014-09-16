@@ -144,9 +144,9 @@ class ExecutableParser(object):
         them to the specified parent."""
         for anexec in self.RE_EXEC.finditer(contents):
             x = self._process_execs(anexec, parent, module)
-            parent.executables[x.name] = x
+            parent.executables[x.name.lower()] = x
             if  isinstance(parent, Module) and "public" in x.modifiers:
-                parent.publics[x.name] = 1
+                parent.publics[x.name.lower()] = 1
             
             #To handle the embedded executables, run this method recursively
             self.parse_block(x.contents, x, module, depth + 1)

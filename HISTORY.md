@@ -1,6 +1,12 @@
 FORTPY: Revision History
 ======
 
+Revision 1.1.6
+------
+
+- Fixed bug with uninitialized list of parsed programs as part of trying to support fortran PROGRAM files.
+- Fixed bug for goto definition lookups not working in cases where they should.
+
 Revision 1.1.5
 ------
 

@@ -1117,7 +1117,7 @@ class Module(CodeElement, Decoratable):
                     found = self.parent.get_executable(depend)
                     break
             else:
-                #We only have the name of a module, we have to search
+                #We only have the name of an executable or interface, we have to search
                 #the whole module for the element.
                 fullname = "{}.{}".format(depend, symbol)
                 if self.parent.get_executable(fullname) is not None:
