@@ -1,6 +1,12 @@
 FORTPY: Revision History
 ======
 
+Revision 1.2.7
+------
+
+- Fixed a bug that added the `pointer` modifier to class variables even if allocatable or pointer was already present as a modifier. The problem was an `or` that should have been an `and`.
+- Decided that the previous revision 1.1.6 should have included a minor increment because of the 1000+ lines of new/changed code. Switching this revision to 1.2.7 instead of 1.1.7.
+
 Revision 1.1.6
 ------
 

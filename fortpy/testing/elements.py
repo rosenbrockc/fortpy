@@ -1837,7 +1837,7 @@ class TestingGroup(object):
             #if it isn't already allocatable or a pointer.
             if name in self.assignments and param.D > 0:
                 allocate = ("allocate" in self.assignments[name].attrib and
-                            self.assignments[name].attrib["allocate"] == "true")
+                            self.assignments[name].attrib["allocate"] != "false")
                 if ("modifiers" in result.attributes and not
                     ("allocatable" in param.modifiers or
                      "pointer" in param.modifiers)):
@@ -1848,7 +1848,7 @@ class TestingGroup(object):
             #For regular="true" parameters of the class variable this/self, we need to
             #explicitly add the pointer modifier so that the allocation works.
             needsadj = ((param.dtype == "class" or param.dtype == "type") and
-                        ("pointer" not in result.attributes["modifiers"] or
+                        ("pointer" not in result.attributes["modifiers"] and
                          "allocatable" not in result.attributes["modifiers"]))
             if needsadj:
                 if result.attributes["modifiers"] == "":
