@@ -58,14 +58,123 @@ class VariableParser(object):
         result = []
 
         #They might have defined multiple vars on the same line
-        for vmatch in self.RE_MULTIDEF.finditer(names.strip()):
-            name = vmatch.group("name").strip()
-            default = vmatch.group("default")
-            dimension = vmatch.group("dimension")
+        ready = self._separate_multiple_def(names.strip())
+        for name, dimension, default, D in self._clean_multiple_def(ready):
             #Now construct the element and set all the values, then add it in the results list.
-            result.append(ValueElement(name, modifiers, dtype, kind, default, dimension, parent))
+            result.append(ValueElement(name, modifiers, dtype, kind, default, dimension, parent, D))
 
         return result
+
+    def _separate_multiple_def(self, defstring):
+        """Separates the text after '::' in a variable definition to extract all the variables,
+        their dimensions and default values.
+        """
+        import pyparsing
+        nester = pyparsing.nestedExpr('(', ')')
+        parsed = nester.parseString("(" + defstring.replace("=", " = ") + ")").asList()[0]
+        i = 0
+        clean = []
+        while i < len(parsed):
+            if (isinstance(parsed[i], str) and parsed[i] != "=" and 
+                i+1 < len(parsed) and isinstance(parsed[i+1], list)):
+                clean.append((parsed[i], parsed[i+1]))
+                i += 2
+            elif isinstance(parsed[i], str) and parsed[i] == ",":
+                i += 1
+            else:
+                clean.append(parsed[i])
+                i += 1
+
+        #Now pass through again to handle the default values.
+        i = 0
+        ready = []
+        while i < len(clean):
+            if isinstance(clean[i], str) and clean[i] == "=":
+                ready.pop()
+                ready.append([clean[i-1], clean[i+1]])
+                i += 2
+            else:
+                ready.append(clean[i])
+                i += 1
+
+        return ready
+
+    def _collapse_default(self, entry):
+        """Collapses the list structure in entry to a single string representing the default
+        value assigned to a variable or its dimensions.
+        """
+        if isinstance(entry, tuple) or isinstance(entry, list):
+            sets = []
+            i = 0
+            while i < len(entry):
+                if isinstance(entry[i], str) and i+1 < len(entry) and isinstance(entry[i+1], list):
+                    sets.append((entry[i], entry[i+1]))
+                    i += 2
+                elif isinstance(entry[i], str) and entry[i] == ",":
+                    i += 1
+                else:
+                    sets.append((entry[i],))
+                    i += 1
+
+            result = []
+            for s in sets:
+                name = s[0].strip(",")
+                if len(s) > 1:
+                    args = self._collapse_default(s[1])
+                else:
+                    args = []
+                if len(args) > 0:
+                    result.append("{}({})".format(name, args))
+                else:
+                    result.append(name)
+
+            return ', '.join(result)
+        else:
+            if "," in entry:
+                return entry.split(",")[0].strip()
+            else:
+                return entry.strip()
+
+    def _count_dimensions(self, entry):
+        """Counts the number of dimensions from a nested list of dimension assignments
+        that may include function calls.
+        """
+        result = 0
+        for e in entry:
+            if isinstance(e, str):
+                result += len(e.strip(",").split(","))
+        return result
+
+    def _clean_multiple_def(self, ready):
+        """Cleans the list of variable definitions extracted from the definition text to
+        get hold of the dimensions and default values.
+        """
+        result = []
+        for entry in ready:
+            if isinstance(entry, list):
+                #This variable declaration has a default value specified, which is in the
+                #second slot of the list.
+                default = self._collapse_default(entry[1])
+                #For hard-coded array defaults, add the parenthesis back in.
+                if default[0] == "/":
+                    default = "({})".format(default)
+                namedim = entry[0]
+            else:
+                default = None
+                namedim = entry
+
+            if isinstance(namedim, str):
+                name = namedim.strip().strip(",")
+                dimension = None
+                D = 0
+            else:
+                #Namedim is a tuple of (name, dimension)
+                name = namedim[0].strip()
+                D = self._count_dimensions(namedim[1])
+                dimension = self._collapse_default(namedim[1])
+
+            result.append((name, dimension, default, D))
+        return result        
 
     def _get_dim_modifier(self, modifiers):
         """Extracts the dimension information from the string of modifiers extracted by

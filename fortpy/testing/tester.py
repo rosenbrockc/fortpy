@@ -78,8 +78,11 @@ class ValueCompareResult(object):
 
         #We only deal with the first line in the file, anything more
         #complicated should be handled with file templates.
+        import re
         with open(self.path) as f:
-            line = f.readline()
+            for line in f:
+                if not re.match("^\s*#", line):
+                    break
 
         try:
             if eval(line) == eval(self.value):
@@ -156,7 +159,7 @@ class OutcomeTester(object):
         :arg exepath: the full path to the file created by the unit test executable.
         :arg outvar: the TestOutput instance with testing specifications.
         """
-        return ValueCompareResult(exe, outvar.value)
+        return ValueCompareResult(exepath, outvar.value)
 
     def _run_compare_file(self, exepath, outvar, coderoot, caseid):
         """Compares an output file from an executable with its model output using
@@ -660,7 +663,8 @@ class UnitTester(object):
         #Save the path to the folder for execution in the result.
         result.paths[caseid] = testpath
 
-        msg.okay("Executing {}.x in folder {}".format(testspec.identifier, testpath))
+        msg.okay("Executing {}.x in folder ./tests{}".format(testspec.identifier, 
+                                                             testpath.split("tests")[1]))
         start_time = clock()                              
         code = system("cd {}; {}".format(testpath, exepath))
         if case == "":

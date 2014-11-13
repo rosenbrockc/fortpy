@@ -197,12 +197,15 @@ class CodeElement(object):
 class ValueElement(CodeElement):
     """Represents a code element that can hold a value."""
 
-    def __init__(self, name, modifiers, dtype, kind, default, dimension, parent):
+    def __init__(self, name, modifiers, dtype, kind, default, dimension, parent, D=0):
         super(ValueElement, self).__init__(name, modifiers, parent)
         self.dtype = dtype
         self.kind = self._clean_args(kind)
         self.default = default
-        self.dimension = self._clean_args(dimension)
+        self.dimension = dimension
+        self.D = D
+        """Returns the integer number of dimensions that this variable
+        is declared as having."""
 
     def __str__(self):
         return self.definition()
@@ -215,15 +218,6 @@ class ValueElement(CodeElement):
         else:
             return self.dtype
 
-    @property
-    def D(self):
-        """Returns the integer number of dimensions that this variable
-        is declared as having."""
-        if self.dimension is None:
-            return 0
-        else:
-            return self.dimension.count(",") + 1
-
     def definition(self, suffix = ""):
         """Returns the fortran code string that would define this value element.
 
@@ -231,8 +225,9 @@ class ValueElement(CodeElement):
           Useful for re-using definitions with new names.
         """
         kind = "({})".format(self.kind) if self.kind is not None else ""   
-        if len(self.modifiers) > 0:
-            mods = ", " + ", ".join(self.modifiers) + " " 
+        cleanmods = [m for m in self.modifiers if m != "" and m != " "]
+        if len(cleanmods) > 0:
+            mods = ", " + ", ".join(cleanmods) + " " 
         else:
             mods = " "
         dimension = "({})".format(self.dimension) if self.dimension is not None else ""
@@ -721,7 +716,7 @@ class TypeExecutable(CodeElement):
         executable points to."""
         if self.pointsto is not None:
             #It is in the format of module.executable.
-            return self.module.parent.get_executable(self.pointsto)
+            return self.module.parent.get_executable(self.pointsto.lower())
         else:
             #The executable it points to is the same as its name.
             fullname = "{}.{}".format(self.module.name, self.name)
@@ -1013,6 +1008,8 @@ class Module(CodeElement, Decoratable):
         self.changed = False
         #Does this module require pre-compilation; i.e. does it have pre-processor directives.
         self.precompile = False
+        self.public_linenum = 0
+        """The number of the line that contains the first 'public' keyword declaration."""
 
         #Lines and character counts for finding where matches fit in the file
         self._lines = []
@@ -1105,6 +1102,14 @@ class Module(CodeElement, Decoratable):
             output.append("MEMBERS:\n\t{}\n\n".format(members))
 
         return "".join(output)
+
+    def set_public_start(self, start):
+        """Sets the line number of the first declaration of public members for the module.
+        
+        :arg start: the *character* number of the first member marked as public.
+        """
+        if start > 0:
+            self.public_linenum = self.linenum(start)
 
     def get_dependency_element(self, symbol):
         """Checks if the specified symbol is the name of one of the methods

@@ -9,12 +9,13 @@ class MethodWriter(object):
 
     :arg method: a string identifying the method to test format: "module.executable".
     :arg parser: an instance of the code parser for inter-module access.
+    :arg testgen: the TestGenerator instance that owns this method writer.
     :arg fatal_if_missing: determines whether the framework chokes when it can't
        find a code element in the code parser that is referenced in the docstrings.
     """
-    def __init__(self, method, parser, fatal_if_missing = True):
+    def __init__(self, method, parser, testgen, fatal_if_missing = True):
         self.method = MethodFinder(method, parser, None, fatal_if_missing, True)
-
+        self.testgen = testgen
         #Dictionary of dependencies for the methods that need be executed in the
         #pre-req chain. Keys are the module names and values are the method names.
         self._uses = {}
@@ -117,6 +118,42 @@ class MethodWriter(object):
 
         return "\n".join(result)
 
+    def _check_exec_public(self, anexec):
+        """Makes sure that the specified executable is marked as public in the module
+        file that houses it.
+
+        :arg anexec: the instance of fortpy.elements.Executable that needs to be public.
+        """
+        module = anexec.module
+        if module is not None:
+            if not ("public" in anexec.modifiers or anexec.name in module.publics):
+                target = self.testgen.get_module_target(module.name)
+                with open(target) as f:
+                    contents = f.readlines()
+
+                #When tests get re-run a bunch of times, we might repeatedly insert the
+                #public declaration. Also, once pre-reqs are chained up, there is a 
+                #possibility that multiple executables will insert their public declaration
+                #just above the first one in unmodified module.
+
+                #One thing we do know is that the public declarations have to appear before
+                #members and type definitions in the module.
+                insert = True
+                for line in contents[module.public_linenum[0]::]:
+                    if anexec.name in line:
+                        insert = False
+                        break
+                    if ("type" in line or "::" in line or "interface" in line):
+                        break
+
+                if insert:
+                    contents.insert(module.public_linenum[0], "public {}\n".format(anexec.name))
+                    with open(target, 'w') as f:
+                        f.writelines(contents)
+        else:
+            raise ValueError("Can't find the module for {};".format(anexec.name) + 
+                             "unable to check public declaration for unit testing.")            
+
     def _code_repeats(self, lines, spacer, testid):
         """Appends lines for calls to methods and variable assignments that
         need to happen *every time* the main method is called."""
@@ -125,6 +162,14 @@ class MethodWriter(object):
         for methodk in self._ordered:
             method = self._method_dict[methodk]
             if isinstance(method, MethodFinder) and method.repeats:
+                #There is a one-to-one correspondence betweer a MethodFinder and the
+                #executable it represents. The only executables that make their way into
+                #MethodFinder instances are either pre-reqs or the actual method. We need
+                #to make sure that the relevant module files have the executable marked
+                #as 'public' so that the unit test executable compiles.
+                
+                #By now, the files should have been copied over already for the module.
+                self._check_exec_public(method.executable)
                 method.code(lines, "call", spacer, testid)
             elif isinstance(method, Assignment):
                 method.code(lines, "before", spacer)
@@ -141,6 +186,9 @@ class MethodWriter(object):
         for methodk in self._ordered:
             method = self._method_dict[methodk]
             if isinstance(method, MethodFinder) and not method.repeats:
+                #See the comment in the repeats coding about marking executables as public
+                #automatically in the unit test folder.
+                self._check_exec_public(method.executable)
                 method.code(lines, "call", spacer, testid)
             elif isinstance(method, Assignment):
                 method.code(lines, "assign", spacer)
@@ -270,15 +318,15 @@ class MethodWriter(object):
 
         #Now we need to recursively take care of all its children
         for anexec in method.methods:
-            if anexec.name in self._ordered:
+            if anexec.writekey in self._ordered:
                 #This executable is already in the list! We need to see if it
                 #is above the current entry or below it. Get the first occurrenc
                 #in the list and see if it is less than where we want to insert it.
-                existx = self._ordered.index(anexec.name)
-                if existx > index:
+                existx = self._ordered.index(anexec.writekey)
+                if existx > self._tracker:
                     #We want to insert this method in at the index AND remove the other
                     #entry so it doesn't get called twice.
-                    self._ordered.remove(anexec.name)
+                    self._ordered.remove(anexec.writekey)
                     self._order_dependencies(anexec)
                 #elif existx <= index: we don't need to do anything since it will already
                 #be executed before it is needed.
@@ -288,9 +336,9 @@ class MethodWriter(object):
 
         #The last thing to do is add the executable to the list before its parent
         #since it is a pre-req of its parent
-        self._ordered.insert(self._tracker, method.name)
-        if method.name not in self._method_dict:
-            self._method_dict[method.name] = method
+        self._ordered.insert(self._tracker, method.writekey)
+        if method.writekey not in self._method_dict:
+            self._method_dict[method.writekey] = method
         #We need to make sure that the methods are inserted in the right place across multiple
         #recursive calls to this function. This is the index handling for that.
-        self._tracker = self._ordered.index(method.name) + 1
+        self._tracker = self._ordered.index(method.writekey) + 1

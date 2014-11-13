@@ -9,13 +9,15 @@ class ExecutableGenerator(object):
 
     :arg parser: an instance of the code parser for inter-module access
     :arg folder: the folder in which to generate the code files and execs.
+    :arg testgen: the TestGenerator instance that owns this executable generator.
     """
-    def __init__(self, parser, folder):
+    def __init__(self, parser, folder, testgen):
         #We need the code parser because the pre-reqs specified may be in other
         #modules and may have pre-reqs of their own. This way, we can find
         #them all easily.
         self.parser = parser
         self.folder = folder
+        self.testgen = testgen
 
         self._needs = None
 
@@ -95,7 +97,7 @@ class ExecutableGenerator(object):
             if path.exists(fortpath):
                 remove(fortpath)
             
-        self.writer = MethodWriter(identifier, self.parser)
+        self.writer = MethodWriter(identifier, self.parser, self.testgen)
 
     def write(self, testid):
         """Writes the fortran program file for the executable specified.

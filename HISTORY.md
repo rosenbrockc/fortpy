@@ -6,6 +6,15 @@ Revision 1.1.6
 
 - Fixed bug with uninitialized list of parsed programs as part of trying to support fortran PROGRAM files.
 - Fixed bug for goto definition lookups not working in cases where they should.
+- Fixed bug where global definitions for variables that are never in a parameter list can't be auto-generated.
+- Fixed bug for variable value assignments from embedded methods in derived types.
+- Fixed bug where allocation for local variables in the unit testing wasn't been generated for embedded methods.
+- Fixed bug in variable dimension and default value parsing. The regex was stopping at the first `)` and then stripping all other parentheses in the string. The end result was that the property `D` was wrong because it only counted `,` instances in the string and when dimensions were specified with functions, there were lots of extra commas.
+- Added support for ragged array input files. If the file is 2D but a 1D array of objects needs to be initialized from each line in the file (with lines of differing length), then `ragged="true"` can be added to the `<value>` tag and the ragged initialization is handled automatically.
+- Added support for `<part>` tags so that specific dimensions of arrays and arrays of objects can be initialized separately. This includes wildcard support for input file copying and initialization of higher-dimensional arrays from a series of 2D arrays.
+- Added support for allocate-only assignments of variables. An `<assignment>` tag can now have just a `name` and `allocate` attribute. Unless the variable is a derived-type pointer, the `allocate` attribute must explicitly specify the dimensions of the array to allocate.
+- Added support for mixed file, function and embedded value assignments. This is especially useful in the context of ragged arrays and part assignments. For example, an array of objects where each elements needs to be initialized from a 2D input file via an embedded function is possible using a combination of `<part>` and `<value>` tags where the `<value>` tag has both `file` and `embedded` attributes specified.
+- Fixed a bug where the `allocatable` or `pointer` modifiers were not being automatically added to `class` and `type` variables with `regular="true"`.
 
 Revision 1.1.5
 ------

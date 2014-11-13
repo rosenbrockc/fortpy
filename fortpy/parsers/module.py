@@ -174,11 +174,17 @@ class ModuleParser(object):
         the public keyword instead of a decoration."""
         matches = self.RE_PUBLIC.finditer(contents)
         result = {}
+        start = 0
         for public in matches:
             methods = public.group("methods")
+            #We need to keep track of where the public declarations start so that the unit
+            #testing framework can insert public statements for those procedures being tested
+            #who are not marked as public
+            if start == 0:
+                start = public.start("methods")
             for item in re.split(r"[\s&\n,]+", methods.strip()):
                 self._dict_increment(result, item)
-        return result
+        return (result, start)
 
     def _process_module(self, name, contents, parent, match):
         """Processes a regex match for a module to create a CodeElement."""
@@ -195,13 +201,14 @@ class ModuleParser(object):
 
         #Next, parse out the dependencies of the module on other modules
         dependencies = self._parse_use(contents)
-        publics = self._process_publics(contents)
+        publics, pubstart = self._process_publics(match.string)
 
         #We can now create the CodeElement
         result = Module(name, modifiers, dependencies, publics, contents, parent)
         result.start = match.start()
         result.end = match.end()
         result.refstring = match.string
+        result.set_public_start(pubstart)
         if self.RE_PRECOMP.search(contents):
             result.precompile = True
 

@@ -23,6 +23,40 @@ class GlobalDeclaration(object):
         else:
             return ""
 
+    @property
+    def dimension(self):
+        """Returns the dimension specification from the <global> tag."""
+        if "dimensions" not in self.attributes:
+            return None
+        else:
+            return self.attributes["dimensions"]
+
+    @property
+    def kind(self):
+        """Returns the kind of the variable from the <global> tag declaration, if 
+        it exists.
+        """
+        if "kind" in self.attributes:
+            return self.attributes["kind"]
+        else:
+            return None
+
+    @property
+    def D(self):
+        """Returns the integer number of dimensions that this variable
+        is declared as having."""
+        if self.dimension is None:
+            return 0
+        else:
+            return self.dimension.count(",") + 1
+
+    @property
+    def ignore(self):
+        """Specifies whether this variable should be ignored when passed in to argument lists
+        and for definitions etc.
+        """
+        return "ignore" in self.attributes and self.attributes["ignore"] == "true"
+
     def compare(self, element):
         """Determines whether the specified element defines the same variable
         type and name as this one.
@@ -33,7 +67,9 @@ class GlobalDeclaration(object):
          - dimensionality
          - allocatable/pointer modifiers
         ."""
-        if self.attributes["name"].lower() != element.attributes["name"].lower():
+        if self.ignore:
+            return False
+        elif self.attributes["name"].lower() != element.attributes["name"].lower():
             return False
         elif not self._kind_check(element):
             return False
@@ -104,20 +140,16 @@ class GlobalDeclaration(object):
 
     def definition(self):
         """Returns the fortran declaration that defines a global variable."""
+        if self.ignore:
+            return "  ! Variable '{}' was set to be ignored.".format(self.attributes["name"])
+        
         result = []
         if "type" not in self.attributes or "name" not in self.attributes:
             msg.err("required variable for execution missing some attributes." + 
                     " {}".format(self.attributes))
             exit(1)
 
-        #You can't actually declare a variable as a 'class'; we need to use the type
-        #keyword. Class represents any of the types in the inheritance chain of a
-        #derived type.
-        if self.attributes["type"].lower() != "class":
-            result.append(self.attributes["type"])
-        else:
-            result.append("type")
-
+        result.append(self.attributes["type"])
         if "kind" in self.attributes and self.attributes["kind"] is not None:
             result.append("({})".format(self.attributes["kind"]))
 
@@ -203,6 +235,11 @@ class AssignmentValue(object):
       set during each iteration of the main method being tested.
     :attr prereq: if true, and embedde method on a derived type will be treated
       along with all its prereqs as part of the execution chain.
+    :attr D: the dimensionality of the data in the file that is setting the variable value.
+    :attr ragged: when true, the lines in a 2D array file are treated individually with
+      some other (embedded or function) value assignment.
+    :attr dtype: for ragged array files, the data type of the values in each row.
+    :attr kind: the kind of each value in the data rows of the ragged array.
     """
     def __init__(self, xmltag, parent):
         """Initializes the assignment value using the <value> tag."""
@@ -218,7 +255,10 @@ class AssignmentValue(object):
         self.repeats = None
         self.prereqs = None
         self.paramlist = None
-        self.allocate = None
+        self.D = 0
+        self.ragged = False
+        self.dtype = None
+        self.kind = None
 
         self._derived_type = None
         self._codes = {
@@ -243,18 +283,6 @@ class AssignmentValue(object):
             return self.rename
         else:
             return self.filename
-
-    @property
-    def allocatable(self):
-        """Returns true if the variable assigned by this object should be allocated."""
-        #We use the global declaration's attributes when deciding how to treat the 
-        #variable in the unit testing application. This is because the developer can
-        #override some of the variable's behavior with <global> tags and we need to
-        #honor those changes.
-        return (self.parent.allocate and 
-                ("allocatable" in self.parent.global_attr("modifiers", "") or
-                 "pointer" in self.parent.global_attr("modifiers", "") or
-                 (self.parent.variable.D > 0 and ":" in self.parent.variable.dimension)))
  
     def copy(self, coderoot, testroot, case):
         """Copies the input files needed for this value to set a variable.
@@ -266,11 +294,23 @@ class AssignmentValue(object):
         #We only want to do the copy if we are assigning a value from a file.
         if self.folder is not None:
             source = path.join(coderoot, self.folder[2:], self.filename.format(case))
-            if self.rename is not None:
-                target = path.join(testroot, self.rename)
+            #For the cases where multiple files specify the values for different
+            #parts of an array, the <value> file specification will have a wildcard
+            #at the position where the array index id will go. We just copy *all* the
+            #input files over that match that definition.
+            if "*" in source:
+                import glob
+                for filename in glob.glob(source):
+                    suffix = ".{}".format(case)
+                    if filename[-len(suffix)::] == suffix:
+                        target = path.join(testroot, filename[0:len(filename)-len(suffix)].split("/")[-1])
+                        copyfile(filename, target)
             else:
-                target = path.join(testroot, self.filename.format(case))
-            copyfile(source, target)
+                if self.rename is not None:
+                    target = path.join(testroot, self.rename)
+                else:
+                    target = path.join(testroot, self.filename.format(case))
+                copyfile(source, target)
 
     def check_prereqs(self):
         """Checks whether this value element requires an embedded method to be
@@ -281,75 +321,82 @@ class AssignmentValue(object):
             #instance of the TypeExecutable to locate its actual target.
             var = self.parent.variable
             target = var.kind
-            self._derived_type = self.parent.parser.tree_find(target, var.module, "types")
+            module = self.parent.parent.module
+            self._derived_type = self.parent.parser.tree_find(target, module, "types")
 
             if self._derived_type is None:
                 raise ValueError("The type for embedded method {} cannot be found.".format(self.embedded))
 
             if self.prereqs:
-                if self._derived_type.pointsto is not None:
-                    key = "{}.{}".format(self._derived_type.module, self._derived_type.pointsto)
+                typex = self._derived_type.executables[self.embedded.lower()]
+                if self.typex.pointsto is not None:
+                    key = "{}.{}".format(self._derived_type.module, typex.pointsto)
                 else:
-                    key = "{}.{}".format(self._derived_type.module, self._derived_type.name)
+                    key = "{}.{}".format(self._derived_type.module, typex.name)
 
-                self.parent.add_prereq(key, self.parent.element)
+                self.parent.parent.add_prereq(key, self.parent.element)
  
-    def code(self, lines, position, spacer):
+    def code(self, lines, position, spacer, slices=None):
         """Appends the code lines to initialize the parent variable.
 
         :arg lines: the list of strings to append to.
         :arg position: one of ['vars', 'init', 'assign', 'before', 'after'] indicating 
           where in the fortran program the code will be appended.
+        :arg slices: for array value assignments, the specific indices to assign values
+          to. Tuple of (slice string, [loopvars]).
         """
         if self.parent.variable is not None:
-            self._codes[position](lines, spacer)
+            self._codes[position](lines, spacer, slices)
         else:
             raise ValueError("Trying to assign a value to an unknown variable {}.".format(self.iid))
 
-    def _code_before(self, lines, spacer):
+    def _code_before(self, lines, spacer, slices):
         """Calls _code_setvar() if we *are* in repeat mode."""
         if self.repeats:
-            self._code_setvar(lines, spacer)
+            self._code_setvar(lines, spacer, slices)
 
-    def _code_assign(self, lines, spacer):
+    def _code_assign(self, lines, spacer, slices):
         """Calls _code_setvar() if we are *not* in repeat mode."""
         if not self.repeats:
-            self._code_setvar(lines, spacer)
+            self._code_setvar(lines, spacer, slices)
 
-    def _code_setvar(self, lines, spacer):
+    def _code_setvar(self, lines, spacer, slices):
         """Appends code for assigning the value of the parent variable using
-        this value specification."""
-        if self.constant is not None:
-            self._code_setvar_allocate(lines, spacer)
-            lines.append("{}{} = {}".format(spacer, self.parent.name, self.constant))
-        elif self.function is not None:
-            self._code_setvar_allocate(lines, spacer)
-            lines.append("{}{} = {}".format(spacer, self.parent.name, self.function))
-        elif self.embedded is not None:
-            self._code_embedded(lines, spacer)
-        else:
-            self._code_file(lines, spacer)
-            
-    def _code_setvar_allocate(self, lines, spacer):
-        """Allocates the variables before a general value setting if they need to be
-        allocated.
+        this value specification.
+
+        :arg slices: for array value assignments, the specific indices to assign values
+          to.
         """
-        #This only works if the value they specified includes a specific allocate dimension.
-        if self.allocate is None:
-            return
+        if self.filename is None:
+            #We handle these each individually when no file assignment is present.
+            #The file assigner may handle the embedded and function calls at the right
+            #spot when parts are being assigned.
+            if self.constant is not None:
+                self._code_setvar_value(lines, spacer, self.constant, slices)
+            elif self.function is not None:
+                self._code_setvar_value(lines, spacer, self.function, slices)
+            elif self.embedded is not None:
+                self._code_embedded(lines, spacer, slices)
+        else:
+            self._code_file(lines, spacer, slices)
 
-        if (self.parent.variable.dimension is not None and
-            self.allocatable and self.parent.variable.D == 1):
-            lines.append("{}allocate({}({}))".format(spacer, self.parent.name, self.allocate))
-                    
-        if (self.parent.variable.dimension is not None and
-            self.parent.variable.D == 2 and self.allocatable):                  
-            allocstr = "{2}allocate({0}({1}))"
-            lines.append(allocstr.format(self.parent.name, self.allocate, spacer))
-
-    def _code_embedded(self, lines, spacer):
+    def _code_setvar_value(self, lines, spacer, value, slices=None):
+        """Sets the value of the variable primitively to the specified value."""
+        if slices is None:
+            lines.append("{}{} = {}".format(spacer, self.parent.name, value))
+        else:
+            lines.append("{}{}({}) = {}".format(spacer, self.parent.name, 
+                                                slices[0], value))
+    
+    def _code_embedded(self, lines, spacer, slices=None, varname=None):
         """Appends code for calling an embedded method in a derived type,
-        optionally including all its dependencies."""
+        optionally including all its dependencies.
+
+        :arg varname: in the mode where individual files are being used to set the values
+          of different parts of an array of embedded types, 'varname' is the name of the 
+          temporary variable created to hold the contents of the file. It will be deallocated
+          after the embedded subroutine is called.
+        """
         if not self.prereqs and self._derived_type is not None:
             #This is a simple exercise in calling the embedded method. We just 
             #need to track down the parameters list.
@@ -373,44 +420,132 @@ class AssignmentValue(object):
                 raise ValueError("Embedded type initialization routines must be"
                                  " subroutines, functions aren't supported.")
 
-            lines.append("{}{}{}%{}({})".format(spacer, call, self.parent.name, 
-                                                self.embedded, params))
+            if slices is None:
+                lines.append("{}{}{}%{}({})".format(spacer, call, self.parent.name, 
+                                                    self.embedded, params))
+            else:
+                i = 1
+                while "$" in params:
+                    #The developer is using some existing array and wants the loop variable
+                    #names substituted for some of the paramaters.
+                    params = params.replace("${}".format(i), slices[1][i])
+
+                #Handle the embedded via file possibility.
+                if varname is not None:
+                    params = params.replace("@file", varname)
+
+                lines.append("{}{}{}({})%{}({})".format(spacer, call, self.parent.name, 
+                                                        slices[0], self.embedded, params))
         #if it does have pre-reqs, they will be handled by the method writer and we
         #don't have to worry about it.
 
-    def _code_file(self, lines, spacer):
+    def _code_file(self, lines, spacer, slices):
         """Appends code for initializing the value of a variable that is a
         scalar, vector or 2D matrix from a file.
         """
         if self.filename is not None:
             flines = []
-            flines.append("open(fpy_newunit({}_funit), ".format(self.iid) + 
-                          "file='{}')".format(self.xname))
+            #If we have slices being set from file values, we will have a set
+            #of files that match a wildcard pattern. They will all have been copied
+            #into the test directory. However, we need to replace the wildcard in
+            #the filename at *runtime* with the current value of the loop variable.
+            if "*" in self.xname:
+                indices = "(/ {} /)".format(', '.join(slices[1]))
+                flines.append("call fpy_period_join_indices(" +
+                              "{}_pslist, {}, {})".format(self.iid, indices, len(slices[1])))
+                rtlen = "len({}_pslist, 1) + {}".format(self.iid, len(self.xname)-1)
+                rtname = '"{}"//{}_pslist'.format(self.xname[:len(self.xname)-1], self.iid)
+            else:
+                rtname = "'{}'".format(self.xname)
+                rtlen = len(self.xname)
+
+            #There is also the case where we want to use a single file, but with ragged data
+            #lengths on each line.
+            if self.ragged:
+                ragvar = "{}_rag".format(self.iid)
+                if slices is None:
+                    slices = (ragvar, [ragvar])
+                else:
+                    #Make sure that we have at least one free dimension available for the ragged
+                    #list in the file.
+                    if slices[0][-1] == ":":
+                        slices[0][-1] = ragvar
+                        slices[1].append(ragvar)
+                    else:
+                        raise ValueError("The 'ragged' option can only be used when there is "
+                                         "a spare dimension on the array to assign the ragged "
+                                         "file values to.")
+
+            if slices is not None:
+                varname = "{}_fvar".format(self.iid)
+            else:
+                varname = self.parent.name
+
+            flines.append("call fpy_linevalue_count({}, ".format(rtname) +
+                          "{1}, '{0}'".format(self.commentchar, rtlen) + 
+                          ", {0}_nlines, {0}_nvalues)".format(self.iid))
+
+            if not self.ragged:
+                flines.append("open(fpy_newunit({}_funit), ".format(self.iid) + 
+                              "file={})".format(rtname))
 
             #It is possible that a single value could be read from the file.
-            if self.parent.variable.D == 0:
-                flines.append("read({}_funit, *) {}".format(self.iid, self.parent.name))
+            if self.D == 0:
+                flines.append("read({}_funit, *) {}".format(self.iid, varname))
 
             #We are working with a vector or scalar. Check the dimensionality of
             #the actual variable and see if it needs to be allocated.
-            if (self.parent.variable.dimension is not None and
-                self.allocatable and self.parent.variable.D == 1):
-                flines.append("allocate({}({}_nvalues))".format(self.parent.name, self.iid))
-                flines.append("read({}_funit, *) {}".format(self.iid, self.parent.name))
+            if self.D == 1 or self.ragged:
+                #For the ragged option, this is the only place that we handle it.
+                if self.ragged:
+                    flines.append("allocate({}({}_nlines))".format(self.parent.name, self.iid))
+                    flines.append("call fpy_linevalue_count_all({}, ".format(rtname) +
+                                  "{1}, '{0}'".format(self.commentchar, rtlen) + 
+                                  ", {0}_nlines, {0}_ragvals)".format(self.iid))
+                    flines.append("open(fpy_newunit({}_funit), ".format(self.iid) + 
+                                  "file={})".format(rtname))
+                    flines.append("do {0}_rag=1, {0}_nlines".format(self.iid))
+                    flines.append("  allocate({0}_fvar({0}_ragvals({0}_rag)))".format(self.iid))
+                    ragspace = "  "
+                else:
+                    flines.append("allocate({}({}_nvalues))".format(self.parent.name, self.iid))
+                    ragspace = ""
+
+                flines.append("{}read({}_funit, *) {}".format(ragspace, self.iid, varname))
                     
             #Now handle the case where the input file fills a 2D variable.
-            if (self.parent.variable.dimension is not None and
-                self.parent.variable.D == 2 and self.allocatable):                  
-                allocstr = "allocate({0}({1}_nlines, {1}_nvalues))"
-                flines.append(allocstr.format(self.parent.name, self.iid))
-
+            if self.D == 2:
+                if slices is not None or self.parent.allocatable:
+                    allocstr = "allocate({0}({1}_nlines, {1}_nvalues))"
+                    flines.append(allocstr.format(varname, self.iid))
                 fmtstr = "read({0}_funit,*)({1}(nrow,:), nrow =1, {0}_nlines)"
-                flines.append(fmtstr.format(self.iid, self.parent.name))
+                flines.append(fmtstr.format(self.iid, varname))
 
-            flines.append("close({}_funit)\n".format(self.iid))
+            #Handle the mixture of embed/function and filename case.
+            if slices is not None:
+                if self.embedded is not None:
+                    self._code_embedded(flines, "", slices, varname)
+                if self.function is not None:
+                    filefun = self.function.replace("@file", varname)
+                    self._code_setvar_value(lines, spacer, filefun, slices)
+
+            if self.ragged:
+                flines.append("  deallocate({0}_fvar)".format(self.iid))
+                flines.append("end do")
+            if self.D == 2 and slices is not None:
+                flines.append("deallocate({0}_fvar)".format(self.iid))
+
+            flines.append("close({}_funit)".format(self.iid))
+            if slices is None: #Just whitespace for formatting
+                flines.append("")
+
+            #Deallocate the variable for concatenating the loop ids to form the file name
+            #if "*" in self.xname:
+            #    flines.append("deallocate({0}_pslist)".format(self.iid))
+
             lines.extend([ spacer + l for l in flines])
 
-    def _code_after(self, lines, spacer):
+    def _code_after(self, lines, spacer, slices=None):
         """Appends code for deallocating a variable that was assigned a value.
         This is useful so that we can reallocate it again in repeat mode.
         """
@@ -419,17 +554,12 @@ class AssignmentValue(object):
              "pointer" in self.parent.variable.modifiers)):
             lines.append("{}deallocate({})".format(spacer, self.parent.name))
 
-    def _code_init(self, lines, spacer):
-        """Appends code to initialize any variables we need for file read
+    def _code_init(self, lines, spacer, slices=None):
+        """Appends code to initialize any variables we need for assignment
         operations later on.
         """
-        if self.filename is not None:
-            lines.append("{}!Line/value counting for {}.".format(spacer, self.xname))
-            lines.append("{}call fpy_linevalue_count('{}', ".format(spacer, self.xname) + 
-                         "{2}, '{0}', {1}_nlines, {1}_nvalues)".format(self.commentchar, self.iid,
-                                                                      len(self.xname)))
 
-    def _code_vars(self, lines, spacer):
+    def _code_vars(self, lines, spacer, slices=None):
         """Appends lines to declare any variables we need for file read
         operations later on.
         """
@@ -437,6 +567,24 @@ class AssignmentValue(object):
             lines.append("{}!Vars for initializing variable {} ".format(spacer, self.parent.name) +
                          "from file {}".format(self.filename))
             lines.append("{0}integer :: {1}_nlines, {1}_nvalues, {1}_funit".format(spacer, self.iid))
+            if "*" in self.xname:
+                lines.append("{}character(100) :: {}_pslist".format(spacer, self.iid))
+            if self.ragged:
+                lines.append("{}integer :: {}_rag".format(spacer, self.iid))
+                lines.append("{}integer, allocatable :: {}_ragvals(:)".format(spacer, self.iid))
+
+            if "*" in self.xname or self.ragged:
+                if self.dtype is None:
+                    raise ValueError("Wildcard file names and ragged array inputs both require "
+                                     "attribute 'dtype' to be specified.")
+                if self.kind is None:
+                    skind = ""
+                else:
+                    skind = "({})".format(self.kind)
+
+                fdim = [":"]*self.D
+                lines.append("{}{}{}, allocatable".format(spacer, self.dtype, skind) + 
+                             " :: {}_fvar({})".format(self.iid, ','.join(fdim)))
 
     def _parse_xml(self):
         """Extracts the relevant attributes from the <value> tag."""
@@ -473,8 +621,19 @@ class AssignmentValue(object):
             self.prereqs = self.xml.attrib["prereqs"].lower() == "true"
         else:
             self.prereqs = False
-        if "allocate" in self.xml.attrib:
-            self.allocate = self.xml.attrib["allocate"]
+        if "filedim" in self.xml.attrib:
+            self.D = int(self.xml.attrib["filedim"])
+            if self.D > 2:
+                raise ValueError("Only 2D arrays are handled automatically via file assignment.")
+        else:
+            self.D = self.parent.variable.D
+
+        if "ragged" in self.xml.attrib:
+            self.ragged = self.xml.attrib["ragged"] == "true"
+        if "dtype" in self.xml.attrib:
+            self.dtype = self.xml.attrib["dtype"]
+        if "kind" in self.xml.attrib:
+            self.kind = self.xml.attrib["kind"]
 
 class Condition(object):
     """Represents a single if, elseif or else block to execute."""
@@ -563,6 +722,170 @@ class AssignmentConditional(object):
                 c.code(lines, spacer)
             lines.append("{}end if".format(spacer))
 
+class Part(object):
+    """Represents a part assignment for a <part> tag to set specific dimensions on
+    an array-valued variable.
+
+    :attr identifier: the unique identifier for the <part>.
+    :attr start: the index of the array to start on.
+    :attr value: the value to assign to parts of the array specified by this part.
+    :attr limits: a comma-separated list of integer indices to assign the value to
+      or a range of min-max integer dimension specifiers. The loop generated by this
+      part tag will run over these values.
+    :attr parts: a dict of parts nested in this one.
+    :attr depth: the depth of this part in a nested part specification.
+    :attr assignment: the parent instance of Assignment for this part, even if its
+      immediate parent is another Part instance.
+    :attr isloop: for a limit specificaton that is a comma-separated list, we don't
+      use a loop, only a repeated list of assignments.
+    :attr loopid: the name of the loop variable for this part.
+    :attr slice_list: list of the dimension specifcations for setting the array part that this
+      object is supposed to set.
+    :attr repeats: when operating in constant mode, should the part assignment happen before
+      each call to the main function being unit tested.
+    """
+    def __init__(self, xml, parent):
+        self.xml = xml
+        self.parent = parent
+
+        self.identifier = None
+        self.start = 0
+        self.value = None
+        self.limits = None
+        self.parts = {}
+        self.isloop = False
+        self.assignment = parent if isinstance(parent, Assignment) else parent.assignment
+        self.depth = (1 if isinstance(parent, Assignment) else parent.depth + 1) + self.start
+        self.loopid = "{}_fpy_{}".format(self.assignment.name, self.depth)
+        self.repeats = False
+
+        #We can't determine the remaining attributes until the XML has been parsed.
+        self._parse_xml()
+        self.slice_list = ([":"]*parent.variable.D if isinstance(parent, Assignment) 
+                           else list(parent.slice_list))
+        self.slice_list[self.depth-1] = self.loopid if self.isloop else "{}"
+        self.slices = ','.join(self.slice_list)
+
+        self._top_parts = None #Lazy assignment for property.
+
+    @property
+    def top_parts(self):
+        """Returns the parent <part> instances from a set of nested <part> tags.
+        """
+        if self._top_parts is None:
+            part = self
+            self._top_parts = [self]
+            while isinstance(part.parent, Part):
+                part = part.parent
+                self._top_parts.insert(0, part)
+        return self._top_parts
+    
+    def _code_vars(self, lines, spacer):
+        """Appends lines to declare any variables we need for file read
+        operations later on.
+        """
+        if not self.isloop:
+            return
+
+        if self.depth == 1:
+            lines.append("{}!V: {} array-part assignment loop".format(spacer, self.assignment.name))
+        lines.append("{}integer :: {}".format(spacer, self.loopid))
+
+    def code(self, lines, position, spacer):
+        """Adds the code to make this part specification (and loop) work."""
+        if position == "vars":
+            self._code_vars(lines, spacer)
+        elif position in ["before", "assign"]:
+            if ((position == "before" and self.repeats) or
+                (position == "assign" and not self.repeats)):
+                self._code_set(lines, spacer, position)
+
+    def _code_set(self, lines, spacer, position):
+        """Adds the code to set up the variable assignment with this loop at position
+        'before' or 'assign'.
+        """
+        #Before we can assign a value, we need to make sure the value identifier is valid
+        #if it exists.
+        if self.value is not None and self.value.lower() not in self.assignment.values:
+            raise ValueError("{} in part {} is not ".format(self.value, self.identifier) + 
+                             "a valid identifier.")
+            
+        #Before we attempt to assign values, we need to make sure that the variable is allocated
+        #For non-file allocations, the Assignment instance handles allocation; for file types,
+        #usually the AssignmentValue instance handles it, except when <part> tags are used.
+        if self.assignment.values[self.value].filename is not None:
+            if self.assignment.allocate:
+                if self.assignment.allocate == True:
+                    lines.append("{}allocate({})".format(spacer, self.assignment.name))
+                else:
+                    lines.append("{}allocate({}({}))".format(spacer, self.assignment.name,
+                                                             self.assignment.allocate))            
+
+        if self.isloop:
+            lines.append("{}do {}={}, {}".format(spacer, self.loopid, self.limits[0], self.limits[1]))
+            self.assignment.values[self.value].code(lines, position, spacer + '  ', 
+                                                    (self.slices, self.slice_list))
+        else:
+            #We need to repeat the assignment for each of the part values
+            for ipart in self.limits:
+                slices = self.slices.format(ipart)
+                self.assignment.values[self.value].code(lines, position, spacer + '  ', 
+                                                        (slices, self.slice_list))
+
+        if self.isloop:
+            lines.append("{}end do".format(spacer))
+        lines.append("")
+
+    def _loopvar_replace(self, limit):
+        """Replaces the $i value in the specified limit with the relevant loop variable.
+        """
+        #The loop variables have to be one this part's parent <part> tags. If it has
+        #no parents, or limit is not a string, we don't have to do anything.
+        if not isinstance(limit, str) or isinstance(self.parent, Assignment):
+            return limit
+        else:
+            for i in range(1, len(self.top_parts)):
+                rstr = "${}".format(i)
+                limit = limit.replace(rstr, self.top_parts[i-1].loopid)
+            return limit
+
+    def _parse_xml(self):
+        if "identifier" in self.xml.attrib:
+            self.identifier = self.xml.attrib["identifier"]
+        else:
+            raise ValueError("The 'identifier' attribute is required for <part> tags.")
+
+        if "start" in self.xml.attrib:
+            self.start = int(self.xml.attrib["start"])-1
+        if "value" in self.xml.attrib:
+            self.value = self.xml.attrib["value"]
+        if "limits" in self.xml.attrib:
+            if ":" in self.xml.attrib["limits"]:
+                self.isloop = True
+                self.limits = self.xml.attrib["limits"].split(":")
+                if self.limits[0] != "":
+                    self.limits[0] = self._loopvar_replace(self.limits[0])
+                else:
+                    self.limits[0] = 1
+                if self.limits[1] != "":
+                    self.limits[1] = self._loopvar_replace(self.limits[1])
+                else:
+                    self.limits[1] = "size({}, {})".format(self.assignment.name, self.depth)
+            else:
+                self.isloop = False
+                self.limits = map(int, self.xml.attrib["limits"].split())
+        else:
+            self.isloop = True
+            self.limits = (1, "size({}, {})".format(self.assignment.name, self.depth))
+
+        if "repeats" in self.xml.attrib:
+            self.repeats = self.xml.attrib["repeats"] == "true"
+
+        for kid in self.xml:
+            if kid.tag == "part":
+                p = Part(kid, self)
+                self.parts[p.identifier] = p
+
 class Assignment(object):
     """Represents an instance value assignment as part of a pre-req chain.
 
@@ -589,8 +912,12 @@ class Assignment(object):
         self.name = None
         self.conditionals = []
         self.values = {}
-        self.allocate = None
+        self.parts = {}
+        self.allocate = False
         self.value = None
+        self.writekey = None
+        """Establishes a unique key for the driver writer so that multiple assignments
+        of the same variable don't interfere with each other."""
 
         self._variable = None
 
@@ -633,6 +960,8 @@ class Assignment(object):
             #Search the global declarations for the variable and then track down
             #the code element that it represents
             self._variable = MethodFinder.recurse_find_variable(self.name.lower(), self.parent)
+            if self._variable is None and self.globaldecl is not None:
+                self._variable = self.globaldecl
 
         return self._variable
 
@@ -640,6 +969,18 @@ class Assignment(object):
     def attributes(self):
         """Provides one-level-up access to the XML elements attributes collection."""
         return self.element.attributes
+
+    @property
+    def allocatable(self):
+        """Returns true if the variable assigned by this object should be allocated."""
+        #We use the global declaration's attributes when deciding how to treat the 
+        #variable in the unit testing application. This is because the developer can
+        #override some of the variable's behavior with <global> tags and we need to
+        #honor those changes.
+        return (self.allocate and 
+                ("allocatable" in self.global_attr("modifiers", "") or
+                 "pointer" in self.global_attr("modifiers", "") or
+                 (self.variable.D > 0 and ":" in self.variable.dimension)))
 
     def check_prereqs(self):
         """Checks all the values this assignment may use to make sure they reference
@@ -657,8 +998,34 @@ class Assignment(object):
         """
         #Just call copy on all the child value objects.
         for v in self.values:
-            self.values[v].copy(coderoot, testroot, case)
+            self.values[v].copy(coderoot, testroot, case)        
         
+    def _code_setvar_allocate(self, lines, spacer):
+        """Allocates the variables before a general value setting if they need to be
+        allocated.
+        """
+        #This only works if the value they specified includes a specific allocate dimension
+        #or we can easily determine what it needs to be.
+        if self.allocate is None:
+            return
+
+        variable = self.variable if self.globaldecl is None else self.globaldecl
+        if (variable.dimension is not None and
+            self.allocatable and variable.D == 1):
+            lines.append("{}allocate({}({}))".format(spacer, self.name, self.allocate))
+                    
+        if (variable.dimension is not None and
+            variable.D == 2 and self.allocatable):                  
+            allocstr = "{2}allocate({0}({1}))"
+            lines.append(allocstr.format(self.name, self.allocate, spacer))
+
+        if ("pointer" in self.global_attr("modifiers", "") and
+            "class" in self.global_attr("type", "")):
+            if self.allocate == True:
+                lines.append("{}allocate({})".format(spacer, self.name))
+            else:
+                lines.append("{}allocate({}({}))".format(spacer, self.name, self.allocate))
+
     def code(self, lines, position, spacer):
         """Appends the code for this assignment to function correctly at the
         specified position in the code file.
@@ -668,17 +1035,44 @@ class Assignment(object):
           to variable declaration, initialization, assignment and cleanup.
         """
         if position in ["init", "vars", "after"]:
+            #Recognizing that even though the main <assignment> may reference only a single
+            #<value> or <part> tag, because of nested parts we probably still need to do
+            #the initializations.
             for v in self.values:
                 self.values[v].code(lines, position, spacer)
+            for p in self.parts:
+                self.parts[p].code(lines, position, spacer)
         elif position in ["assign", "before"]:
+            #Usually, before any kind of assignment can take place, the variable may need
+            #to be allocated. Here we try allocation for the variable if it applies. For
+            #file variables, the allocation requires special values extracted at runtime
+            #from the input files.
+            for v in self.values:
+                value = self.values[v]
+                if (value.filename is None and (
+                    (value.repeats and position=="before") or 
+                    (not value.repeats and position=="assign"))):
+                    self._code_setvar_allocate(lines, spacer)
+                    #We only need to allocate the variable once per assignment.
+                    break
+
+            #We also need to handle the case where the developer only wants the variable
+            #to be allocated and have nothing else done to it...
+            if (self.value is None and self.allocate and position=="assign"):
+                self._code_setvar_allocate(lines, spacer)
+
             #We just need to check whether this assignment had an explicit
             #value or if it has a list of conditionals.
-            if self.value is None:
+            if self.value is None and len(self.conditionals) > 0:
                 for c in self.conditionals:
                     c.code(lines, position, spacer)
-            else:
+            elif self.value is not None:
                 if self.value in self.values:
                     self.values[self.value].code(lines, position, spacer)
+                elif self.value in self.parts:
+                    self.parts[self.value].code(lines, position, spacer)
+                else:
+                    raise ValueError("Value identifier {} not found.".format(self.value))
         
     def _parse_xml(self):
         """Parses attributes and child tags from the XML element."""
@@ -689,17 +1083,28 @@ class Assignment(object):
 
         if "value" in self.attributes:
             self.value = self.attributes["value"]
-        if "allocate" in self.attributes:
-            self.allocate = self.attributes["allocate"] == "true"
-        else:
-            self.allocate = True
+        if "allocate" in self.element.xml.attrib:
+            if self.element.xml.attrib["allocate"] in ["false", "true"]:
+                self.allocate = self.element.xml.attrib["allocate"] == "true"
+            else:
+                self.allocate = self.element.xml.attrib["allocate"]
 
         for child in self.element.xml:
             if child.tag == "value":
                 val = AssignmentValue(child, self)
                 self.values[val.identifier] = val
+            elif child.tag == "part":
+                p = Part(child, self)
+                self.parts[p.identifier.lower()] = p
             elif child.tag == "conditionals":
                 self.conditionals.append(AssignmentConditional(child, self))
+        
+        #Construct the key for identifying this assignment operation uniquely.
+        self.writekey = self.name
+        if len(self.parts) > 0:
+            self.writekey += "({})".format(list(self.parts.keys())[0])
+        if self.value is not None:
+            self.writekey += "_{}".format(self.value)
          
 class TestInput(object):
     """Represents information for a single input source as part of a unit test.
@@ -941,6 +1346,7 @@ class TestTarget(object):
     :attr compareto: the identifier of an <output> tag that the variable's values will
       be compared to after the program has run.
     :attr testspec: the parent test specification that this target belongs to.
+    :attr member: the name of a member in a derived type whose value should be saved.
     """
     def __init__(self, xmltag, testspec):
         """Initializes the target specification with a <target> tag."""
@@ -951,6 +1357,7 @@ class TestTarget(object):
         self.generator = None
         self.compareto = None
         self.testspec = testspec
+        self.member = None
 
         self._code = None
         self._parse_attributes()
@@ -999,7 +1406,11 @@ class TestTarget(object):
                 glob = variables[self.name]
                 dtype = glob.attributes["type"]
                 if dtype == "class" or dtype == "type":
-                    self._code = "{}call {}%test_output('{}')".format(spacer, self.name, self.varfile)
+                    if self.member is not None:
+                        self._code = ("{}call pysave({}%{}".format(spacer, self.name, self.member) + 
+                                      ", '{}', {})".format(self.varfile, len(self.varfile)))
+                    else:
+                        self._code = "{}call {}%test_output('{}')".format(spacer, self.name, self.varfile)
                 else:
                     #pysave is an interface in the fortpy module that can accept variables
                     #of different types and write them to file in a deterministic way
@@ -1034,6 +1445,8 @@ class TestTarget(object):
             self.generator = self.xml.attrib["generator"]
         if "compareto" in self.xml.attrib:
             self.compareto = self.xml.attrib["compareto"]
+        if "member" in self.xml.attrib:
+            self.member = self.xml.attrib["member"]
 
 class TestSpecification(object):
     """Represents a single test that needs to be performed. Each test compiles
@@ -1431,6 +1844,18 @@ class TestingGroup(object):
                     result.attributes["modifiers"] += ", allocatable"
                 elif "modifiers" not in result.attributes:
                     result.attributes["modifiers"] = "allocatable"
+                    
+            #For regular="true" parameters of the class variable this/self, we need to
+            #explicitly add the pointer modifier so that the allocation works.
+            needsadj = ((param.dtype == "class" or param.dtype == "type") and
+                        ("pointer" not in result.attributes["modifiers"] or
+                         "allocatable" not in result.attributes["modifiers"]))
+            if needsadj:
+                if result.attributes["modifiers"] == "":
+                    result.attributes["modifiers"] = "pointer"
+                else:
+                    result.attributes["modifiers"] += ", pointer"
+
             return result
         else:
             return None
@@ -1451,7 +1876,7 @@ class TestingGroup(object):
             #one. If it isn't, stop the execution. If it is, we don't need
             #to add it again.
             existing = self.variables[name]
-            if not existing.compare(doc):
+            if not existing.ignore and not existing.compare(doc):
                 msg.err("variables in the calling namespace have the same name," + \
                         " but different types: \n{}{}".format(existing.element, doc))
                 exit(1)
@@ -1480,6 +1905,9 @@ class MethodFinder(object):
     def __init__(self, identifier, parser, element, fatal_if_missing = True, main=False):
         self.identifiers = identifier.lower().split(".")
         self.name = identifier
+        self.writekey = self.name
+        """Key to uniquely identify this method finder from any other that exists because
+        of multiple calls to the same pre-requisite methods."""
         self.methods = []
         self.element = element
         self.main = main
@@ -1633,7 +2061,12 @@ class MethodFinder(object):
                 if param in self.group.mappings:
                     calllist.append(self.group.mappings[param])
                 else:
-                    calllist.append(param.name)
+                    if param.name in self.group.variables:
+                        if not self.group.variables[param.name].ignore:
+                            calllist.append(param.name)
+                    else:
+                        calllist.append(param.name)
+
             lines.append("{}{}{}({})".format(spacer, prefix, self.executable.name,
                                               self._present_params(calllist, spacing)))        
 

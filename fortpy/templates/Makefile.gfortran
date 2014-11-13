@@ -3,7 +3,7 @@
 #--------------------------------------------------------------------------------
 
 # Standard flags (produce optimised code)
-FFLAGS  =  -O3 -ffree-line-length-none
+FFLAGS  =  -O3 -ffree-line-length-none -std=f2003
 LDFLAGS = 
 
 # For automatic reallocation of LHS: -assume realloc_lhs

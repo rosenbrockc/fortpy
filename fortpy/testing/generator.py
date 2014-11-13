@@ -35,7 +35,7 @@ class TestGenerator(object):
         self.parser = parser
         self.tester = tester
         self.libraryroot = libraryroot
-        self.xgenerator = ExecutableGenerator(parser, libraryroot)
+        self.xgenerator = ExecutableGenerator(parser, libraryroot, self)
         if rerun is not None:
             self.rerun = rerun.lower()
         else:
@@ -92,11 +92,14 @@ class TestGenerator(object):
             #in its parent module (either via a public modifier or via the public
             #keyword in the module).
             if anexec.test_group is not None:
-                if "public" in anexec.modifiers or anexec.name in module.publics:
-                    self._write_executable(module, anexec)
-                else:
-                    msg.warn("executable {} has a testing ".format(anexec.name) +
-                             "group, but is not marked as public in the module.")
+                self._write_executable(module, anexec)
+                
+    def get_module_target(self, module):
+        """Gets the full path to the file that houses the specified module."""
+        if module not in self.parser.mappings:
+            return os.path.join(self.xgenerator.folder, module + ".f90")
+        else:
+            return os.path.join(self.xgenerator.folder, self.parser.mappings[module])        
 
     def _write_executable(self, module, executable):
         """Generates the fortran program for the specified executable code
@@ -139,10 +142,7 @@ class TestGenerator(object):
 
             #Get the path to the code file in the executable directory so that
             #we can copy it over if it doesn't exist.
-            if needk not in self.parser.mappings:
-                target = os.path.join(self.xgenerator.folder, needk + ".f90")
-            else:
-                target = os.path.join(self.xgenerator.folder, self.parser.mappings[needk])
+            target = self.get_module_target(needk)
 
             if needed.filepath not in previous or \
                (needed.filepath in previous and previous[needed.filepath] < moddate) or \

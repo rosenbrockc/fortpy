@@ -5,7 +5,7 @@ module fortpy
   implicit none
   private
   public pysave, dp, sp, si, li, fpy_linevalue_count, fpy_newunit, pysave_integer_li, &
-       fpy_value_count
+       fpy_value_count, fpy_period_join_indices, fpy_linevalue_count_all
 
   !!<member name="fileunit">I/O unit for the file to write the output to.</member>
   integer :: fileunit
@@ -39,7 +39,37 @@ module fortpy
      module procedure in_range_integer, in_range_integer_1d, in_range_integer_2d, &
           in_range_real, in_range_real_1d, in_range_real_2d
   end interface fpyin_range
-contains  
+contains
+  !!<summary>Joins an array of integer indices as a period-separated string for
+  !!concatenating to a file name.</summary>
+  !!<parameter name="pslist">The period-separated result.</parameter>
+  !!<parameter name="indices">An array of integer indices to join together.</parameter>
+  !!<parameter name="n">The number of entries in the 'indices' array.</parameter>
+  subroutine fpy_period_join_indices(pslist, indices, n)
+    character(100), intent(out) :: pslist
+    integer :: n
+    integer, intent(in) :: indices(n)
+
+    character(n*10) :: tempstr
+    character(40) :: buffer
+    integer :: i
+
+    tempstr = ""
+    pslist = ""
+    do i=1, n
+       write(buffer, '(I10)') indices(i)
+       buffer = adjustl(buffer)
+       if (i .eq. n) then
+          tempstr = trim(pslist) // trim(buffer)
+          pslist = tempstr
+       else
+          tempstr = trim(pslist) // trim(buffer) // "."
+          pslist = tempstr
+       end if
+    end do
+    pslist = trim(tempstr)
+  end subroutine fpy_period_join_indices
+
   logical function in_range_real_2d(variable, min, max)
     real(dp), intent(in) :: variable(:,:)
     real(dp), intent(in) :: min, max
@@ -376,6 +406,46 @@ contains
     if (indx == 0) fpy_value_count = fpy_value_count + 1
   end function fpy_value_count
 
+  subroutine fpy_linevalue_count_all(filename, n, commentchar, nlines, nvalues)
+    integer, intent(in) :: n
+    character(n), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer, intent(out) :: nlines
+    integer, allocatable, intent(out) :: nvalues(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit, i, firstnval
+    character(500) :: line
+
+    !Initialize the value for the result; if we get an error during the read, we
+    !end the loop. It can be caused by badly formatted data or the EOF marker.
+    call fpy_linevalue_count(filename, n, commentchar, nlines, firstnval)
+    allocate(nvalues(nlines))
+    nvalues = 0
+    i = 0
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+       do
+          read(funit, "(A)", iostat=ioerr) line
+          if (ioerr == 0) then
+             cleaned = trim(adjustl(line))
+             if (len(cleaned) .gt. 0) then
+                if (cleaned(1:1) /= commentchar) then
+                   i = i + 1
+                   !We only need to get the number of values present in a line once.
+                   !We restrict the file structure to have rectangular arrays.
+                   nvalues(i) = fpy_value_count(cleaned, len(cleaned))
+                end if
+             end if
+          else
+             exit
+          end if
+       end do
+    end if
+    close(funit)
+  end subroutine fpy_linevalue_count_all
+
   !!<summary>Returns the number of lines in the file that aren't comments and
   !!the number of whitespace-separated values on the first non-comment line.</summary>
   !!<parameter name="filename">The name of the file to pass to open.</parameter>
@@ -383,12 +453,12 @@ contains
   !!<parameter name="commentchar">A single character which, when present at the start
   !!of a line designates it as a comment.</parameter>
   subroutine fpy_linevalue_count(filename, n, commentchar, nlines, nvalues)
-    character(n), intent(in) :: filename
     integer, intent(in) :: n
+    character(n), intent(in) :: filename
     character(1), intent(in) :: commentchar
     integer, intent(out) :: nlines, nvalues
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit, i
+    integer :: ioerr, funit
     character(500) :: line
 
     !Initialize the value for the result; if we get an error during the read, we

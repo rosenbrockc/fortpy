@@ -400,7 +400,6 @@ class ExecutableParser(object):
         #First get the variables declared in the body of the executable, these can
         #be either locals or parameter declarations.
         members = self.vparser.parse(contents, anexec)
-        
         #If the name matches one in the parameter list, we can connect them
         for param in list(params):
             lparam = param.lower()
