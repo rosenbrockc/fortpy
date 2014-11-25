@@ -1,6 +1,17 @@
 FORTPY: Revision History
 ======
 
+Revision 1.2.8
+------
+
+- Fixed bug in `scripts/compare.py` that broke when the file comparer was updated during a previous upgrade of the unit testing framework. Ironically, the lack of unit tests for fortpy didn't catch the bug introduced in the framework for performing fortran unit tests.
+- Added the module `testing/parser.py` to parse test case results and performing generic functions such as plotting, creating tables, etc.
+- Added the fortpy shell `scripts/analyze.py` that interfaces with test results to tabulate results, create plots, investigate failures, etc.
+- Fixed a bug that raised an exception when the model output files are empty.
+- Fixed a bug where input files with more than 500 characters per line don't get all the data imported. Upped the value to 5000.
+- Fixed a bug in the test input/output file generator where the generic value writer didn't handle the case of a `long` in python.
+- Added overflow error checking for the make files when compiling in DEBUG mode. Changed the default behavior of the `scripts/runtests.py` script to always run the fortpy unit tests in DEBUG mode unless the `-nodebug` flag is specified.
+
 Revision 1.2.7
 ------
 

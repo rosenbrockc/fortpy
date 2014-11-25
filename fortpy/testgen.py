@@ -22,21 +22,21 @@ def _get_filename(absdir, name, infile=True, case=None):
     else:
         return "{}.{}".format(suffix, case)
 
-def _print_value(value):
+def print_value(value):
     """Determines the type of the specified value and formats it with high precision for
     reading in by fortran (or for later comparison by python).
     """
     if isinstance(value, int):
-        return "%11d" % value
+        return "%15d" % value
     elif isinstance(value, float):
         return "%.09e" % value
     elif isinstance(value, complex):
         raise ValueError("Complex data types not supported yet for auto-test generation "
                          "in fortpy.")
     elif isinstance(value, list) or isinstance(value, tuple):
-        return ' '.join(map(_print_value, value))
+        return '   '.join(map(print_value, value))
 
-def _write_generic(value, filepath):
+def write_generic(value, filepath=None):
     """Writes the specified variable value to the file, formatting it for use with Fortran
     and taking its dimensionality into account.
 
@@ -48,14 +48,17 @@ def _write_generic(value, filepath):
     if isinstance(value, list) or isinstance(value, tuple):
         #Check if it is 1D or 2D.
         if len(value) > 0 and (isinstance(value[0], list) or isinstance(value[0], tuple)):
-            contents = '\n'.join(map(_print_value, value))
+            contents = '\n'.join(map(print_value, value))
         else:
-            contents = _print_value(value)
+            contents = print_value(value)
     else:
-        contents = _print_value(value)
+        contents = print_value(value)
 
-    with open(filepath, 'w') as f:
-        f.write(contents)
+    if filepath is not None:
+        with open(filepath, 'w') as f:
+            f.write(contents)
+    else:
+        return contents
 
 def load(names, folder, infile=True, case=None):
     """Loads the value of a previously saved variable from file using the fortpy test
@@ -113,4 +116,4 @@ def save(values, names, folder, infile=True, case=None, overwrite=False):
     for val, name in zip(values, names):
         absfile = path.join(absdir, _get_filename(absdir, name, infile, case))
         if overwrite or not path.isfile(absfile):
-            _write_generic(val, absfile)
+            write_generic(val, absfile)

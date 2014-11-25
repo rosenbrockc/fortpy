@@ -19,7 +19,7 @@ def print_result(testkey, percent, time, common):
 
 def initialize():    
     t = UnitTester(args["stagedir"], args["verbose"], args["templates"], args["fortpy"],
-                   args["rerun"], debug=args["debug"], profile=args["profile"])
+                   args["rerun"], debug=(not args["nodebug"]), profile=args["profile"])
 
     if args["compiler"]:
         t.compiler = args["compiler"]
@@ -55,7 +55,9 @@ parser.add_argument("-rerun",
                           "tests of *all* modules in the code directory."))
 parser.add_argument("-compiler", help="Specify the compiler to use for the unit testing")
 parser.add_argument("-pypath", help="Specify a path to add to sys.path before running the tests.")
-parser.add_argument("-debug", help="Compile the executables with DEBUG=true", 
+parser.add_argument("-nodebug", 
+                    help=("Compile the executables with DEBUG=false; the default behavior is to "
+                          "always compile with DEBUG on to check bounds and overflow errors etc."), 
                     action="store_true")
 parser.add_argument("-profile", help="Compile and link with profiling enabled. Analyze profile.",
                     action="store_true")

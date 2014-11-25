@@ -9,7 +9,9 @@ def initialize():
     else:
         comparer = FileComparer()
 
-    result = comparer.compare(args["source"], args["target"], args["mode"])
+    if not args["xmltemplate"]:
+        args["xmltemplate"] = "{}.xml".format(source.split("/")[-1])
+    result = comparer.compare(args["source"], args["target"], args["xmltemplate"], args["mode"])
 
     if args["save"]:
         with open(args["save"], "w") as f:
@@ -27,6 +29,7 @@ parser.add_argument("-templates", help="Specify the path to the folder that hous
 parser.add_argument("-save", help="Specify a path to save the comparison report to.")
 parser.add_argument("-verbose", help="Sets whether the comparison output is verbose.", action="store_true")
 parser.add_argument("-mode", help="Sets the strictness of the comparison.", default="default")
+parser.add_argument("-xmltemplate", help="Specify the name of the XML template to use.")
 
 #Parse the args from the commandline that ran the script, call initialize
 args = vars(parser.parse_args())

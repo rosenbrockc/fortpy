@@ -507,6 +507,10 @@ class FileComparer(object):
             slines = f.readlines()
 
         #The first line in a file to be compared contains version information
+        if len(slines) == 0:
+            msg.err("The file {} is empty; can't create representation.".format(source))
+            return None
+
         sf = self._get_fortpy(slines[0])
         sv = self._get_file_version(sf)
 

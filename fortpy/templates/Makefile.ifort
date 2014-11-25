@@ -17,7 +17,7 @@ endif
 
 # Debug flag
 ifeq ($(DEBUG),true)
-   FFLAGS  =  -g -error-limit 7 -traceback -check bounds -warn -fpic
+   FFLAGS  =  -g -error-limit 7 -traceback -check bounds -warn -fpic -fpe0
    LDFLAGS = 
 endif
 

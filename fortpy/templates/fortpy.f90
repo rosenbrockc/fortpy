@@ -415,7 +415,7 @@ contains
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit, i, firstnval
-    character(500) :: line
+    character(5000) :: line
 
     !Initialize the value for the result; if we get an error during the read, we
     !end the loop. It can be caused by badly formatted data or the EOF marker.
@@ -459,7 +459,7 @@ contains
     integer, intent(out) :: nlines, nvalues
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
-    character(500) :: line
+    character(5000) :: line
 
     !Initialize the value for the result; if we get an error during the read, we
     !end the loop. It can be caused by badly formatted data or the EOF marker.
