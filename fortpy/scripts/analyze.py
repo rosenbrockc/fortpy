@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """This module/script provides an interactive console interface to the test results
 from multiple cases of an individual test."""
 import cmd
@@ -40,10 +41,48 @@ class FortpyShell(cmd.Cmd):
         """
         self._group_cmds = ["xlabel", "ylabel", "filter", "rmfilter", "threshold", "dep",
                             "indep", "rmdep", "vars", "postfix", "plot", "logplot", "loglogplot",
-                            "table", "failures"]
+                            "table", "failures", "headings"]
         """As for self._test_cmds but for a valid analysis group. Anything needing property
         'curargs' relies on a valid analysis group.
         """
+
+    def do_help(self, arg):
+        """Sets up the header for the help command that explains the background on how to use
+        the script generally. Help for each command then stands alone in the context of this
+        documentation. Although we could have documented this on the wiki, it is better served
+        when shipped with the shell.
+        """
+        if arg == "":
+            lines = [("The fortpy unit testing analysis shell makes it easy to analyze the results "
+                      "of multiple test cases, make plots of trends and tabulate values for use in "
+                      "other applications. This documentation will provide an overview of the basics. "
+                      "Use 'help <command>' to get specific command help."),
+                     ("Each fortpy shell session can hold the results of multiple unit tests. You can "
+                      "load a unit test's results into the session using one of the 'parse' commands. "
+                      "Once the test is loaded you can tabulate and plot results by setting test case "
+                      "filters ('filter'), and independent and dependent variables ('indep', 'dep')."
+                      "Switch between different unit tests loaded into the session using 'set'."),
+                     ("To make multiple plots/tables for the same unit test, create new analysis "
+                      "groups ('group'). "
+                      "Each group has its own set of properties that can be set (e.g. variables, plot "
+                      "labels for axes, filters for test cases, etc.) The possible properties that affect "
+                      "each command are listed in the specific help for that command."),
+                     ("You can save the state of a shell session using 'save' and then recover it at "
+                      "a later time using 'load'. When a session is re-loaded, all the variables and "
+                      "properties/settings for plots/tables are maintained and the latest state of the "
+                      "unit test's results are used. A console history is also maintained with bash-like "
+                      "commands (e.g. Ctrl-R for reverse history search, etc.) across sessions. You can "
+                      "manipulate its behavior with 'history'.")]
+            
+            self._fixed_width_info(lines)
+        cmd.Cmd.do_help(self, arg)
+
+    def _fixed_width_info(self, lines):
+        """Prints the specified string as information with fixed width of 80 chars."""
+        for string in lines:
+            for line in [string[i:i+80] for i in range(0, len(string), 80)]:
+                msg.info(line)
+            msg.blank()
 
     @property
     def live(self):
@@ -136,25 +175,38 @@ class FortpyShell(cmd.Cmd):
             return [c for c in self.live if c.startswith(text)]
 
     def do_inputs(self, arg):
-        """Prints a list of the available input files to analyze in the specified test case."""
         usable, filename, append = self._redirect_split(arg)
         result = self._print_dict_files(usable, "inputs")
         if result is not None:
             self._redirect_output(result, filename, append, msg.info)
     def complete_inputs(self, text, line, istart, iend):
         return self._complete_cases(text, line, istart, iend)
+    def help_inputs(self):
+        lines = [("Prints a list of the available input files to analyze in the specified "
+                  "test case. In general, these are files with '.in' in the file name. If "
+                  "your unit test XML groups don't rename input files with the '.in' suffix, "
+                  "you may have difficulty with the analysis."),
+                 ("EXAMPLE: \"inputs standard.1\" lists all the input files available for analysis "
+                  "in the 'standard.1' test case. See also 'outputs'.")]
+        self._fixed_width_info(lines)
 
     def do_outputs(self, arg):
-        """Prints a list of the available output files to analyze in the specified test case."""
         usable, filename, append = self._redirect_split(arg)
         result = self._print_dict_files(usable, "outputs")
         if result is not None:
             self._redirect_output(result, filename, append, msg.info)
     def complete_outputs(self, text, line, istart, iend):
         return self._complete_cases(text, line, istart, iend)
+    def help_outputs(self):
+        lines = [("Prints a list of the available output files to analyze in the specified "
+                  "test case. In general, these are files with '.out' in the file name. If "
+                  "your unit test XML groups don't use output files with the '.out' suffix, "
+                  "you may have difficulty with the analysis."),
+                 ("EXAMPLE: \"outputs standard.1\" lists all the output files available for analysis "
+                  "in the 'standard.1' test case. See also: 'inputs'.")]
+        self._fixed_width_info(lines)
 
     def do_timing(self, arg):
-        """Prints the number of milliseconds spent executing the specified test case."""
         usable, filename, append = self._redirect_split(arg)
         if usable in self.live and "timing" in self.live[usable]:
             if self.live[usable]["timing"] is not None:
@@ -166,6 +218,14 @@ class FortpyShell(cmd.Cmd):
             msg.err("The test case {} does not exist.".format(arg))
     def complete_timing(self, text, line, istart, iend):
         return self._complete_cases(text, line, istart, iend)
+    def help_timing(self):
+        lines = [("Prints the number of milliseconds (ms) that a specific test case took to run. "
+                  "This value *only* corresponds to the total time that the actual method being "
+                  "unit tested took to run; all other setup/take down methods such as input/output "
+                  "reading/writing etc. are *not* included in this value."),
+                 ("EXAMPLE: \"timing standard.1\" prints the total run time for the method using "
+                  "data from the 'standard.1' test case.")]
+        self._fixed_width_info(lines)
 
     def _complete_tests(self, text, line, istart, iend):
         """Returns a completion list of possible, parsed unit tests that could be loaded or
@@ -188,23 +248,74 @@ class FortpyShell(cmd.Cmd):
             self._redirect_output(result, filename, append, msg.info)
 
     def do_xlabel(self, arg):
-        """Sets the label of the x-axis for plotting."""
         self._set_arg_generic("xlabel", arg)
+    def help_xlabel(self):
+        lines = [("Sets the label of the x-axis for plotting. This property is used in conjunction "
+                  "with the commands 'plot', 'logplot' and 'loglogplot'."),
+                 ("EXAMPLE: \"xlabel The Number of Elements in the Group\" sets the xlabel for the "
+                  "plots in the current analysis group. Notice that quotes are *not* required; "
+                  "everything after the 'xlabel' keyword is used as the axis label. "
+                  "See also: 'ylabel'")]
+        self._fixed_width_info(lines)
+
     def do_ylabel(self, arg):
         """Sets the label of the y-axis for plotting."""
         self._set_arg_generic("ylabel", arg)
+    def help_ylabel(self):
+        lines = [("Sets the label of the y-axis for plotting. This property is used in conjunction "
+                  "with the commands 'plot', 'logplot' and 'loglogplot'."),
+                 ("EXAMPLE: \"ylabel Total Execution Time (ms)\" sets the ylabel for the "
+                  "plots in the current analysis group. Notice that quotes are *not* required; "
+                  "everything after the 'ylabel' keyword is used as the axis label. "
+                  "See also: 'xlabel'")]
+        self._fixed_width_info(lines)
+
+    def do_headings(self, arg):
+        usable, filename, append = self._redirect_split(arg)
+        if usable != "":
+            headings = usable.split("|")
+            self.curargs["headings"] = [h.strip() for h in headings]
+        result = "HEADINGS: " + " | ".join(self.curargs["headings"])
+        self._redirect_output(result, filename, append, msg.info)        
+    def help_headings(self):
+        lines = [("Sets the headings to use when printing the table of values for the "
+                  "current variable set (i.e. independent and dependent variables). It "
+                  "is your responsibility to make sure that the number of headings matches "
+                  "the number of variables and that they appear in the same order as they "
+                  "are in the session. You can see the order they will appear in the table "
+                  "by using the 'vars' command. Add the variables as a '|'-separated list "
+                  "of strings; as such bars are not allowed in the heading names."),
+                 ("EXAMPLE: \"headings Group Size|Time (ms)|Result\" sets the headings for "
+                  "the output table to 'Group Size', 'Time (ms)' and 'Result' respectively."),
+                 ("See also: 'table'.")]
+        self._fixed_width_info(lines)        
+
     def do_filter(self, arg):
         """Sets the filter for the test cases to include in the plot/table by name. Only those
         test cases that include this text are included in plots, tables etc."""
         self._set_arg_generic("tfilter", arg)
     def complete_filter(self, text, line, istart, iend):
         return self._complete_cases(text, line, istart, iend)
+    def help_filter(self):
+        lines = [("Sets the test case filter to exclude specific test case results from plots "
+                  "and tables or failure reports. For example, if I wanted to plot the timing "
+                  "for a set of test cases that all have 'standard.fg*' as their name (with * "
+                  "a wildcard character), then I could use the following code: "),
+                 ("EXAMPLE: \"filter standard.fg*\". If the wildcard character is not present, "
+                  "the filter must match one of the test cases *exactly*; otherwise there will be "
+                  "no results included in any of the plots/tables. You can remove a filter with "
+                  "the 'rmfilter' command.")]
+        self._fixed_width_info(lines)
 
     def do_rmfilter(self, arg):
         """Removes the test case filter that limits which results are included in plots/tables.
         """
         self.curargs["tfilter"] = None
         self._set_arg_generic("tfiletr", "")
+    def help_rmfilter(self):
+        lines = [("Removes the test case filter to exclude specific test case results from plots "
+                  "and tables or failure reports. See 'filter'.")]
+        self._fixed_width_info(lines)
 
     def do_threshold(self, arg):
         """Specify a success threshold (percent as float) that output files must attain before 
@@ -213,6 +324,20 @@ class FortpyShell(cmd.Cmd):
             self._set_arg_generic("threshold", arg, float)
         except ValueError:
             err("The specified threshold value is not a valid float percentage. Try 1. for 100%")
+    def help_threshold(self):
+        lines = [("Except in the case of the 'failures' report, all plots/tables only use those "
+                  "test case results that are considered successful. Most unit tests specify an "
+                  "output file that needs to be compared to a model output file. When the comparison "
+                  "is performed, a percentage value is calculated for the overall match of the output "
+                  "with the model output. This comparison is saved in a '.out.compare' file."),
+                 ("Success is defined by a comparison percentage that exceeds the 'threshold' value. "
+                  "Specify a decimal percentage (e.g. 0.78 for 78%) to change the threshold from its "
+                  "default value of 1. (i.e. 100% success)."),
+                 ("EXAMPLE: \"threshold 0.66\" sets the minimum success required to 66%. If no "
+                  "files were specified for comparison, the test case is considered successful if "
+                  "the program exited without any unhandled exceptions (this creates a 'SUCCESS' file "
+                  "with the last successful run time in it.")]
+        self._fixed_width_info(lines)
 
     def _complete_vars(self, text):
         #Variables can come from inputs or outputs.
@@ -269,6 +394,38 @@ class FortpyShell(cmd.Cmd):
             self.curargs["independent"] = arg
     def complete_indep(self, text, line, istart, iend):
         return self._complete_fullvar(text, line, istart, iend)
+    def help_indep(self):
+        lines = [("Sets the variable and property combination for the *independent* variable in plots "
+                  "and tables, etc. There can only be a single independent variable for any plot/table. "
+                  "The format of the variable specification is filename|property and can be auto-"
+                  "completed with <tab>. The properties are extracted from the file when it is parsed. "
+                  "Depending on the variable property you choose, you either plot values extracted from "
+                  "*all* test cases across the whole unit test, OR only array-type values from multiple "
+                  "files within the *same* test case."),
+                 ("Possible properties are:\n"
+                  "  - 'width': the number of values per row for 2D square arrays.\n"
+                  "  - 'depth': the number of rows of data in the file.\n"
+                  "  - 'shape': the (depth, width) of the data as a tuple.\n"
+                  "  - 'value': the scalar value for a file that has only a single value in it.\n"
+                  "  - 'rowvals': a list of the values for each row. Requires aggregation function.\n"
+                  "  - 'colvals': a list of the values for each column. Requires aggregation function"),
+                 ("For the 'rowvals' and 'colvals' properties, the unit test needs to be parsed using "
+                  "the 'fullparse' command. These properties allow the contents of an input/output file "
+                  "for a single unit test to be plotted against some other data from a different file."
+                  "Set a filter to include only a single unit test (using the 'filter' command) and "
+                  "choose an aggregation function (using the 'postfix' command) like numpy.mean or "
+                  "numpy.sum to turn each list of values into a single number."),
+                 ("EXAMPLE: \"indep group.in|depth\" chooses the number of rows in each 'group.in' "
+                  "file across all the unit test's cases to be the x-value for any plots or tables."),
+                 ("EXAMPLE: \"indep generators.in|rowvals\" selects the set of row values from the "
+                  "'generators.in' file to be plotted for a *single* unit test. To work, you would also "
+                  "need to set 'filter' to a single unit test and 'postfix' to a valid aggregation "
+                  "function."),
+                 ("NOTE: use tab completion to make sure that the variable names and properties you "
+                  "select are valid. The auto-completion is specific to the file you choose, so it "
+                  "only reflects what is possible."),
+                 ("See Also: 'dep'.")]
+        self._fixed_width_info(lines)
 
     def do_dep(self, args):
         """Adds the name and attribute of a dependent variable to the list 
@@ -281,6 +438,19 @@ class FortpyShell(cmd.Cmd):
                 self.curargs["dependents"].append(arg)
     def complete_dep(self, text, line, istart, iend):
         return self._complete_fullvar(text, line, istart, iend)
+    def help_dep(self):
+        lines = [("Adds one or more variables as *dependent* variables for plotting or tabulating. "
+                  "A description of the format of the variables and properties can be found by typing "
+                  "\"help indep\" in the shell. The dependent variables follow the exact same "
+                  "conventions and the same limitations apply regarding the use of 'rowvals' and "
+                  "'colvals' properties."),
+                 ("EXAMPLE: \"dep concs.in|width timing polya.out|value\" adds three dependent variables "
+                  "whose values will be extracted across all test cases that match the filter specified "
+                  "by the command 'filter'."),
+                 ("NOTE: use tab completion to make sure that the variable names and properties you "
+                  "select are valid. The auto-completion is specific to the file you choose, so it "
+                  "only reflects what is possible.")]
+        self._fixed_width_info(lines)
 
     def do_rmdep(self, args):
         """Removes dependent variables currently set for plotting/tabulating etc."""
@@ -292,9 +462,21 @@ class FortpyShell(cmd.Cmd):
             return self.curargs["dependents"]
         else:
             return [v for v in self.curargs["dependents"] if v.startswith(text)]
+    def help_dep(self):
+        lines = [("Adds one or more variables as *dependent* variables for plotting or tabulating. "
+                  "A description of the format of the variables and properties can be found by typing "
+                  "\"help indep\" in the shell. The dependent variables follow the exact same "
+                  "conventions and the same limitations apply regarding the use of 'rowvals' and "
+                  "'colvals' properties."),
+                 ("EXAMPLE: \"dep concs.in|width timing polya.out|value\" adds three dependent variables "
+                  "whose values will be extracted across all test cases that match the filter specified "
+                  "by the command 'filter'."),
+                 ("NOTE: use tab completion to make sure that the variable names and properties you "
+                  "select are valid. The auto-completion is specific to the file you choose, so it "
+                  "only reflects what is possible.")]
+        self._fixed_width_info(lines)
 
     def do_vars(self, arg):
-        """Prints the current settings for dependent and independent variables in the shell."""
         usable, filename, append = self._redirect_split(arg)
         result = []
         result.append("INDEPENDENT: '{}'".format(self.curargs["independent"]))
@@ -303,6 +485,10 @@ class FortpyShell(cmd.Cmd):
             result.append("  {}. '{}'".format(i, self.curargs["dependents"][i]))
 
         self._redirect_output('\n'.join(result), filename, append, msg.info)
+    def help_vars(self):
+        lines = [("Prints the current status of the independent and dependent variables for the "
+                  "current analysis group.")]
+        self._fixed_width_info(lines)
 
     def do_postfix(self, arg):
         """Sets the function to apply to the values of a specific variable before plotting
@@ -357,6 +543,13 @@ class FortpyShell(cmd.Cmd):
                 result = [a for a in alldir if a.startswith(partial)]                
 
             return [prefix + '.' + a for a in result]
+    def help_postfix(self):
+        lines = [("Sets the postfix function for a specific variable (either dependent or "
+                  "independent). The postfix function is applied to the variable's value "
+                  "before plotting. Any numpy function can be selected for the postfix."),
+                 ("EXAMPLE \"postfix group.in|rowvals numpy.mean\" sets the postfix function "
+                  "to take the mean value of each row in the 'group.in' file for the plotting.")]
+        self._fixed_width_info(lines)
 
     def _plot_generic(self, filename=None):
         """Plots the current state of the shell, saving the value to the specified file
@@ -386,6 +579,19 @@ class FortpyShell(cmd.Cmd):
         self._plot_generic(filename)
     def complete_logplot(self, text, line, istart, iend):
         return self.complete_parse(text, line, istart, iend)
+    def help_logplot(self):
+        lines = [("Plots the behavior of the dependent variables as functions of the independent "
+                  "variable for the current analysis group. The y-scale is set to logarithmic. To "
+                  "save the plot to a file, redirect the output."),
+                 ("You can control the appearance of the plot using the following commands: "
+                  "'xlabel', 'ylabel'. Consider using separate analysis groups for each plot "
+                  "you need to create so that you don't waste time overwriting property values. "
+                  "You can save a sessions settings using 'save' if you want to return and "
+                  "redo the plots later or make adjustments (highly recommended)."),
+                 ("EXAMPLE \"logplot > plot.pdf\" creates a log plot of the data and saves it "
+                  "to the specified PDF file."),
+                 ("See also: 'loglogplot', 'plot'.")]
+        self._fixed_width_info(lines)
 
     def do_loglogplot(self, arg):
         """Plots the current state of the shell's independent vs. dependent variables on the
@@ -398,6 +604,20 @@ class FortpyShell(cmd.Cmd):
         self._plot_generic(filename)
     def complete_loglogplot(self, text, line, istart, iend):
         return self.complete_parse(text, line, istart, iend)
+    def help_loglogplot(self):
+        lines = [("Plots the behavior of the dependent variables as functions of the independent "
+                  "variable for the current analysis group. The y-scale is set to logarithmic and "
+                  "the x-scale is also set to logarithmic. To save the plot to a file, redirect "
+                  "the output."),
+                 ("You can control the appearance of the plot using the following commands: "
+                  "'xlabel', 'ylabel'. Consider using separate analysis groups for each plot "
+                  "you need to create so that you don't waste time overwriting property values. "
+                  "You can save a sessions settings using 'save' if you want to return and "
+                  "redo the plots later or make adjustments (highly recommended)."),
+                 ("EXAMPLE \"loglogplot > plot.pdf\" creates a log-log plot of the data and saves it "
+                  "to the specified PDF file."),
+                 ("See also: 'logplot', 'plot'.")]
+        self._fixed_width_info(lines)
 
     def do_plot(self, arg):
         """Plots the current state of the shell's independent vs. dependent variables on the
@@ -409,6 +629,19 @@ class FortpyShell(cmd.Cmd):
         self._plot_generic(filename)
     def complete_plot(self, text, line, istart, iend):
         return self.complete_parse(text, line, istart, iend)
+    def help_plot(self):
+        lines = [("Plots the behavior of the dependent variables as functions of the independent "
+                  "variable for the current analysis group. To save the plot to a file, redirect "
+                  "the output."),
+                 ("You can control the appearance of the plot using the following commands: "
+                  "'xlabel', 'ylabel'. Consider using separate analysis groups for each plot "
+                  "you need to create so that you don't waste time overwriting property values. "
+                  "You can save a sessions settings using 'save' if you want to return and "
+                  "redo the plots later or make adjustments (highly recommended)."),
+                 ("EXAMPLE \"plot > plot.pdf\" creates a plot of the data and saves it "
+                  "to the specified PDF file."),
+                 ("See also: 'logplot', 'loglogplot'.")]
+        self._fixed_width_info(lines)
 
     def _set_def_prompt(self):
         """Sets the default prompt to match the currently active unit test."""
@@ -436,6 +669,16 @@ class FortpyShell(cmd.Cmd):
             msg.err("The test case '{}' is not valid.".format(arg))
     def complete_set(self, text, line, istart, iend):
         return self._complete_tests(text, line, istart, iend)        
+    def help_set(self):
+        lines = [("Sets the currently active unit test whose test cases are being analyzed or "
+                  "plotted. You can add multiple unit tests to the session by using the 'parse' "
+                  "or 'fullparse' commands. When any of those commands is used, this command "
+                  "is also called automatically to set the session to use the newly parsed "
+                  "unit test as the active one. This command toggles between them."),
+                 ("EXAMPLE \"set classes.polya\" sets the unit tests for the executable 'polya' in "
+                  "the 'classes' module to be the active unit test."),
+                 ("NOTE: you can see which unit test is currently active by looking at the prompt.")]
+        self._fixed_width_info(lines)
 
     def do_save(self, arg):
         """Saves the session variables to a file so that the same analysis can be continued later."""
@@ -455,6 +698,17 @@ class FortpyShell(cmd.Cmd):
         msg.okay("Saved current session to {}".format(fullpath))
     def complete_save(self, text, line, istart, iend):
         return self.complete_parse(text, line, istart, iend)
+    def help_save(self):
+        lines = [("Saves the current test analysis session to disk so it can be resumed later. "
+                  "The current state of all variables, settings and a list of the unit tests that "
+                  "were parsed into the session are also saved. When the session is re-loaded "
+                  "later using the 'load' command, the *latest* state of all the unit tests is "
+                  "re-parsed from the disk; i.e. no results are cached, just pointers to the results, "
+                  "which are re-parsed on load."),
+                 ("EXAMPLE: \"save analysis.json\" saves the session to the specified file. The "
+                  "session is always serialized in JSON."),
+                 ("See also: 'load'")]
+        self._fixed_width_info(lines)
 
     def do_load(self, arg):
         """Loads a saved session variables, settings and test results to the shell."""
@@ -471,6 +725,10 @@ class FortpyShell(cmd.Cmd):
             self.args = data["args"]
     def complete_load(self, text, line, istart, iend):
         return self.complete_parse(text, line, istart, iend)
+    def help_load(self):
+        lines = [("Loads a previously saved shell session from disk. For details, see 'save'."),
+                 ("EXAMPLE \"load analysis.json\" loads the saved session.")]
+        self._fixed_width_info(lines)
         
     def do_parse(self, arg, fullparse=False):
         """Parse the test results from the specified directory and load them under the name
@@ -498,6 +756,17 @@ class FortpyShell(cmd.Cmd):
             else:
                 result.append(p)
         return result
+    def help_parse(self):
+        lines = [("Parses the test results in the sub-folders of the specified unit test "
+                  "staging directory. A staging directory is the one that contains all the "
+                  "*.f90 files, the Makefile.* files, etc. as well as a folder called tests/ "
+                  "that holds the results of the individual test case runs. You can call this "
+                  "command multiple times to reload a specific unit test. However, if the "
+                  "unit test you are trying to re-parse is the active one, it is probably "
+                  "quicker to use the 'reparse' command, which reparses the active unit test."),
+                 ("EXAMPLE \"parse classes.polya/\" parses all the test case runs in the "
+                  "unit test for the 'polya' executable that belongs to the 'classes' module.")]
+        self._fixed_width_info(lines)
 
     def do_fullparse(self, arg):
         """Parses a set of unit tests *and* the contents of their input and output files
@@ -508,6 +777,16 @@ class FortpyShell(cmd.Cmd):
         self.do_parse(arg, True)
     def complete_fullparse(self, text, line, istart, iend):
         return self.complete_parse(text, line, istart, iend)
+    def help_fullparse(self):
+        lines = [("As for the 'parse' command, but also parses the *contents* of the input "
+                  "and output files in each test case folder. This allows the shell to plot "
+                  "data from a specific test case easily, which can be useful for generating "
+                  "plots for papers if the unit testing framework was used to debug and run "
+                  "the code. See also 'parse'."),
+                 ("EXAMPLE \"fullparse classes.polya/\" parses all the test case runs in the "
+                  "unit test for the 'polya' executable that belongs to the 'classes' module. "
+                  "Also parses the *contents* of the input and output files.")]
+        self._fixed_width_info(lines)
 
     def do_reparse(self, arg):
         """Reparses the currently active unit test to get the latest test results loaded
@@ -524,6 +803,16 @@ class FortpyShell(cmd.Cmd):
             return possible
         else:
             return [p for p in possible if p.startswith(text)]
+    def help_reparse(self):
+        lines = [("Performs either 'parse' or 'fullparse' for the *active* unit test "
+                  "in the shell."),
+                 ("EXAMPLE \"(classes.polya:default) reparse\" reparses the test cases for "
+                  "the 'polya' executable in the 'classes' module. That is the active unit "
+                  "test as can be seen by the prompt beside the command."),
+                 ("EXAMPLE \"(classes.polya:default) reparse full\" same as the above example, "
+                  "but uses the 'fullparse' command instead."),
+                 ("See also: 'parse', 'fullparse'")]
+        self._fixed_width_info(lines)
 
     def do_group(self, arg):
         """Creates a new analysis group with unique settings for plotting/tabulating etc.
@@ -543,6 +832,17 @@ class FortpyShell(cmd.Cmd):
             return self.args[self.active].keys()
         else:
             return [k for k in self.args[self.active] if k.startswith(text)]
+    def help_group(self):
+        lines = [("Adds a new analysis group to the session. If the group already exists "
+                  "it is merely switched to be the active group. When a new group is "
+                  "created, it gets a new set of default variables and properties that "
+                  "can be set independently of any other analysis groups in the session. "
+                  "Groups are most useful for defining multiple plots that can be made from "
+                  "the test cases of a single unit test."),
+                 ("EXAMPLE: \"group newplot\" creates a new analysis group called 'newplot' that "
+                  "has its own set of plot properties. All the variables (independent and "
+                  "dependent) have to be set since a new group is completely blank.")]
+        self._fixed_width_info(lines)
 
     def do_table(self, arg):
         """Prints the set of values for the independent vs. dependent variables in the
@@ -557,6 +857,15 @@ class FortpyShell(cmd.Cmd):
             self._redirect_output(result, filename, append, msg.info)
     def complete_table(self, text, line, istart, iend):
         return self.complete_parse(text, line, istart, iend)
+    def help_table(self):
+        lines = [("Generates a table of data points that would be plotted were any of the "
+                  "plot commands to be called. The first column is the independent variable, "
+                  "all other columns belong to the dependent variables in the order in which "
+                  "they were added to the analysis group. The output can be redirected to a file "
+                  "for use by other applications."),
+                 ("EXAMPLE: \"table > vartable.dat\" saves a table of the data to the specified "
+                  "file. Headings for the table can be set using the 'headings' command.")]
+        self._fixed_width_info(lines)
 
     def do_failures(self, arg):
         """Prints a list of test cases that failed for the current unit test and analysis
@@ -578,6 +887,20 @@ class FortpyShell(cmd.Cmd):
             return [f for f in self.tests[self.active].comparable]
         else:
             return [f for f in self.tests[self.active].comparable if f.startswith(text)]
+    def help_failures(self):
+        lines = [("Searches the current unit test for test cases that failed, either because "
+                  "they don't meet the threshold criteria, or because the executable generated "
+                  "an uncaught exception. The failures are listed as a table and may be saved "
+                  "to an external file using a redirect. To examine a failure because of low "
+                  "percent accuracy, use the 'examine' command."),
+                 ("You can filter the failures that are searched by specifying output files "
+                  "that have accompanying '.out.compare' comparison reports. In that case, only "
+                  "the comparisons with sub-threshold values from the specified files will be "
+                  "reported."),
+                 ("EXAMPLE: \"failures polya.out\" searches for test cases that failed because "
+                  "of low accuracy in the 'polya.out' file. This will include tests that never "
+                  "finished because of exceptions.")]
+        self._fixed_width_info(lines)
 
     def do_examine(self, arg):
         """Opens a unit test case's .out.compare file to examine the verbose comparison
@@ -605,6 +928,17 @@ class FortpyShell(cmd.Cmd):
                 return self.complete_failures("", line, istart, iend)
             else:
                 return self.complete_failures(args[2], line, istart, iend)
+    def help_examine(self):
+        lines = [("Opens a '.out.compare' file from a specific test case inside a "
+                  "unit test to see which parts of the test comparison caused a failure. "
+                  "The file is opened with the text program specified by the $EDITOR "
+                  "environment variable. If the variable is not set, the command will "
+                  "display a warning and exit."),
+                 ("EXAMPLE: \"examine standard.1 polya.out\" opens the 'polya.out.compare' "
+                  "file for examination inside the $EDITOR program. Use the tab-completion "
+                  "functionality when selecting the test case and file to make sure that "
+                  "it exists.")]
+        self._fixed_width_info(lines)
 
     def do_quit(self, arg):
         """Exit the fortpy test analysis shell. Any unsaved results will be lost."""
@@ -637,12 +971,18 @@ class FortpyShell(cmd.Cmd):
         else:
             return [p for p in possible if p.startswith(text)]
     def help_history(self):
-        result = []
-        result.append("Fortpy Shell Console History Command Args")
-        result.append("  <default>: lists the contents of the history.")
-        result.append("  clear: removes all items from the history.")
-        result.append("  limit: sets the maximum number of items to retain in the history.")
-        return '\n'.join(result)
+        lines = [("Commands for interacting with the fortpy shell history. The history "
+                  "functions similarly to the bash shell and commands that work there "
+                  "(such as Ctrl-R for reverse i-search) will work in the fortpy shell "
+                  "as well. At the end of a fortpy session, the history is saved to a "
+                  "file called 'history' in the fortpy cache directory specified in the "
+                  "fortpy settings."),
+                 ("EXAMPLE: \"history\" lists all the items currently in the history."),
+                 ("EXAMPLE: \"history clear\" deletes all the items from the history."),
+                 ("EXAMPLE: \"history limit 10000\" limits the number of items stored in "
+                  "the history to 10000. By default, sequential duplicates are not stored  "
+                  "in the fortpy shell history.")]
+        self._fixed_width_info(lines)
 
     @property
     def histpath(self):
@@ -713,6 +1053,7 @@ class FortpyShell(cmd.Cmd):
         system("clear")
 
     def do_shell(self, arg):
+        """Executes a bash command from within this shell."""
         from os import system
         system(arg)
 
@@ -727,8 +1068,8 @@ args = vars(parser.parse_args())
 if args["pypath"]:
     import sys
     sys.path.append(args["pypath"])
-    from fortpy import msg
-    from fortpy.testing.parser import Analysis
+from fortpy import msg
+from fortpy.testing.parser import Analysis
 
 if __name__ == '__main__':
     FortpyShell().cmdloop()

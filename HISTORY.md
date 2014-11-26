@@ -1,6 +1,12 @@
 FORTPY: Revision History
 ======
 
+Revision 1.2.9
+------
+
+- Fixed a bug with imports in `/scripts/analyze.py` when the `-pypath` parameter isn't used.
+- Added full documentation to the fortpy unit test analysis shell in `scripts/analyze.py`.
+
 Revision 1.2.8
 ------
 
