@@ -1,6 +1,13 @@
 FORTPY: Revision History
 ======
 
+Revision 1.2.12
+------
+
+- Fixed a bug introduced in revision 1.2.11 with path completions involving `~`.
+- Added validation for commands that require variables to be set; previously it caused an unhandled exception.
+- Added global exception handling for commands. Instead of just dying, the session gets saved automatically to `#fortpy.shell#` before exiting when an unhandled exception occurs.
+
 Revision 1.2.11
 ------
 

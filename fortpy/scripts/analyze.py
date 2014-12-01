@@ -45,6 +45,9 @@ class FortpyShell(cmd.Cmd):
         """As for self._test_cmds but for a valid analysis group. Anything needing property
         'curargs' relies on a valid analysis group.
         """
+        self._var_cmds = ["plot", "logplot", "loglogplot", "table"]
+        """List of commands that require an independent variable to be set and at least one
+        dependent variable to be set."""
 
     def do_help(self, arg):
         """Sets up the header for the help command that explains the background on how to use
@@ -512,7 +515,7 @@ class FortpyShell(cmd.Cmd):
             fun = lib.pop()
             numpy = import_module('.'.join(lib))
             if not hasattr(numpy, fun):
-                msg.err("Function '{}' is not a valid numpy function.")
+                msg.err("Function '{}' is not a valid numpy function.".format(fun))
             else:
                 self.curargs["functions"][var] = fxn
                 #Give the user some feedback so that they know it was successful.
@@ -747,12 +750,17 @@ class FortpyShell(cmd.Cmd):
         result = []
         command = line.split()[0]
         rest = line[len(command):len(line)].strip()
+        tilde = path.expanduser("~")
 
         for p in glob.glob(path.expanduser(rest)+'*'):
-            if path.isdir(p):
-                result.append(p + "/")
+            if "~" in rest:
+                suggest = p.replace(tilde, "~")
             else:
-                result.append(p)
+                suggest = p
+            if path.isdir(p):
+                result.append(suggest + "/")
+            else:
+                result.append(suggest)
 
         if rest == text:
             return result
@@ -1008,6 +1016,15 @@ class FortpyShell(cmd.Cmd):
         import readline
         readline.write_history_file(self.histpath)
 
+    def cmdloop(self):
+        try:
+            cmd.Cmd.cmdloop(self)
+        except:
+            self.do_save("#fortpy.shell#")
+            msg.err("Something unexpected happened. The shell has died. Your session "
+                    "has been saved as '#fortpy.shell#' in the current directory.")
+            self.postloop()            
+
     def precmd(self, line):
         """Makes sure that the command specified in the line is valid given the current
         status of loaded unit tests and analysis group.
@@ -1031,6 +1048,13 @@ class FortpyShell(cmd.Cmd):
                 #Just run the command as it was originally entered.
                 return line
         else:
+            if command in self._var_cmds:
+                #We need to make sure that we have variables set.
+                if self.curargs["independent"] is None or len(self.curargs["dependents"]) == 0:
+                    msg.err("This command requires an independent variable to be set and "
+                            "at least one dependent variable.\n See 'dep' and 'indep' commands.")
+                    return ""
+
             if command in self._test_cmds or command in self._group_cmds:
                 #We have to test the active unit test for both the test commands and the
                 #group commands, since the group commands rely on the active unit test.
@@ -1064,8 +1088,12 @@ class FortpyShell(cmd.Cmd):
 
     def do_cd(self, arg):
         """Imitates the bash shell 'cd' command."""
-        from os import chdir
-        chdir(arg)
+        from os import chdir, path
+        fullpath = path.abspath(path.expanduser(arg))
+        if path.isdir(fullpath):
+            chdir(fullpath)
+        else:
+            msg.err("'{}' is not a valid directory.".format(arg))
     def complete_cd(self, text, line, istart, iend):
         return self.complete_parse(text, line, istart, iend)
 
