@@ -1,6 +1,11 @@
 FORTPY: Revision History
 ======
 
+Revision 1.2.10
+------
+
+- Fixed a bug in `scripts/analyze.py` for loading the shell history. For first time users with no history file, the script broke with a file not found error.
+
 Revision 1.2.9
 ------
 

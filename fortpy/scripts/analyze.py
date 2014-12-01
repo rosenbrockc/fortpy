@@ -995,7 +995,9 @@ class FortpyShell(cmd.Cmd):
         cmd.Cmd.preloop(self)
         #We need to restore the console history if it exists.
         import readline
-        readline.read_history_file(self.histpath)
+        from os import path
+        if path.isfile(self.histpath):
+            readline.read_history_file(self.histpath)
 
     def postloop(self):
         cmd.Cmd.postloop(self)
