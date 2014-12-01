@@ -1,6 +1,12 @@
 FORTPY: Revision History
 ======
 
+Revision 1.2.13
+------
+
+- Added output of exception message in generalized unhandled exception trapper.
+- Added `numpy` and `matplotlib` as pre-reqs for the fortpy installation.
+
 Revision 1.2.12
 ------
 

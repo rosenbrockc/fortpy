@@ -1019,8 +1019,9 @@ class FortpyShell(cmd.Cmd):
     def cmdloop(self):
         try:
             cmd.Cmd.cmdloop(self)
-        except:
+        except Exception as e:
             self.do_save("#fortpy.shell#")
+            msg.err(e.message)
             msg.err("Something unexpected happened. The shell has died. Your session "
                     "has been saved as '#fortpy.shell#' in the current directory.")
             self.postloop()            

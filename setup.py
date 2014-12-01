@@ -17,7 +17,7 @@ except ImportError:
     read_md = lambda f: open(f, 'r').read()
 
 setup(name='Fortpy',
-      version='1.2.12',
+      version='1.2.13',
       description='Fortran Parsing, Unit Testing and Intellisense',
       long_description=read_md('README.md'),
       author='Conrad W Rosenbrock',
@@ -30,6 +30,8 @@ setup(name='Fortpy',
           "python-dateutil",
           "paramiko",
           "termcolor",
+          "numpy",
+          "matplotlib",
       ],
       packages=['fortpy', 'fortpy.parsers', 'fortpy.isense', 'fortpy.testing',
                 'fortpy.templates', 'fortpy.interop',
