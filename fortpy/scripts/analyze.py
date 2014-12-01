@@ -577,8 +577,6 @@ class FortpyShell(cmd.Cmd):
         self.curargs["xscale"] = None
         self.curargs["yscale"] = "log"
         self._plot_generic(filename)
-    def complete_logplot(self, text, line, istart, iend):
-        return self.complete_parse(text, line, istart, iend)
     def help_logplot(self):
         lines = [("Plots the behavior of the dependent variables as functions of the independent "
                   "variable for the current analysis group. The y-scale is set to logarithmic. To "
@@ -602,8 +600,6 @@ class FortpyShell(cmd.Cmd):
         self.curargs["xscale"] = "log"
         self.curargs["yscale"] = "log"
         self._plot_generic(filename)
-    def complete_loglogplot(self, text, line, istart, iend):
-        return self.complete_parse(text, line, istart, iend)
     def help_loglogplot(self):
         lines = [("Plots the behavior of the dependent variables as functions of the independent "
                   "variable for the current analysis group. The y-scale is set to logarithmic and "
@@ -627,8 +623,6 @@ class FortpyShell(cmd.Cmd):
         self.curargs["xscale"] = None
         self.curargs["yscale"] = None
         self._plot_generic(filename)
-    def complete_plot(self, text, line, istart, iend):
-        return self.complete_parse(text, line, istart, iend)
     def help_plot(self):
         lines = [("Plots the behavior of the dependent variables as functions of the independent "
                   "variable for the current analysis group. To save the plot to a file, redirect "
@@ -735,9 +729,9 @@ class FortpyShell(cmd.Cmd):
         of 'module.executable ' that they were created with. E.g. parse classes.polya/
         """
         from os import path
-        fullpath = path.expanduser(arg)
+        fullpath = path.abspath(path.expanduser(arg))
         if path.isdir(fullpath):
-            if arg[-1] == "/":
+            if fullpath[-1] == "/":
                 end = -2
             else:
                 end = -1
@@ -749,13 +743,22 @@ class FortpyShell(cmd.Cmd):
     def complete_parse(self, text, line, istart, iend):
         import glob
         from os import path
+
         result = []
-        for p in glob.glob(path.expanduser(text)+'*'):
+        command = line.split()[0]
+        rest = line[len(command):len(line)].strip()
+
+        for p in glob.glob(path.expanduser(rest)+'*'):
             if path.isdir(p):
                 result.append(p + "/")
             else:
                 result.append(p)
-        return result
+
+        if rest == text:
+            return result
+        else:
+            return [text + r[len(rest):len(r)] for r in result]
+
     def help_parse(self):
         lines = [("Parses the test results in the sub-folders of the specified unit test "
                   "staging directory. A staging directory is the one that contains all the "
@@ -1058,6 +1061,21 @@ class FortpyShell(cmd.Cmd):
         """Executes a bash command from within this shell."""
         from os import system
         system(arg)
+
+    def do_cd(self, arg):
+        """Imitates the bash shell 'cd' command."""
+        from os import chdir
+        chdir(arg)
+    def complete_cd(self, text, line, istart, iend):
+        return self.complete_parse(text, line, istart, iend)
+
+    def do_ls(self, arg):
+        """Imitates the bash 'ls' command."""
+        self.do_shell("ls")
+
+    def do_pwd(self, arg):
+        """Imitates the bash 'pwd' command."""
+        self.do_shell("pwd")
 
 parser = argparse.ArgumentParser(description="Fortpy Automated Test Result Analyzer")
 parser.add_argument("-pypath", help="Specify a path to add to sys.path before running the tests.")

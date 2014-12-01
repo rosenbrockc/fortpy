@@ -1,6 +1,12 @@
 FORTPY: Revision History
 ======
 
+Revision 1.2.11
+------
+
+- Added support for directory navigation withing fortpy shell using `cd`, `pwd`, `ls`.
+- Fixed support for relative directories such as `..` when selecting files or folders.
+
 Revision 1.2.10
 ------
 
