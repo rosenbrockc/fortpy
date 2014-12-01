@@ -151,7 +151,8 @@ class Analysis(object):
         if tfilter is None:
             return True
         else:
-            return (("*" in tfilter and tfilter in caseid) or
+            from fnmatch import fnmatch
+            return (("*" in tfilter and fnmatch(caseid, tfilter)) or
                     (not "*" in tfilter and tfilter == caseid))
 
     def _get_data(self, variable, order=None, threshold=1., tfilter=None, functions=None):

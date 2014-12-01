@@ -1,6 +1,11 @@
 FORTPY: Revision History
 ======
 
+Revision 1.2.14
+------
+
+- Fixed a bug in the test case filter that was matching nothing, so that no results ever made it to plots/tables.
+
 Revision 1.2.13
 ------
 
