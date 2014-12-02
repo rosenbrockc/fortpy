@@ -17,6 +17,7 @@ class FortpyShell(cmd.Cmd):
         self.group = None
         """The name of the analysis group in the current unit test being worked on."""
         self._template_args = {
+            "version": 2,
             "xscale": None,
             "yscale": None,
             "tfilter": None,
@@ -26,7 +27,10 @@ class FortpyShell(cmd.Cmd):
             "functions": {},
             "independent": None,
             "dependents": [],
-            "headings": []
+            "headings": [],
+            "fits": {},
+            "labels": {},
+            "colors": {}
         }
         """A dictionary of template arguments that can be set to affect the plotting/tabulating 
         behavior of the shell for a unit test analysis group. This gets duplicated for each
@@ -41,13 +45,34 @@ class FortpyShell(cmd.Cmd):
         """
         self._group_cmds = ["xlabel", "ylabel", "filter", "rmfilter", "threshold", "dep",
                             "indep", "rmdep", "vars", "postfix", "plot", "logplot", "loglogplot",
-                            "table", "failures", "headings"]
+                            "table", "failures", "headings", "fit", "color", "label"]
         """As for self._test_cmds but for a valid analysis group. Anything needing property
         'curargs' relies on a valid analysis group.
         """
-        self._var_cmds = ["plot", "logplot", "loglogplot", "table"]
+        self._var_cmds = ["plot", "logplot", "loglogplot", "table", "fit", "color", "label"]
         """List of commands that require an independent variable to be set and at least one
         dependent variable to be set."""
+        self._maxerr = 10
+        """The maximum number of times that the command loop can error out before the script
+        quits."""
+        self._errcount = 0
+        """The number of times the shell has caught an unhandled exception so far."""
+        self.lasterr = None
+        """The last unhandled exception caught by the shell."""
+        self._version_check = {}
+        """Keeps track of which unit test and analysis group argument dictionaries have been checked
+        for version upgrade when the shell loads each one."""
+        self._possible_cols = {
+            "blue": "b",
+            "green": "g",
+            "red": "r",
+            "cyan": "c",
+            "magenta": "m",
+            "yellow": "y",
+            "black": "k",
+            "white": "w"
+        }
+        """A dict of possible matplotlib colors and their corresponding codes."""
 
     def do_help(self, arg):
         """Sets up the header for the help command that explains the background on how to use
@@ -107,6 +132,23 @@ class FortpyShell(cmd.Cmd):
         """Returns the dictionary of arguments for plotting/tabulating of the active
         unit test and analysis group.
         """
+        #This is where we update the arguments to new dictionary versions when the code
+        #is updated with new features etc. so that the older, serialized sessions don't
+        #break.
+        if (self.active not in self._version_check or 
+            self.group not in self._version_check[self.active]):
+            if ("version" not in self.args[self.active][self.group] or
+                self.args[self.active][self.group]["version"] < self._template_args["version"]):
+                for key in self._template_args:
+                    if key not in self.args[self.active][self.group]:
+                        self.args[self.active][self.group][key] = self._template_args[key]
+                self.args[self.active][self.group]["version"] = self._template_args["version"]
+
+            if self.active not in self._version_check:
+                self._version_check[self.active] = [self.group]
+            else:
+                self._version_check[self.active].append(self.group)
+
         return self.args[self.active][self.group]
 
     def _redirect_split(self, args):
@@ -349,19 +391,28 @@ class FortpyShell(cmd.Cmd):
         else:
             vlist = [v + "|" for v in self.allvars if v.startswith(text)]
             if text in "timing":
-                vlist.append("timing")
+                if "timing" in self.curargs["fits"]:
+                    vlist.append("timing|")
+                else:
+                    vlist.append("timing")
             return vlist
 
     def _complete_props(self, var, text):
-        if var not in self.allprops:
+        if var not in self.allprops and "timing" not in self.curargs["fits"]:
             return []
 
-        if text == "":
-            #We arbitrarily check the first test case to determine what properties are
-            #available.
-            return self.allprops[var]
+        if var in self.curargs["fits"]:
+            extra = ["fit"]
         else:
-            return [p for p in self.allprops[var] if p.startswith(text)]
+            extra = []
+
+        if var not in self.allprops:
+            return [e for e in extra if e.startswith(text)]
+
+        if text == "":
+            return self.allprops[var] + extra
+        else:
+            return [p for p in (self.allprops[var]+extra) if p.startswith(text)]
 
     def _complete_fullvar(self, text, line, istart, iend):
         #Determine if we have a bar in the text, if we do then we are completing attributes;
@@ -493,6 +544,14 @@ class FortpyShell(cmd.Cmd):
                   "current analysis group.")]
         self._fixed_width_info(lines)
 
+    def _print_map_dict(self, argkey, filename, append):
+        """Prints a dictionary that has variable => value mappings."""
+        result = []
+        skeys = list(sorted(self.curargs[argkey].keys()))
+        for key in skeys:
+            result.append("'{}' => {}".format(key, self.curargs[argkey][key]))
+        self._redirect_output('\n'.join(result), filename, append, msg.info)
+
     def do_postfix(self, arg):
         """Sets the function to apply to the values of a specific variable before plotting
         or tabulating values.
@@ -500,11 +559,7 @@ class FortpyShell(cmd.Cmd):
         usable, filename, append = self._redirect_split(arg)
         sargs = usable.split()
         if len(sargs) == 1 and sargs[0] == "list":
-            result = []
-            skeys = list(sorted(self.curargs["functions"].keys()))
-            for key in skeys:
-                result.append("'{}' => {}".format(key, self.curargs["functions"][key]))
-            self._redirect_output('\n'.join(result), filename, append, msg.info)
+            self._print_map_dict("functions", filename, append)
         elif len(sargs) == 2:
             var, fxn = sargs
             if not self._validate_var(var):
@@ -521,7 +576,6 @@ class FortpyShell(cmd.Cmd):
                 #Give the user some feedback so that they know it was successful.
                 self.do_postfix("list")
     def complete_postfix(self, text, line, istart, iend):
-        #We just need to look at the lib string and then return the valid functions in it
         els = line.split()
         if len(els) == 1 or (len(els) == 2 and line[-1] != " "):
             varlist = self._complete_fullvar(text, line, istart, iend)
@@ -554,6 +608,106 @@ class FortpyShell(cmd.Cmd):
                   "to take the mean value of each row in the 'group.in' file for the plotting.")]
         self._fixed_width_info(lines)
 
+    def do_fit(self, arg):
+        usable, filename, append = self._redirect_split(arg)
+        sargs = usable.split()
+        if len(sargs) == 1 and sargs[0] == "list":
+            self._print_map_dict("fits", filename, append)
+        elif len(sargs) == 2:
+            var, fxn = sargs
+            if not self._validate_var(var):
+                msg.err("Variable '{}' is not a valid variable|property combination.")
+            else:
+                self.curargs["fits"][var] = fxn
+                #Give the user some feedback so that they know it was successful.
+                self.do_fit("list")
+    def complete_fit(self, text, line, istart, iend):
+        els = line.split()
+        if len(els) == 1 or (len(els) == 2 and line[-1] != " "):
+            varlist = self._complete_fullvar(text, line, istart, iend)
+            if text in "list" and "|" not in line:
+                varlist.append("list")
+            return varlist
+        elif line[-1] == " ":
+            return ["exp", "lin"]
+        else:
+            return [f for f in ["exp", "lin"] if f.startswith(els[-1])]
+    def help_fit(self):
+        lines = [("Sets a function to fit a dependent variable's data to relative to its "
+                  "independent variable. The values are fit using one of the common fitting "
+                  "function types and can then be plotted on the same curve as the original "
+                  "data or tabulated. To add the fit as a variable, use the 'fit' property "
+                  "of the variable."),
+                 ("Possible values are 'exp', 'lin'."),
+                 ("EXAMPLE \"fit group.in|rowvals exp\" allows the aggregated 'rowvals' for "
+                  "the 'group.in' file to be fitted by an exponential curve. This adds the "
+                  "property 'fit' to 'group.in' as a property.")]
+        self._fixed_width_info(lines)
+
+    def do_label(self, arg):
+        usable, filename, append = self._redirect_split(arg)
+        sargs = usable.split()
+        if len(sargs) == 1 and sargs[0] == "list":
+            self._print_map_dict("labels", filename, append)
+        else:
+            var, label = sargs[0], ' '.join(sargs[1:len(sargs)])
+            if var != "plot" and not self._validate_var(var):
+                msg.err("Variable '{}' is not a valid variable|property combination.")
+            else:
+                self.curargs["labels"][var] = label
+                #Give the user some feedback so that they know it was successful.
+                self.do_label("list")
+    def complete_label(self, text, line, istart, iend):
+        els = line.split()
+        if len(els) == 1 or (len(els) == 2 and line[-1] != " "):
+            varlist = self._complete_fullvar(text, line, istart, iend)
+            if text in "list" and "|" not in line:
+                varlist.append("list")
+            if text in "plot" and "|" not in line:
+                varlist.append("plot")
+            return varlist
+        else:
+            return []
+    def help_label(self):
+        lines = [("Sets the text for the legend of a specific variable in the plot. "
+                  "When setting the label, it will show up exactly as typed, you don't "
+                  "need to use quotes around strings etc."),
+                 ("EXAMPLE: \"label group.in|width Group Size\" "
+                  "sets the legend label to 'Group Size'.")]
+        self._fixed_width_info(lines)
+
+    def do_color(self, arg):
+        usable, filename, append = self._redirect_split(arg)
+        sargs = usable.split()
+        if len(sargs) == 1 and sargs[0] == "list":
+            self._print_map_dict("colors", filename, append)
+        elif len(sargs) == 2:
+            var, col = sargs
+            if not self._validate_var(var):
+                msg.err("Variable '{}' is not a valid variable|property combination.")
+            else:
+                self.curargs["colors"][var] = col
+                #Give the user some feedback so that they know it was successful.
+                self.do_color("list")
+    def complete_color(self, text, line, istart, iend):
+        els = line.split()
+        if len(els) == 1 or (len(els) == 2 and line[-1] != " "):
+            varlist = self._complete_fullvar(text, line, istart, iend)
+            if text in "list" and "|" not in line:
+                varlist.append("list")
+            return varlist
+        else:
+            keys = list(self._possible_cols.keys()) + ["0.", "#"]
+            if line[-1] == " ":
+                return keys
+            else:
+                return [c for c in keys if c.startswith(text)]
+    def help_color(self):
+        lines = [("Sets the color of a specific variable in a plot."),
+                 ("EXAMPLE: \"color group.in|depth blue\" sets the plot color for the variable "
+                  "to be blue for any plots in the current analysis group.")]
+        self._fixed_width_info(lines)
+
     def _plot_generic(self, filename=None):
         """Plots the current state of the shell, saving the value to the specified file
         if specified.
@@ -567,9 +721,10 @@ class FortpyShell(cmd.Cmd):
             self.curargs["xlabel"] = "Value of '{}' (unknown units)".format(self.curargs["independent"])
         args = self.curargs
         a = self.tests[self.active]
+        self._make_fits()
         a.plot(args["independent"], args["dependents"], args["threshold"], args["xlabel"], 
                args["ylabel"], args["tfilter"], filename, args["functions"], 
-               args["xscale"], args["yscale"])
+               args["xscale"], args["yscale"], args["colors"], args["labels"])
 
     def do_logplot(self, arg):
         """Plots the current state of the shell's independent vs. dependent variables on the
@@ -855,6 +1010,16 @@ class FortpyShell(cmd.Cmd):
                   "dependent) have to be set since a new group is completely blank.")]
         self._fixed_width_info(lines)
 
+    def _make_fits(self):
+        """Generates the data fits for any variables set for fitting in the shell."""
+        a = self.tests[self.active]
+        args = self.curargs
+        #We need to generate a fit for the data if there are any fits specified.
+        if len(args["fits"]) > 0:
+            for fit in args["fits"].keys():
+                a.fit(args["independent"], fit, args["fits"][fit], args["threshold"],
+                      args["tfilter"], args["functions"])
+
     def do_table(self, arg):
         """Prints the set of values for the independent vs. dependent variables in the
         active unit test and analysis group as a table.
@@ -862,6 +1027,7 @@ class FortpyShell(cmd.Cmd):
         usable, filename, append = self._redirect_split(arg)
         a = self.tests[self.active]
         args = self.curargs
+        self._make_fits()
         result = a.table(args["independent"], args["dependents"], args["threshold"],
                          args["headings"], args["tfilter"], args["functions"])
         if result is not None:
@@ -1007,7 +1173,7 @@ class FortpyShell(cmd.Cmd):
         #We need to restore the console history if it exists.
         import readline
         from os import path
-        if path.isfile(self.histpath):
+        if path.isfile(self.histpath) and self.lasterr is None:
             readline.read_history_file(self.histpath)
 
     def postloop(self):
@@ -1016,15 +1182,30 @@ class FortpyShell(cmd.Cmd):
         import readline
         readline.write_history_file(self.histpath)
 
+    def _store_lasterr(self):
+        """Stores the information about the last unhandled exception."""
+        from sys import exc_info
+        from traceback import format_exception
+        e = exc_info()
+        self.lasterr = '\n'.join(format_exception(e[0], e[1], e[2]))
+
     def cmdloop(self):
         try:
             cmd.Cmd.cmdloop(self)
-        except Exception as e:
-            self.do_save("#fortpy.shell#")
-            msg.err(e.message)
-            msg.err("Something unexpected happened. The shell has died. Your session "
-                    "has been saved as '#fortpy.shell#' in the current directory.")
-            self.postloop()            
+        except Exception as exsimple:
+            msg.err(exsimple.message)
+            self._store_lasterr()
+            if self._errcount < self._maxerr:
+                self._errcount += 1
+                msg.err("The shell has caught {} unhandled exceptions so far.\n".format(self._errcount) + 
+                        "When that value reaches {}, the shell will save a ".format(self._maxerr) + 
+                        "recovery file and exit.")
+                self.postloop()
+                self.cmdloop()
+            else:
+                self.do_save("#fortpy.shell#")
+                msg.err("Something unexpected happened. The shell has died. Your session "
+                        "has been saved as '#fortpy.shell#' in the current directory.")
 
     def precmd(self, line):
         """Makes sure that the command specified in the line is valid given the current
@@ -1105,6 +1286,24 @@ class FortpyShell(cmd.Cmd):
     def do_pwd(self, arg):
         """Imitates the bash 'pwd' command."""
         self.do_shell("pwd")
+
+    def do_error(self, arg):
+        usable, filename, append = self._redirect_split(arg)
+        if usable == "":
+            if self.lasterr is not None:
+                self._redirect_output(self.lasterr, filename, append, msg.warn)
+            else:
+                msg.okay("No uncaught exceptions on record.")
+        elif usable == "clear":
+            self.lasterr = None
+            msg.okay("Cleared the last uncaught exception.")            
+    def complete_error(self, text, line, istart, iend):
+        possible = ["clear"]
+        return [p for p in possible if p.startswith(text)]
+    def help_error(self):
+        lines = [("Prints the last uncaught exception generated in the shell. If 'clear' is "
+                  "passed as a single argument, the last exception is cleared from the shell.")]
+        self._fixed_width_info(lines)
 
 parser = argparse.ArgumentParser(description="Fortpy Automated Test Result Analyzer")
 parser.add_argument("-pypath", help="Specify a path to add to sys.path before running the tests.")

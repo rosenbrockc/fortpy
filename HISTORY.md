@@ -1,6 +1,16 @@
 FORTPY: Revision History
 ======
 
+Revision 1.2.15
+------
+
+- Added shell restarts on unhandled exceptions; the default is to restart 10 times before saving the shell and exiting.
+- Added handling so that multiple dimensional data will still be attempted, but with a warning; this allows data that is 1D in certain dimensions to still be plotted/tabulated with an appropriate aggregation function across test cases.
+- Added automatic fitting of linear and exponential functions to the plots.
+- Added colors and plot legend/title settings/commands to the shell.
+- Debugged the shell history getting extremely large from shell restarts.
+- Added the option to view/clear the last unhandled exception caught by the shell.
+
 Revision 1.2.14
 ------
 

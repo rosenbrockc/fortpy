@@ -2,6 +2,13 @@
 for a single unit test.
 """
 from fortpy import msg
+def _fit_exp(x, a, b, c):
+    from numpy import exp
+    return a * exp(b * x) + c
+
+def _fit_lin(x, a, b):
+    return a*x + b
+
 class Analysis(object):
     """Represents the results of analyzing all the test case directories."""
     def __init__(self, stagedir, fullparse=False):
@@ -33,6 +40,9 @@ class Analysis(object):
         """A list of file names for which we also have a 'filename.compare' file with
         the comparison results from the unit test runs.
         """
+        self.fits = {}
+        """A dict of the fitting results for a given set of indpendent and dependent
+        variables."""
 
         self.parse(fullparse)
 
@@ -155,7 +165,8 @@ class Analysis(object):
             return (("*" in tfilter and fnmatch(caseid, tfilter)) or
                     (not "*" in tfilter and tfilter == caseid))
 
-    def _get_data(self, variable, order=None, threshold=1., tfilter=None, functions=None):
+    def _get_data(self, variable, order=None, threshold=1., tfilter=None, functions=None,
+                  independent=None, x=None):
         """Returns a list of the valid data points for the specified variable.
 
         :arg variable: a string indentifying the variable's filename and the
@@ -163,19 +174,25 @@ class Analysis(object):
           use the depth of the data in the file 'concs.in' as its value for each test case.
         :arg threshold: a float value specifying the minimum level of success that the output
           file must attain before it can be used in the plot.
+        :arg independent: the name of the independent variable including property.
+        :arg x: a list of values for the *independent* variable to use when evaluating
+          a *fitted* curve to a variable.
         """
         from numpy import ndarray
         target = None
-        if variable != "timing":
+        if variable != "timing" or "timing|" in variable:
             varfile, attribute = variable.split("|")
         else:
             target = varfile = "timing"
+            attribute = None
 
         if target is None:
             if varfile in self.infiles:
                 target = "inputs"
             elif varfile in self.outfiles:
                 target = "outputs"
+            elif varfile == "timing" and attribute is not None:
+                target = "timing"
             else:
                 raise ValueError("Cannot locate the values for variable {}".format(variable))
 
@@ -208,30 +225,44 @@ class Analysis(object):
                 continue
 
             value = 0
-            if target == "timing" and self._is_successful(self.details[testcase]):
+            if target == "timing" and self._is_successful(self.details[testcase]) and attribute is None:
                 value = self.details[testcase][target]
             else:
-                if (self._is_successful(self.details[testcase], varfile, threshold) and
-                    varfile in self.details[testcase][target]):
-                    data = self.details[testcase][target][varfile]
-                    if attribute in data:
+                if (self._is_successful(self.details[testcase], varfile, threshold)):
+                    if target != "timing" and varfile in self.details[testcase][target]:
+                        data = self.details[testcase][target][varfile]
+                    else:
+                        data = None
+
+                    if data is not None and attribute in data:
                         value = data[attribute]
+                    elif attribute == "fit" and independent is not None and x is not None:
+                        #Return the value of the *fitted* function for the corresponding independent
+                        #variable value; this is one-to-one for tabulating. For plotting we don't use
+                        #these values.
+                        key = "{}${}".format(independent, varfile)
+                        if len(values) < len(x) and key in self.fits:
+                            ival = x[len(values)]
+                            value = self.fits[key]["function"](ival)
 
             #We need the arrays to be the same length for plotting; if we are following
             #an existing independent variable, we still need to append zero to the list
             #for the values we don't have.
             if isinstance(value, ndarray) or value != 0 or order is not None:
                 if fx is not None:
-                    values.append(fx(value))
-                else:
-                    #Handle the case where we are plotting an entire row as a single point
-                    #and an aggregrate function should have been specified
-                    if isinstance(value, list):
+                    value = fx(value)
+
+                #Handle the case where we are plotting an entire row as a single point
+                #and an aggregrate function should have been specified
+                if isinstance(value, list):
+                    if len(value) == 1:
+                        values.append(value[0])
+                    else:
                         msg.err("Can't coerce an array to a single value without an aggregation "
                                 "function such as numpy.mean or numpy.sum")
                         return ([0], "Array Aggregation Error")
-                    else:
-                        values.append(value)
+                else:
+                    values.append(value)
                 cases.append(testcase)
 
         return (values, cases)
@@ -243,11 +274,13 @@ class Analysis(object):
         if (("rowvals" in independent or "colvals" in independent) or
             any([("rowvals" in d or "colvals" in d) for d in dependents])):
             #We need to make sure that the test case filter they specified returns only a
-            #single result so that we get a reasonable plot.
+            #single result so that we get a reasonable plot. This will happen if the data
+            #is 1D in the other dimension or if the filter only has a single case. We
+            #issue a warning if the filter doesn't match up, so they can check their data.
             if tfilter is None or sum([(1 if self._case_filter(d, tfilter) else 0)
                                        for d in self.details]) > 1:
-                msg.err("Can't plot/tabulate array-valued data for more than one test case at a time.")
-                return (None, None)
+                msg.warn("Plotting aggregated data for more than one test case. Check results \n"
+                         "for consistency and completeness.")
 
         x, cases = self._get_data(independent, None, threshold, tfilter)
         if (len(x) == 1 and isinstance(x[0], list) and 
@@ -255,7 +288,8 @@ class Analysis(object):
             x = x[0]
         ys = []
         for variable in dependents:
-            ypts, names = self._get_data(variable, cases, threshold, tfilter, functions)
+            ypts, names = self._get_data(variable, cases, threshold, tfilter, functions,
+                                         independent, x)
             if (len(ypts) == 1 and isinstance(ypts[0], list) and
                 ("rowvals" in variable or "colvals" in variable)):
                 ypts = ypts[0]
@@ -264,7 +298,8 @@ class Analysis(object):
         return (x, ys)
 
     def plot(self, independent, dependents, threshold=1., xlabel=None, ylabel=None,
-             tfilter=None, savefile=None, functions=None, xscale=None, yscale=None):
+             tfilter=None, savefile=None, functions=None, xscale=None, yscale=None,
+             colors=None, labels=None):
         """Plots the specified dependent variables as functions of the independent one.
 
         :arg independent: a string indentifying the independent variable's filename and the
@@ -287,7 +322,7 @@ class Analysis(object):
         from matplotlib import cm
         from numpy import linspace
         from itertools import cycle
-        x, ys = self._get_data_series(independent, dependents, threshold, tfilter)
+        x, ys = self._get_data_series(independent, dependents, threshold, tfilter, functions)
         if x is None:
             return        
 
@@ -301,16 +336,38 @@ class Analysis(object):
             ax.set_xscale(xscale)
         if yscale is not None:
             ax.set_yscale(yscale)
+        if labels is not None and "plot" in labels:
+            plt.title(labels["plot"])
 
-        colors = cm.rainbow(linspace(0, 1, len(ys)))
-        cycols = cycle(colors)
+        rbcolors = cm.rainbow(linspace(0, 1, len(ys)))
+        cycols = cycle(rbcolors)
 
         for y, label in ys:
+            if colors is not None and label in colors:
+                scolor = colors[label]
+            else:
+                scolor = next(cycols)
             try:
-                ax.scatter(x, y, s=10, color=next(cycols), label=label)
+                if "|fit" in label:
+                    varfile, attribute = label.split("|")
+                    key = "{}${}".format(independent, varfile)
+                    allx = linspace(min(x), max(x), 50)
+                    if labels is not None and label in labels:
+                        flabel = labels[label].format(self._format_fit(key))
+                    else:
+                        flabel = self._format_fit(key)
+                    ax.plot(allx, self.fits[key]["function"](allx), color=scolor, label=flabel)
+                else:
+                    if labels is not None and label in labels:
+                        flabel = labels[label]
+                    else:
+                        flabel = label
+                    ax.scatter(x, y, s=10, color=scolor, label=flabel)
             except ValueError:
                 msg.err("The values for {} can't be log-plotted.".format(label))
-        plt.legend(loc='upper left');
+
+        if len(dependents) > 1:
+            plt.legend(loc='upper left');
         if savefile is None:
             plt.show()
         else:
@@ -364,6 +421,59 @@ class Analysis(object):
         printed.insert(0, ' | '.join(header))
         printed.insert(1, ''.join(['-']*(17*len(header))))
         return '\n'.join(printed)
+
+    def _format_fit(self, key):
+        """Formats the function fit at the specified key for printing/plotting."""
+        if key in self.fits:
+            params = self.fits[key]["params"]
+            model = self.fits[key]["model"]
+            mdict = {
+                "exp": "{0:.2f}exp({1:.2f}*x){2:+.2f}",
+                "lin": "{0:.2f}*x{1:+.2f}"
+            }
+            return mdict[model].format(*params)
+        else:
+            msg.warn("Couldn't format the fit {}; fit not found.".format(key))
+            return key
+
+    def fit(self, independent, dependent, model, threshold=1., tfilter=None, functions=None):
+        """Tries to fit the data selection for the specified dependent variable against the
+        indepedent one using the specified model. Arguments are similar to self.table(). Returns
+        a tuple of (fitting parameters, 1 standard deviation errors).
+
+        :arg model: a description of the function to fit to. Possible values are ['exp', 'lin'].
+        """
+        key = "{}${}".format(independent, dependent)
+        x, ys = self._get_data_series(independent, [dependent], threshold, tfilter, functions)
+        if x is None:
+            return
+
+        if len(x) != len(ys[0][0]):
+            msg.err("Can't fit data unless we have the same number of values for the independent "
+                    "and dependent variables. len({}) == {}; len({}) == {}".format(independent, len(x), 
+                                                                                   dependent, len(ys[0][0])))
+            return
+
+        from scipy.optimize import curve_fit
+        from numpy import sqrt, diag
+        mdict = {
+            "exp": _fit_exp,
+            "lin": _fit_lin
+        }
+        if not model in mdict:
+            msg.err("Cannot fit using model '{}'; unknown function.".format(model))
+            return
+
+        func = mdict[model]
+        popt, pcov = curve_fit(func, x, ys[0][0])
+        perr = sqrt(diag(pcov))
+        
+        self.fits[key] = {
+            "params": popt,
+            "covarmat": pcov,
+            "function": (lambda x: func(x, *popt)),
+            "model": model
+        }
 
     def _analyze_data(self, fullpath, name, fullparse):
         """Analyzes the data in the specified file to determine its shape and some other
