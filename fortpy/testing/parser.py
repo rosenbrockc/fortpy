@@ -282,7 +282,7 @@ class Analysis(object):
                 msg.warn("Plotting aggregated data for more than one test case. Check results \n"
                          "for consistency and completeness.")
 
-        x, cases = self._get_data(independent, None, threshold, tfilter)
+        x, cases = self._get_data(independent, None, threshold, tfilter, functions)
         if (len(x) == 1 and isinstance(x[0], list) and 
             ("rowvals" in independent or "colvals" in independent)):
             x = x[0]
@@ -427,10 +427,16 @@ class Analysis(object):
         if key in self.fits:
             params = self.fits[key]["params"]
             model = self.fits[key]["model"]
-            mdict = {
-                "exp": "{0:.2f}exp({1:.2f}*x){2:+.2f}",
-                "lin": "{0:.2f}*x{1:+.2f}"
-            }
+            if any(params < 1e-2):
+                mdict = {
+                    "exp": "{0:.2e}exp({1:.2e}*x){2:+.2e}",
+                    "lin": "{0:.2e}*x{1:+.2e}"
+                }
+            else:
+                mdict = {
+                    "exp": "{0:.2f}exp({1:.2f}*x){2:+.2f}",
+                    "lin": "{0:.2f}*x{1:+.2f}"
+                }
             return mdict[model].format(*params)
         else:
             msg.warn("Couldn't format the fit {}; fit not found.".format(key))

@@ -608,6 +608,13 @@ class FortpyShell(cmd.Cmd):
                   "to take the mean value of each row in the 'group.in' file for the plotting.")]
         self._fixed_width_info(lines)
 
+    def do_rmpostfix(self, arg):
+        """Removes a postfix function from a variable. See 'postfix'."""
+        if arg in self.curargs["functions"]:
+            del self.curargs["functions"][arg]     
+    def complete_rmpostfix(self, text, lines, istart, iend):
+        return [p for p in self.curargs["functions"].keys() if p.startswith(text)]
+
     def do_fit(self, arg):
         usable, filename, append = self._redirect_split(arg)
         sargs = usable.split()
@@ -644,6 +651,13 @@ class FortpyShell(cmd.Cmd):
                   "property 'fit' to 'group.in' as a property.")]
         self._fixed_width_info(lines)
 
+    def do_rmfit(self, arg):
+        """Removes a fit function from a variable. See 'fit'."""
+        if arg in self.curargs["fits"]:
+            del self.curargs["fits"][arg]        
+    def complete_rmfit(self, text, lines, istart, iend):
+        return [p for p in self.curargs["fits"].keys() if p.startswith(text)]
+
     def do_label(self, arg):
         usable, filename, append = self._redirect_split(arg)
         sargs = usable.split()
@@ -676,6 +690,13 @@ class FortpyShell(cmd.Cmd):
                   "sets the legend label to 'Group Size'.")]
         self._fixed_width_info(lines)
 
+    def do_rmlabel(self, arg):
+        """Removes a label mapping from a variable. See 'label'."""
+        if arg in self.curargs["labels"]:
+            del self.curargs["labels"][arg]        
+    def complete_rmlabel(self, text, lines, istart, iend):
+        return [p for p in self.curargs["labels"].keys() if p.startswith(text)]
+
     def do_color(self, arg):
         usable, filename, append = self._redirect_split(arg)
         sargs = usable.split()
@@ -707,6 +728,13 @@ class FortpyShell(cmd.Cmd):
                  ("EXAMPLE: \"color group.in|depth blue\" sets the plot color for the variable "
                   "to be blue for any plots in the current analysis group.")]
         self._fixed_width_info(lines)
+
+    def do_rmcolor(self, arg):
+        """Removes a color mapping from a variable. See 'color'."""
+        if arg in self.curargs["colors"]:
+            del self.curargs["colors"][arg]        
+    def complete_rmcolor(self, text, lines, istart, iend):
+        return [p for p in self.curargs["colors"].keys() if p.startswith(text)]
 
     def _plot_generic(self, filename=None):
         """Plots the current state of the shell, saving the value to the specified file

@@ -1,6 +1,13 @@
 FORTPY: Revision History
 ======
 
+Revision 1.2.16
+------
+
+- Debugged the handling of multi-dimensional data for arrays restricted in one of its dimensions combined with an aggregation function.
+- Added handling for fitting parameters that have values below `1e-2` so that their equations are displayed in scientific notation instead of plain decimal.
+- Added commands `rmcolor`, `rmfit`, `rmlabel` and `rmpostfix` for removing these variable to value mappings.
+
 Revision 1.2.15
 ------
 
