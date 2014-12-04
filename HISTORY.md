@@ -1,6 +1,12 @@
 FORTPY: Revision History
 ======
 
+Revision 1.2.17
+------
+
+- Added the option `[None]` as a possible label to remove a series from the plot legend in the test analysis shell.
+- Added ranges for specifying the cases in a unit test so that developers don't have to type out series of tests with sequential integers.
+
 Revision 1.2.16
 ------
 

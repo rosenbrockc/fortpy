@@ -1673,7 +1673,31 @@ class TestSpecification(object):
         if "description" in self.xml.attrib:
             self.description = self.xml.attrib["description"]
         if "cases" in self.xml.attrib:
-            self.cases = re.split(",\s*", self.xml.attrib["cases"])
+            # For specifying the cases in a unit test, we should allow ranges like
+            # "standard.cr[1-12]" so that the developer doesn't need to enter each
+            # of the cases separately. We should still allow a comma-separated list
+            # of cases, but each must allow the shorthand notation.
+            rawcases = re.split(",\s*", self.xml.attrib["cases"])
+            if "[" in self.xml.attrib["cases"]:
+                self.cases = []
+                rxcase = r"(?P<prefix>[^[]*)\[(?P<range>\d+-\d+)](?P<suffix>.*)"
+                recase = re.compile(rxcase)
+                for craw in rawcases:
+                    m = recase.match(craw)
+                    if m:
+                        prefix = m.group("prefix")
+                        vals = map(int, m.group("range").split("-"))
+                        suffix = m.group("suffix")
+                        if prefix is None:
+                            prefix = ""
+                        if suffix is None:
+                            suffix = ""
+                        for v in range(vals[0], vals[1]+1):
+                            self.cases.append("{}{}{}".format(prefix, v, suffix))
+                    else:
+                        self.cases.append(craw)
+            else:
+                self.cases = rawcases
         if "runtime" in self.xml.attrib:
             runtime = list(self.xml.attrib["runtime"])
             self.unit = runtime.pop()

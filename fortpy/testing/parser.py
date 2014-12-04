@@ -356,13 +356,21 @@ class Analysis(object):
                         flabel = labels[label].format(self._format_fit(key))
                     else:
                         flabel = self._format_fit(key)
-                    ax.plot(allx, self.fits[key]["function"](allx), color=scolor, label=flabel)
+                    
+                    if flabel.lower() == "[none]":
+                        ax.plot(allx, self.fits[key]["function"](allx), color=scolor, label=None)
+                    else:
+                        ax.plot(allx, self.fits[key]["function"](allx), color=scolor, label=flabel)
                 else:
                     if labels is not None and label in labels:
                         flabel = labels[label]
                     else:
                         flabel = label
-                    ax.scatter(x, y, s=10, color=scolor, label=flabel)
+
+                    if flabel.lower() == "[none]":
+                        ax.scatter(x, y, s=10, color=scolor, label=None)
+                    else:
+                        ax.scatter(x, y, s=10, color=scolor, label=flabel)
             except ValueError:
                 msg.err("The values for {} can't be log-plotted.".format(label))
 

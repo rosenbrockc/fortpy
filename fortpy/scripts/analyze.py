@@ -685,7 +685,8 @@ class FortpyShell(cmd.Cmd):
     def help_label(self):
         lines = [("Sets the text for the legend of a specific variable in the plot. "
                   "When setting the label, it will show up exactly as typed, you don't "
-                  "need to use quotes around strings etc."),
+                  "need to use quotes around strings etc. To prevent a label from being "
+                  "applied to a specific variable, set its value to [None]."),
                  ("EXAMPLE: \"label group.in|width Group Size\" "
                   "sets the legend label to 'Group Size'.")]
         self._fixed_width_info(lines)
