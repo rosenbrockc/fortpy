@@ -158,7 +158,7 @@ class Analysis(object):
           matches true as long as it contains the filter text; otherwise the filter needs
           to match exactly.
         """
-        if tfilter is None:
+        if tfilter is None or tfilter == "*":
             return True
         else:
             from fnmatch import fnmatch
@@ -267,7 +267,7 @@ class Analysis(object):
 
         return (values, cases)
 
-    def _get_data_series(self, independent, dependents, threshold, tfilter, functions=None):
+    def _get_data_series(self, independent, dependents, threshold, functions=None):
         """Used by plot() and table() to get the x and y data series that will be plotted
         or tabulated against each other. See the arguments on those methods.
         """
@@ -277,29 +277,70 @@ class Analysis(object):
             #single result so that we get a reasonable plot. This will happen if the data
             #is 1D in the other dimension or if the filter only has a single case. We
             #issue a warning if the filter doesn't match up, so they can check their data.
-            if tfilter is None or sum([(1 if self._case_filter(d, tfilter) else 0)
-                                       for d in self.details]) > 1:
-                msg.warn("Plotting aggregated data for more than one test case. Check results \n"
-                         "for consistency and completeness.")
+            for dep in dependents:
+                tfilter, depvar = dep.split("/")
+                if tfilter is None or sum([(1 if self._case_filter(d, tfilter) else 0)
+                                           for d in self.details]) > 1:
+                    msg.warn("Plotting aggregated data for more than one test case. Check results \n"
+                             "for consistency and completeness.")
+                    break
 
-        x, cases = self._get_data(independent, None, threshold, tfilter, functions)
-        if (len(x) == 1 and isinstance(x[0], list) and 
-            ("rowvals" in independent or "colvals" in independent)):
-            x = x[0]
         ys = []
+        xs = []
         for variable in dependents:
-            ypts, names = self._get_data(variable, cases, threshold, tfilter, functions,
+            tfilter, depvar = variable.split("/")
+            x, cases = self._get_data(independent, None, threshold, tfilter, functions)
+            if (len(x) == 1 and isinstance(x[0], list) and 
+                ("rowvals" in independent or "colvals" in independent)):
+                x = x[0]
+            xs.append((x, "{}/{}".format(tfilter, independent)))
+
+            ypts, names = self._get_data(depvar, cases, threshold, tfilter, functions,
                                          independent, x)
             if (len(ypts) == 1 and isinstance(ypts[0], list) and
                 ("rowvals" in variable or "colvals" in variable)):
                 ypts = ypts[0]
             ys.append((ypts, variable))
 
-        return (x, ys)
+        return (xs, ys)
+
+    def _get_font(self, dfont, fonts, option):
+        """Gets a copy of the default font specified and updates its properties based on the
+        values in the fonts dictionary.
+
+        :arg option: the name of the plot item whose font is being changed. Possible values are
+          ['axes', 'labels', 'legend'].
+        """
+        if fonts is not None and option in fonts:
+            fdict = fonts[option]
+            xfont = dfont.copy()
+            if "size" in fdict:
+                xfont.set_size(fdict["size"])
+            if "style" in fdict:
+                xfont.set_style(fdict["style"])
+            if "variant" in fdict:
+                xfont.set_variant(fdict["variant"])
+            if "weight" in fdict:
+                xfont.set_weight(fdict["weight"])
+
+            return xfont
+        else:
+            return dfont
+
+    def _get_markers(self, dargs, markers):
+        from matplotlib.markers import MarkerStyle
+        m = markers.get("marker")
+        f = markers.get("fill", "full")
+        #This is a bug in matplotlib that I submitted an issue on at github.
+        #For the meanwhile, only full fill marker styles. So we have this hack:
+        if f == "none":
+            dargs["facecolors"] = f
+        # When the bug is fixed, we can use this instead MarkerStyle(marker=m, fillstyle=f)
+        dargs["marker"] = m
 
     def plot(self, independent, dependents, threshold=1., xlabel=None, ylabel=None,
-             tfilter=None, savefile=None, functions=None, xscale=None, yscale=None,
-             colors=None, labels=None):
+             savefile=None, functions=None, xscale=None, yscale=None,
+             colors=None, labels=None, fonts=None, markers=None, lines=None, ticks=None):
         """Plots the specified dependent variables as functions of the independent one.
 
         :arg independent: a string indentifying the independent variable's filename and the
@@ -311,71 +352,108 @@ class Analysis(object):
           file must attain before it can be used in the plot.
         :arg xlabel: the label for the x-axis of the plot.
         :arg ylabel: the label for the y-axis of the plot.
-        :arg tfilter: specifies a string that must be present in each of the test case names in
-          order for the test case to be considered.
         :arg functions: a dictionary of functions to apply to the values of each variable. E.g.
-          {"group.in|depth": "log"} would apply the numpy.log function to each value extracted
+          {"group.in|depth": "numpy.log"} would apply the numpy.log function to each value extracted
           from the depth property of the data in 'group.in' before plotting it. If the value
           is not a string, it must be callable with some argument.
         """
         import matplotlib.pyplot as plt
-        from matplotlib import cm
+        from matplotlib import cm, rc
         from numpy import linspace
         from itertools import cycle
-        x, ys = self._get_data_series(independent, dependents, threshold, tfilter, functions)
-        if x is None:
-            return        
+        from matplotlib.font_manager import FontProperties
+
+        xs, ys = self._get_data_series(independent, dependents, threshold, functions)
+
+        #Set the default font for the plots, or the custom one.
+        if fonts is not None and "family" in fonts:
+            rc('font',family=fonts["family"])
+        else:
+            rc('font',family='Times New Roman')
 
         fig = plt.figure()
+        dfont = FontProperties()
+
         ax = fig.add_subplot(111)
         if xlabel is not None:
-            ax.set_xlabel(xlabel)
+            ax.set_xlabel(xlabel, fontproperties=self._get_font(dfont, fonts, "xlabel"))
         if ylabel is not None:
-            ax.set_ylabel(ylabel)
+            ax.set_ylabel(ylabel, fontproperties=self._get_font(dfont, fonts, "ylabel"))
         if xscale is not None:
             ax.set_xscale(xscale)
         if yscale is not None:
             ax.set_yscale(yscale)
         if labels is not None and "plot" in labels:
-            plt.title(labels["plot"])
+            plt.title(labels["plot"], fontproperties=self._get_font(dfont, fonts, "title"))
 
         rbcolors = cm.rainbow(linspace(0, 1, len(ys)))
         cycols = cycle(rbcolors)
 
-        for y, label in ys:
-            if colors is not None and label in colors:
-                scolor = colors[label]
+        for xset, yset in zip(xs, ys):
+            x, xlabel = xset
+            y, ylabel = yset
+
+            #Set up a dictionary with all the kwargs for the plotting options
+            #that may be common to both kinds of plots.
+            dargs = {}
+            if markers is not None and ylabel in markers:
+                self._get_markers(dargs, markers[ylabel])
+                if "size" in markers[ylabel]:
+                    dargs["s"] = float(markers[ylabel]["size"])
+            if "s" not in dargs:
+                dargs["s"] = 15
+            if colors is not None and ylabel in colors:
+                dargs["color"] = colors[ylabel]
             else:
-                scolor = next(cycols)
+                dargs["color"] = next(cycols)
+
             try:
-                if "|fit" in label:
-                    varfile, attribute = label.split("|")
+                if ylabel[len(ylabel)-4:len(ylabel)] in ["|fit", ".fit"]:
+                    varfile = ylabel[0:len(ylabel)-4]
                     key = "{}${}".format(independent, varfile)
                     allx = linspace(min(x), max(x), 50)
-                    if labels is not None and label in labels:
-                        flabel = labels[label].format(self._format_fit(key))
+                    if labels is not None and ylabel in labels:
+                        dargs["label"] = labels[ylabel].format(self._format_fit(key))
+                        if dargs["label"].lower() == "[none]":
+                            dargs["label"] = None
                     else:
-                        flabel = self._format_fit(key)
+                        dargs["label"] = self._format_fit(key)
                     
-                    if flabel.lower() == "[none]":
-                        ax.plot(allx, self.fits[key]["function"](allx), color=scolor, label=None)
-                    else:
-                        ax.plot(allx, self.fits[key]["function"](allx), color=scolor, label=flabel)
-                else:
-                    if labels is not None and label in labels:
-                        flabel = labels[label]
-                    else:
-                        flabel = label
+                    if lines is not None and ylabel in lines:
+                        if "style" in lines[ylabel]:
+                            dargs["linestyle"] = lines[ylabel]["style"]
+                        if "width" in lines[ylabel]:
+                            dargs["linewidth"] = lines[ylabel]["width"]
 
-                    if flabel.lower() == "[none]":
-                        ax.scatter(x, y, s=10, color=scolor, label=None)
+                    ax.plot(allx, self.fits[key]["function"](allx), **dargs)
+                else:
+                    if labels is not None and ylabel in labels:
+                        dargs["label"] = None if labels[ylabel].lower() == "[none]" else labels[ylabel] 
                     else:
-                        ax.scatter(x, y, s=10, color=scolor, label=flabel)
+                        dargs["label"] = ylabel
+
+                    ax.scatter(x, y, **dargs)
             except ValueError:
-                msg.err("The values for {} can't be log-plotted.".format(label))
+                msg.err("The values for {} can't be log-plotted.".format(ylabel))
+
+        #Set the tick labels font sizes.
+        if fonts is not None and "xticks" in fonts:
+            tfont = self._get_font(dfont, fonts, "xticks")
+            for label in ax.get_xticklabels():
+                label.set_fontproperties(tfont)
+        if fonts is not None and "yticks" in fonts:
+            for label in ax.get_yticklabels():
+                tfont = self._get_font(dfont, fonts, "yticks")
+                label.set_fontproperties(tfont)
+
+        if ticks is not None and len(ticks) > 0:
+            for key in ticks:
+                if "reset" in ticks[key]:
+                    ticks[key]["reset"] = ticks[key]["reset"] == "true"
+                ax.tick_params(**ticks[key])
 
         if len(dependents) > 1:
-            plt.legend(loc='upper left');
+            plt.legend(loc='upper left', prop=self._get_font(dfont, fonts, "legend"))
         if savefile is None:
             plt.show()
         else:
@@ -383,13 +461,17 @@ class Analysis(object):
 
     def _format_heading(self, heading):
         """Formats the specified heading text to conform to the table layout."""
+        if "/" in heading:
+            filt, rest = heading.split("/")
+            cases = filt.split(".")
+            fstr = '.'.join(cases[1:len(cases)])
+            heading = "{}/{}".format(fstr, rest)
         if len(heading) > 15:
-            return "%15s" % heading[0:15]
+            return "{0:^15}".format(heading[0:15])
         else:
-            return "%15s" % heading
+            return "{0:^15}".format(heading)
 
-    def table(self, independent, dependents, threshold=1., headings=None,
-              tfilter=None, functions=None):
+    def table(self, independent, dependents, threshold=1., headings=None, functions=None):
         """Outputs the values for the specified dependent and independent variables in table
         format with the independent variable in the first column.
 
@@ -404,30 +486,44 @@ class Analysis(object):
           one for each of the dependent variables plus another for the independent variable.
           The order of the headings should be [independent, dependents...] where the dependents
           are ordered the same way as they appear in 'dependents'.
-        :arg tfilter: specifies a string that must be present in each of the test case names in
-          order for the test case to be considered.
         :arg functions: a dictionary of functions to apply to the values of each variable. E.g.
           {"group.in|depth", "log"} would apply the numpy.log function to each value extracted
           from the depth property of the data in 'group.in' before tabulating it. If the value
           is not a string, it must be callable with some argument.
         """
-        from fortpy.testgen import write_generic
-        x, ys = self._get_data_series(independent, dependents, threshold, tfilter, functions)
-        if x is None:
-            return
+        from fortpy.testgen import print_value
+        xs, ys = self._get_data_series(independent, dependents, threshold, functions)
 
-        data = [x]
-        header = [self._format_heading(independent)]
-        for y, label in ys:
+        data = []
+        header = []
+        for xset, yset in zip(xs, ys):
+            x, xlabel = xset
+            y, ylabel = yset
+            data.append(x)
+            header.append(self._format_heading(xlabel))
             data.append(y)
-            header.append(self._format_heading(label))
+            header.append(self._format_heading(ylabel))
 
-        from numpy import array
-        printed = [write_generic(zip(*data))]
+        printed = []
         if headings is not None and len(headings) > 0:
             header = [self._format_heading(h) for h in headings]
-        printed.insert(0, ' | '.join(header))
-        printed.insert(1, ''.join(['-']*(17*len(header))))
+        printed.append(' | '.join(header))
+        printed.append('-'*(17*len(header)))
+
+        i = 0
+        done = False
+        while not done:
+            done = True
+            row = []
+            for col in range(len(data)):
+                if i < len(data[col]):
+                    row.append(print_value(data[col][i]))
+                    done = False
+                else:
+                    row.append(' '*17)
+            i += 1
+            printed.append('   '.join(row))
+                
         return '\n'.join(printed)
 
     def _format_fit(self, key):
@@ -450,7 +546,7 @@ class Analysis(object):
             msg.warn("Couldn't format the fit {}; fit not found.".format(key))
             return key
 
-    def fit(self, independent, dependent, model, threshold=1., tfilter=None, functions=None):
+    def fit(self, independent, dependent, model, threshold=1., functions=None):
         """Tries to fit the data selection for the specified dependent variable against the
         indepedent one using the specified model. Arguments are similar to self.table(). Returns
         a tuple of (fitting parameters, 1 standard deviation errors).
@@ -458,14 +554,15 @@ class Analysis(object):
         :arg model: a description of the function to fit to. Possible values are ['exp', 'lin'].
         """
         key = "{}${}".format(independent, dependent)
-        x, ys = self._get_data_series(independent, [dependent], threshold, tfilter, functions)
+        xs, ys = self._get_data_series(independent, [dependent], threshold, functions)
         if x is None:
             return
 
-        if len(x) != len(ys[0][0]):
+        if len(xs[0][0]) != len(ys[0][0]):
             msg.err("Can't fit data unless we have the same number of values for the independent "
-                    "and dependent variables. len({}) == {}; len({}) == {}".format(independent, len(x), 
-                                                                                   dependent, len(ys[0][0])))
+                    "and dependent variables. " 
+                    "len({}) == {}; len({}) == {}".format(independent, len(xs[0][0]), 
+                                                          dependent, len(ys[0][0])))
             return
 
         from scipy.optimize import curve_fit
@@ -479,14 +576,15 @@ class Analysis(object):
             return
 
         func = mdict[model]
-        popt, pcov = curve_fit(func, x, ys[0][0])
+        popt, pcov = curve_fit(func, xs[0][0], ys[0][0])
         perr = sqrt(diag(pcov))
         
         self.fits[key] = {
             "params": popt,
             "covarmat": pcov,
             "function": (lambda x: func(x, *popt)),
-            "model": model
+            "model": model,
+            "error": perr
         }
 
     def _analyze_data(self, fullpath, name, fullparse):

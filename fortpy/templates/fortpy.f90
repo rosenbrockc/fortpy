@@ -1,4 +1,4 @@
-!!<fortpy version="1.1.5" />
+!!<fortpy version="1.2.18" />
 !!<summary>Provides an interface for saving the values of multiple variable
 !!types using a single call. Used as part of the FORTPY unit testing framework.</summary>
 module fortpy
@@ -387,13 +387,15 @@ contains
     !Initialize the whitespace array. We will cycle through all the characters
     !in the specified line looking for whitespace. Each time we find it, if the
     !character immediately preceding it was not whitespace, we have a value.
-    whitespace = '  ' // char(9)
+    whitespace = '  '
     fpy_value_count = 0
 
     do i = 1, length
        !indx will be zero if the current character is not a whitespace character.
        indx = index(whitespace, line(i:i))
-       if (indx > 0 .and. prev == 0) then
+       !The ichar == 9 statement checks for tabs; we used to have it concatenated onto the
+       !whitespace array, but there was a bug, so we switched to explicit behavior.
+       if ((indx > 0 .or. ichar(line(i:i)) .eq. 9) .and. prev == 0) then
           !We found the first whitespace after the end of a value we want.
           fpy_value_count = fpy_value_count + 1
        end if

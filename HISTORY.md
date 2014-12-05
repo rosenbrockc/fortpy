@@ -1,6 +1,16 @@
 FORTPY: Revision History
 ======
 
+Revision 1.3.1
+------
+
+- Allowed adding dependent variables from multiple filters for plotting and tabulating.
+- Added plot options for `markers`, `lines` and `ticks`.
+- Added font options for labels, axes, title and legend.
+- Added the option to save and load `font` and `ticks` options to file; this allows publication quality settings to be saved and loaded into any analysis group easily.
+- This revision breaks the saved sessions from previous versions of the shell. Increment minor version.
+- Fixed a problem in `fortpy.f90` where tab-delimited files were not being read in correctly.
+
 Revision 1.2.17
 ------
 

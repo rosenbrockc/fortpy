@@ -17,10 +17,10 @@ class FortpyShell(cmd.Cmd):
         self.group = None
         """The name of the analysis group in the current unit test being worked on."""
         self._template_args = {
-            "version": 2,
+            "version": 4,
             "xscale": None,
             "yscale": None,
-            "tfilter": None,
+            "tfilter": ["*"],
             "threshold": 1.,
             "xlabel": None,
             "ylabel": None,
@@ -30,7 +30,11 @@ class FortpyShell(cmd.Cmd):
             "headings": [],
             "fits": {},
             "labels": {},
-            "colors": {}
+            "colors": {},
+            "fonts": {},
+            "markers": {},
+            "ticks": {},
+            "lines": {}
         }
         """A dictionary of template arguments that can be set to affect the plotting/tabulating 
         behavior of the shell for a unit test analysis group. This gets duplicated for each
@@ -44,12 +48,12 @@ class FortpyShell(cmd.Cmd):
         relies on a valid unit test being loaded.
         """
         self._group_cmds = ["xlabel", "ylabel", "filter", "rmfilter", "threshold", "dep",
-                            "indep", "rmdep", "vars", "postfix", "plot", "logplot", "loglogplot",
-                            "table", "failures", "headings", "fit", "color", "label"]
+                            "indep", "rmdep", "vars", "postfix", "failures", "headings"]
         """As for self._test_cmds but for a valid analysis group. Anything needing property
         'curargs' relies on a valid analysis group.
         """
-        self._var_cmds = ["plot", "logplot", "loglogplot", "table", "fit", "color", "label"]
+        self._var_cmds = ["plot", "logplot", "loglogplot", "table", "fit", "color", "label",
+                          "font", "fontsave", "fontload", "ticks", "lines", "markers"]
         """List of commands that require an independent variable to be set and at least one
         dependent variable to be set."""
         self._maxerr = 10
@@ -73,6 +77,13 @@ class FortpyShell(cmd.Cmd):
             "white": "w"
         }
         """A dict of possible matplotlib colors and their corresponding codes."""
+        from matplotlib.markers import MarkerStyle
+        self._possible_markers = MarkerStyle.markers 
+        """A dict of possible marker styles to use on plots."""
+
+        from matplotlib.lines import Line2D
+        self._possible_linestyles = Line2D.lineStyles
+        """A dict of possible line styles for plots with lines."""
 
     def do_help(self, arg):
         """Sets up the header for the help command that explains the background on how to use
@@ -338,11 +349,20 @@ class FortpyShell(cmd.Cmd):
     def do_filter(self, arg):
         """Sets the filter for the test cases to include in the plot/table by name. Only those
         test cases that include this text are included in plots, tables etc."""
-        self._set_arg_generic("tfilter", arg)
+        if arg == "list":
+            msg.info("TEST CASE FILTERS")
+            for f in self.curargs["tfilter"]:
+                if f == "*":
+                    msg.info("  * (default, matches all)")
+                else:
+                    msg.info("  " + f)
+        elif arg not in self.curargs["tfilter"]:
+            self.curargs["tfilter"].append(arg)
+            self.do_filter("list")        
     def complete_filter(self, text, line, istart, iend):
         return self._complete_cases(text, line, istart, iend)
     def help_filter(self):
-        lines = [("Sets the test case filter to exclude specific test case results from plots "
+        lines = [("Adds a test case filter to exclude specific test case results from plots "
                   "and tables or failure reports. For example, if I wanted to plot the timing "
                   "for a set of test cases that all have 'standard.fg*' as their name (with * "
                   "a wildcard character), then I could use the following code: "),
@@ -355,12 +375,18 @@ class FortpyShell(cmd.Cmd):
     def do_rmfilter(self, arg):
         """Removes the test case filter that limits which results are included in plots/tables.
         """
-        self.curargs["tfilter"] = None
-        self._set_arg_generic("tfiletr", "")
+        if arg in self.curargs["tfilter"]:
+            if arg == "*":
+                msg.warn("The default filter cannot be removed.")
+            else:
+                self.curargs["tfilter"].remove(arg)
+                self.do_filter("list")
     def help_rmfilter(self):
         lines = [("Removes the test case filter to exclude specific test case results from plots "
                   "and tables or failure reports. See 'filter'.")]
         self._fixed_width_info(lines)
+    def complete_rmfilter(self, text, line, istart, iend):
+        return [f for f in self.curargs["tfilter"] if f.startswith(text)]
 
     def do_threshold(self, arg):
         """Specify a success threshold (percent as float) that output files must attain before 
@@ -384,6 +410,9 @@ class FortpyShell(cmd.Cmd):
                   "with the last successful run time in it.")]
         self._fixed_width_info(lines)
 
+    def _complete_filters(self, text):
+        return [f + "/" for f in self.curargs["tfilter"] if f.startswith(text)]
+
     def _complete_vars(self, text):
         #Variables can come from inputs or outputs.
         if text == "":
@@ -391,20 +420,22 @@ class FortpyShell(cmd.Cmd):
         else:
             vlist = [v + "|" for v in self.allvars if v.startswith(text)]
             if text in "timing":
-                if "timing" in self.curargs["fits"]:
+                if any("timing" in f for f in self.curargs["fits"]):
                     vlist.append("timing|")
                 else:
                     vlist.append("timing")
             return vlist
 
     def _complete_props(self, var, text):
-        if var not in self.allprops and "timing" not in self.curargs["fits"]:
+        if var not in self.allprops and not any("timing" in f for f in self.curargs["fits"]):
             return []
 
-        if var in self.curargs["fits"]:
-            extra = ["fit"]
-        else:
-            extra = []
+        extra = []
+        for fitvar in self.curargs["fits"]:
+            if var in fitvar and var != "timing":
+                extra.append(fitvar.split("|")[1] + ".fit")
+            elif var == "timing":
+                extra.append("fit")
 
         if var not in self.allprops:
             return [e for e in extra if e.startswith(text)]
@@ -414,7 +445,7 @@ class FortpyShell(cmd.Cmd):
         else:
             return [p for p in (self.allprops[var]+extra) if p.startswith(text)]
 
-    def _complete_fullvar(self, text, line, istart, iend):
+    def _complete_fullvar(self, text, line, istart, iend, wfilter=True):
         #Determine if we have a bar in the text, if we do then we are completing attributes;
         #otherwise we are completing variables.
         value = line.split()
@@ -423,22 +454,33 @@ class FortpyShell(cmd.Cmd):
         else:
             value = value[-1]
 
-        if "|" in value:
-            var, prop = value.split("|")
-            return self._complete_props(var, prop)
+        if "/" in value or not wfilter:
+            if wfilter:
+                filt, rest = value.split("/")
+            else:
+                #This handles the case where we don't want to complete on filters.
+                rest = value
+            if "|" in rest:
+                var, prop = rest.split("|")
+                return self._complete_props(var, prop)
+            else:
+                return self._complete_vars(rest)
         else:
-            return self._complete_vars(value)
+            return self._complete_filters(value)
 
     def _validate_var(self, var):
-        """Validates the form of the specified variable."""
-        if var == "timing":
-            return True
-        else:
-            if "|" in var:
-                varname, prop = var.split("|")
+        """Validates the *form* only of the specified variable."""
+        if "/" in var:
+            filt, rest = var.split("/")
+            if "|" in rest:
+                varname, prop = rest.split("|")
                 return prop != ""
+            elif rest == "timing":
+                return True
             else:
                 return False
+        else:
+            return True
             
     def do_indep(self, arg):
         """Sets the name and attribute of the independent variable for plotting/tabulating functions."""
@@ -447,7 +489,7 @@ class FortpyShell(cmd.Cmd):
         else:
             self.curargs["independent"] = arg
     def complete_indep(self, text, line, istart, iend):
-        return self._complete_fullvar(text, line, istart, iend)
+        return self._complete_fullvar(text, line, istart, iend, False)
     def help_indep(self):
         lines = [("Sets the variable and property combination for the *independent* variable in plots "
                   "and tables, etc. There can only be a single independent variable for any plot/table. "
@@ -455,7 +497,7 @@ class FortpyShell(cmd.Cmd):
                   "completed with <tab>. The properties are extracted from the file when it is parsed. "
                   "Depending on the variable property you choose, you either plot values extracted from "
                   "*all* test cases across the whole unit test, OR only array-type values from multiple "
-                  "files within the *same* test case."),
+                  "files within the *same* test case (see the note about exceptions below)."),
                  ("Possible properties are:\n"
                   "  - 'width': the number of values per row for 2D square arrays.\n"
                   "  - 'depth': the number of rows of data in the file.\n"
@@ -466,15 +508,17 @@ class FortpyShell(cmd.Cmd):
                  ("For the 'rowvals' and 'colvals' properties, the unit test needs to be parsed using "
                   "the 'fullparse' command. These properties allow the contents of an input/output file "
                   "for a single unit test to be plotted against some other data from a different file."
-                  "Set a filter to include only a single unit test (using the 'filter' command) and "
-                  "choose an aggregation function (using the 'postfix' command) like numpy.mean or "
-                  "numpy.sum to turn each list of values into a single number."),
+                  "Choose an aggregation function (using the 'postfix' command) like numpy.mean or "
+                  "numpy.sum to turn each list of values into a single number. EXCEPTION: As long as the "
+                  "dimensionality of the data allows the property to be reduced to a single number "
+                  "when the aggregation function is applied, you could also plot 'rowvals' over all "
+                  "the unit tests. For example, if all the 'rowvals' for a given filter are just 1D "
+                  "arrays and you take a sum, then the values are still aggregatable."),
                  ("EXAMPLE: \"indep group.in|depth\" chooses the number of rows in each 'group.in' "
                   "file across all the unit test's cases to be the x-value for any plots or tables."),
                  ("EXAMPLE: \"indep generators.in|rowvals\" selects the set of row values from the "
-                  "'generators.in' file to be plotted for a *single* unit test. To work, you would also "
-                  "need to set 'filter' to a single unit test and 'postfix' to a valid aggregation "
-                  "function."),
+                  "'generators.in' file to be plotted. To work, you would also need to *first* "
+                  "set the 'postfix' function to a valid aggregation function."),
                  ("NOTE: use tab completion to make sure that the variable names and properties you "
                   "select are valid. The auto-completion is specific to the file you choose, so it "
                   "only reflects what is possible."),
@@ -495,12 +539,17 @@ class FortpyShell(cmd.Cmd):
     def help_dep(self):
         lines = [("Adds one or more variables as *dependent* variables for plotting or tabulating. "
                   "A description of the format of the variables and properties can be found by typing "
-                  "\"help indep\" in the shell. The dependent variables follow the exact same "
+                  "\"help indep\" in the shell. The dependent variables follow similar "
                   "conventions and the same limitations apply regarding the use of 'rowvals' and "
-                  "'colvals' properties."),
-                 ("EXAMPLE: \"dep concs.in|width timing polya.out|value\" adds three dependent variables "
-                  "whose values will be extracted across all test cases that match the filter specified "
-                  "by the command 'filter'."),
+                  "'colvals' properties. One addition for the dependent variables, however, is that "
+                  "each variable can have its own filter specification. The filter must have been "
+                  "added using the 'filter' command. This allows dependent variables from different "
+                  "sets of test cases to be plotted on the same plot."),
+                 ("EXAMPLE: \"dep */concs.in|width */timing *fg/polya.out|value\" adds three "
+                  "dependent variables whose values will be extracted across all test cases"
+                  " that match the filter specified. The '*' filter matches *all* test cases, while "
+                  "'*fg' would only include the 'polya.out|value' from test cases whose case folder "
+                  "ends in 'fg'.")
                  ("NOTE: use tab completion to make sure that the variable names and properties you "
                   "select are valid. The auto-completion is specific to the file you choose, so it "
                   "only reflects what is possible.")]
@@ -512,22 +561,18 @@ class FortpyShell(cmd.Cmd):
             if arg in self.curargs["dependents"]:
                 self.curargs["dependents"].remove(arg)
     def complete_rmdep(self, text, line, istart, iend):
-        if text == "":
+        els = line.split()
+        if len(els) == 1:
             return self.curargs["dependents"]
         else:
-            return [v for v in self.curargs["dependents"] if v.startswith(text)]
-    def help_dep(self):
-        lines = [("Adds one or more variables as *dependent* variables for plotting or tabulating. "
-                  "A description of the format of the variables and properties can be found by typing "
-                  "\"help indep\" in the shell. The dependent variables follow the exact same "
-                  "conventions and the same limitations apply regarding the use of 'rowvals' and "
-                  "'colvals' properties."),
-                 ("EXAMPLE: \"dep concs.in|width timing polya.out|value\" adds three dependent variables "
-                  "whose values will be extracted across all test cases that match the filter specified "
-                  "by the command 'filter'."),
-                 ("NOTE: use tab completion to make sure that the variable names and properties you "
-                  "select are valid. The auto-completion is specific to the file you choose, so it "
-                  "only reflects what is possible.")]
+            if text != els[1]:
+                return [text + v.replace(els[1], "") for v in self.curargs["dependents"] 
+                        if v.startswith(els[1])]
+            else:
+                return [v for v in self.curargs["dependents"] if v.startswith(els[1])]
+    def help_rmdep(self):
+        lines = [("Removes the specified variable from the list of dependent variables for "
+                  "the tables or plots generated using the shell.")]
         self._fixed_width_info(lines)
 
     def do_vars(self, arg):
@@ -628,6 +673,12 @@ class FortpyShell(cmd.Cmd):
                 self.curargs["fits"][var] = fxn
                 #Give the user some feedback so that they know it was successful.
                 self.do_fit("list")
+                #Also add the fit to the dependent variables automatically, since
+                #it is extremely likely that they will want to plot it.
+                if "timing" in var:
+                    self.do_dep(var + "|fit")
+                else:
+                    self.do_dep(var + ".fit")
     def complete_fit(self, text, line, istart, iend):
         els = line.split()
         if len(els) == 1 or (len(els) == 2 and line[-1] != " "):
@@ -658,6 +709,16 @@ class FortpyShell(cmd.Cmd):
     def complete_rmfit(self, text, lines, istart, iend):
         return [p for p in self.curargs["fits"].keys() if p.startswith(text)]
 
+    def _complete_deps(self, els, line, addlist=True):
+        if len(els) == 1:
+            part = ""
+        else:
+            part = els[1]
+        varlist = [v for v in self.curargs["dependents"] if v.startswith(part)]
+        if part in "list" and "|" not in line and addlist:
+            varlist.append("list")
+        return varlist
+
     def do_label(self, arg):
         usable, filename, append = self._redirect_split(arg)
         sargs = usable.split()
@@ -674,9 +735,7 @@ class FortpyShell(cmd.Cmd):
     def complete_label(self, text, line, istart, iend):
         els = line.split()
         if len(els) == 1 or (len(els) == 2 and line[-1] != " "):
-            varlist = self._complete_fullvar(text, line, istart, iend)
-            if text in "list" and "|" not in line:
-                varlist.append("list")
+            varlist = self._complete_deps(els, line)
             if text in "plot" and "|" not in line:
                 varlist.append("plot")
             return varlist
@@ -714,10 +773,7 @@ class FortpyShell(cmd.Cmd):
     def complete_color(self, text, line, istart, iend):
         els = line.split()
         if len(els) == 1 or (len(els) == 2 and line[-1] != " "):
-            varlist = self._complete_fullvar(text, line, istart, iend)
-            if text in "list" and "|" not in line:
-                varlist.append("list")
-            return varlist
+            return self._complete_deps(els, line)
         else:
             keys = list(self._possible_cols.keys()) + ["0.", "#"]
             if line[-1] == " ":
@@ -737,6 +793,26 @@ class FortpyShell(cmd.Cmd):
     def complete_rmcolor(self, text, lines, istart, iend):
         return [p for p in self.curargs["colors"].keys() if p.startswith(text)]
 
+    def _get_matplot_dict(self, option, prop, defdict):
+        """Returns a copy of the settings dictionary for the specified option in 
+        curargs with update values where the value is replaced by the key from 
+        the relevant default dictionary.
+
+        :arg option: the key in self.curargs to update.
+        :arg defdict: the default dictionary whose keys should be used when values match.
+        """
+        cargs = self.curargs[option]
+        result = cargs.copy()
+        for varname in cargs:
+            if prop in cargs[varname]:
+                name = cargs[varname][prop]
+                for key, val in defdict.items():
+                    if val == name:
+                        cargs[varname][prop] = key
+                        break
+
+        return result
+
     def _plot_generic(self, filename=None):
         """Plots the current state of the shell, saving the value to the specified file
         if specified.
@@ -751,9 +827,16 @@ class FortpyShell(cmd.Cmd):
         args = self.curargs
         a = self.tests[self.active]
         self._make_fits()
+        
+        #Before we can pass the markers in, we need to translate from keys to values so
+        #that matplotlib understands.
+        markdict = self._get_matplot_dict("markers", "marker", self._possible_markers)
+        linedict = self._get_matplot_dict("lines", "style", self._possible_linestyles)
+
         a.plot(args["independent"], args["dependents"], args["threshold"], args["xlabel"], 
-               args["ylabel"], args["tfilter"], filename, args["functions"], 
-               args["xscale"], args["yscale"], args["colors"], args["labels"])
+               args["ylabel"], filename, args["functions"], 
+               args["xscale"], args["yscale"], args["colors"], args["labels"], args["fonts"],
+               markdict, linedict, args["ticks"])
 
     def do_logplot(self, arg):
         """Plots the current state of the shell's independent vs. dependent variables on the
@@ -1046,8 +1129,7 @@ class FortpyShell(cmd.Cmd):
         #We need to generate a fit for the data if there are any fits specified.
         if len(args["fits"]) > 0:
             for fit in args["fits"].keys():
-                a.fit(args["independent"], fit, args["fits"][fit], args["threshold"],
-                      args["tfilter"], args["functions"])
+                a.fit(args["independent"], fit, args["fits"][fit], args["threshold"], args["functions"])
 
     def do_table(self, arg):
         """Prints the set of values for the independent vs. dependent variables in the
@@ -1058,7 +1140,7 @@ class FortpyShell(cmd.Cmd):
         args = self.curargs
         self._make_fits()
         result = a.table(args["independent"], args["dependents"], args["threshold"],
-                         args["headings"], args["tfilter"], args["functions"])
+                         args["headings"], args["functions"])
         if result is not None:
             self._redirect_output(result, filename, append, msg.info)
     def complete_table(self, text, line, istart, iend):
@@ -1081,18 +1163,33 @@ class FortpyShell(cmd.Cmd):
         usable, filename, append = self._redirect_split(arg)
         a = self.tests[self.active]
         args = self.curargs
-        outfiles = usable.split()
-        if len(outfiles) == 0:
-            outfiles = None
-        result = a.failures(outfiles, args["threshold"], args["tfilter"])
+        splitargs = usable.split()
+        if len(splitargs) > 0:
+            tfilter = splitargs[0]
+        else:
+            tfilter = "*"
+
+        outfiles = None
+        if len(splitargs) > 1:
+            outfiles = splitargs[1:len(splitargs)]
+
+        result = a.failures(outfiles, args["threshold"], tfilter)
         self._redirect_output(result, filename, append, msg.info)
     def complete_failures(self, text, line, istart, iend):
-        #We only want to return those output files in the current unit test who *also*
-        #have .compare files to check status on.
-        if text == "":
-            return [f for f in self.tests[self.active].comparable]
+        els = line.split()
+        if len(els) == 1 or (len(els) == 2 and line[-1] != " "):
+            if len(els) == 1:
+                part = ""
+            else:
+                part = els[1]
+            return [f for f in self.curargs["tfilter"] if f.startswith(part)]
         else:
-            return [f for f in self.tests[self.active].comparable if f.startswith(text)]
+            #We only want to return those output files in the current unit test who *also*
+            #have .compare files to check status on.
+            if text == "":
+                return [f for f in self.tests[self.active].comparable]
+            else:
+                return [f for f in self.tests[self.active].comparable if f.startswith(text)]
     def help_failures(self):
         lines = [("Searches the current unit test for test cases that failed, either because "
                   "they don't meet the threshold criteria, or because the executable generated "
@@ -1103,7 +1200,11 @@ class FortpyShell(cmd.Cmd):
                   "that have accompanying '.out.compare' comparison reports. In that case, only "
                   "the comparisons with sub-threshold values from the specified files will be "
                   "reported."),
-                 ("EXAMPLE: \"failures polya.out\" searches for test cases that failed because "
+                 ("You can also filter by specifying a test case filter that only returns test "
+                  "cases who match the string set using the 'filter' command. Any time the "
+                  "failures are filtered, the 2nd argument is *always* the test case filter, all "
+                  "subsequent arguments should be output file names to filter failures on."),
+                 ("EXAMPLE: \"failures * polya.out\" searches for test cases that failed because "
                   "of low accuracy in the 'polya.out' file. This will include tests that never "
                   "finished because of exceptions.")]
         self._fixed_width_info(lines)
@@ -1259,13 +1360,6 @@ class FortpyShell(cmd.Cmd):
                 #Just run the command as it was originally entered.
                 return line
         else:
-            if command in self._var_cmds:
-                #We need to make sure that we have variables set.
-                if self.curargs["independent"] is None or len(self.curargs["dependents"]) == 0:
-                    msg.err("This command requires an independent variable to be set and "
-                            "at least one dependent variable.\n See 'dep' and 'indep' commands.")
-                    return ""
-
             if command in self._test_cmds or command in self._group_cmds:
                 #We have to test the active unit test for both the test commands and the
                 #group commands, since the group commands rely on the active unit test.
@@ -1277,6 +1371,15 @@ class FortpyShell(cmd.Cmd):
                                                        self.group not in self.args[self.active])):
                     msg.err("No valid analysis group is active. Use 'group' to create " 
                             "one or mark an existing one as active.")
+                    return ""
+                else:
+                    return line
+
+            if command in self._var_cmds:
+                #We need to make sure that we have variables set.
+                if self.curargs["independent"] is None or len(self.curargs["dependents"]) == 0:
+                    msg.err("This command requires an independent variable to be set and "
+                            "at least one dependent variable.\n See 'dep' and 'indep' commands.")
                     return ""
                 else:
                     return line
@@ -1333,6 +1436,314 @@ class FortpyShell(cmd.Cmd):
         lines = [("Prints the last uncaught exception generated in the shell. If 'clear' is "
                   "passed as a single argument, the last exception is cleared from the shell.")]
         self._fixed_width_info(lines)
+
+    def do_font(self, arg):
+        opts = arg.split()
+        if opts[0] == "family":
+            value = ' '.join(opts[1:len(opts)])
+            if value == "rm":
+                del self.curargs["fonts"]["family"]
+            else:
+                self.curargs["fonts"]["family"] = value
+            self.do_font("list")
+        elif opts[0] in ["xticks", "xlabel", "yticks", "ylabel", "legend", "title"]:
+            if opts[1] == "rm":
+                del self.curargs["fonts"][opts[0]]
+            else:
+                props = {}
+                for p in opts[1:len(opts)]:
+                    prop, val = p.split("=")
+                    props[prop] = val
+                self.curargs["fonts"][opts[0]] = props
+            self.do_font("list")
+        elif opts[0] == "list":
+            for key in self.curargs["fonts"]:
+                if key == "family":
+                    msg.info("FONT FAMILY: {}".format(self.curargs["fonts"]["family"]))
+                else:
+                    msg.info("{} FONTS:".format(key.upper()))
+                    for prop in self.curargs["fonts"][key]:
+                        msg.info("  {} => {}".format(prop, self.curargs["fonts"][key][prop]))
+    def help_font(self):
+        lines = [("Sets the font settings on plots for the current analysis group. Possible "
+                  "font options are:\n "
+                  "- family: font family for all fonts in the plot.\n"
+                  "- xticks, yticks: font settings for the digits marking ticks on the axes.\n"
+                  "- xlabel, ylabel: font settings for the axes labels.\n"
+                  "- legend: font settings for the legend box.\n"
+                  "- list: show the font settings for the entire plot."),
+                 ("For 'axes', 'labels' and 'legend' font settings, the size, weight, variant "
+                  "and style of the font can be set. Use the tab completion to select valid "
+                  "values. To type without tab completion, specify the property value set as "
+                  "\"property=value\", for example \"size=large\"."),
+                 ("To delete a font specification for one of the options above, specify 'rm'. "
+                  "EXAMPLE: \"font family rm\" or \"font yticks rm\"."),
+                 ("Since it is common to use the same font settings for plots across multiple "
+                  "papers, you can save and load a set of font settings for an analysis group "
+                  "using the 'fontsave' and 'fontload' commands.")]
+        self._fixed_width_info(lines)
+    def complete_font(self, text, line, istart, iend):
+        els = line.split()
+        if len(els) == 1 or (len(els)==2 and line[-1] != " "):
+            #We use the font command for multiple options, list the possibilities
+            #in the second position.
+            if len(els) == 2:
+                part = els[1]
+            else:
+                part = ""
+            options = ["family", "xlabel", "ylabel", "xticks", "yticks", "list", "legend", "title"]
+            return [o for o in options if o.startswith(part)]
+        else:
+            #We need to look at the second element to decide how to complete.
+            if line[-1] == " ":
+                part = ""
+            else:
+                part = els[-1]
+
+            #We want to allow repitition of font options on the same line of the shell.
+            #If the last element has an equal sign, then we are completing the font
+            #property.
+            if "list" not in line and "family" not in line and len(els) > 2:
+                cfonts = {
+                    "size": ['xx-small', 'x-small', 'small', 'medium', 'large',
+                             'x-large', 'xx-large'],
+                    "variant": ['normal', 'small-caps'],
+                    "style": ['normal', 'italic', 'oblique'],
+                    "weight": ['light', 'normal', 'medium', 'semibold', 'bold', 'heavy', 'black'],
+                }
+                if "=" in part:
+                    prop, val = part.split("=")
+                    return [p for p in cfonts[prop] if p.startswith(val)]
+                else:
+                    if part in cfonts:
+                        return [part + "="]
+                    else:
+                        return [p for p in cfonts if p.startswith(part)]            
+            elif part != "list":
+                propkeys = ["size", "variant", "style", "weight", "rm"]
+                compl = {
+                    "family": ['serif', 'sans-serif', 'cursive', 'fantasy', 'monospace', 'rm'],
+                    "xticks": propkeys,
+                    "yticks": propkeys,
+                    "xlabel": propkeys,
+                    "ylabel": propkeys,
+                    "legend": propkeys,
+                    "title": propkeys
+                }
+                #See if we have already specified which font option we are editing.
+                return [p for p in compl[els[1]] if p.startswith(part)]
+
+    def do_fontsave(self, arg):
+        """Saves the session variables to a file so that the same analysis can be continued later."""
+        #We need to save the full paths to the staging directories for the tests that are loaded
+        #so far; then when the session is restored, we can reparse the results.
+        from os import path
+        import json
+        fullpath = path.expanduser(arg)
+        data = {
+            "fonts": self.curargs["fonts"],
+            "ticks": self.curargs["ticks"]
+        }
+        with open(fullpath, 'w') as f:
+            json.dump(data, f)
+        msg.okay("Saved current font settings to {}".format(fullpath))
+    def complete_fontsave(self, text, line, istart, iend):
+        return self.complete_parse(text, line, istart, iend)
+    def help_save(self):
+        lines = [("Saves the current font settings for plots to the specified file."),
+                 ("EXAMPLE: \"fontsave pubfonts.json\" saves the font settings to the specified "
+                  "file. The session is always serialized in JSON."),
+                 ("See also: 'fontload'")]
+        self._fixed_width_info(lines)
+
+    def do_fontload(self, arg):
+        from os import path
+        import json
+        fullpath = path.expanduser(arg)
+        if path.isfile(fullpath):
+            with open(fullpath) as f:
+                data = json.load(f)
+            self.curargs["fonts"] = data["fonts"]
+            self.curargs["ticks"] = data["ticks"]
+            msg.okay("Loaded font settings from {}".format(fullpath))
+    def complete_fontload(self, text, line, istart, iend):
+        return self.complete_parse(text, line, istart, iend)
+    def help_load(self):
+        lines = [("Loads previously saved font settings from disk. For details, see 'fontsave'. "
+                  "NOTE: the font settings in the active analysis group will be overwritten."),
+                 ("EXAMPLE \"fontload pubfonts.json\" loads the saved session.")]
+        self._fixed_width_info(lines)
+
+    def _complete_dep_keyval(self, line, propkeys, opts):
+        els = line.split()
+        if len(els) == 1 or (len(els) == 2 and line[-1] != " "):
+            return self._complete_deps(els, line)
+        else:
+            #We need to look at the second element to decide how to complete.
+            if line[-1] == " ":
+                part = ""
+            else:
+                part = els[-1]
+
+            if len(els) > 2:
+                if "=" in part:
+                    prop, val = part.split("=")
+                    if prop in opts:
+                        return [p for p in opts[prop] if p.startswith(val)]
+                else:
+                    if part in propkeys and part != "rm":
+                        return [part + "="]
+                    else:
+                        return [p for p in propkeys if p.startswith(part)]
+            elif part != "list":
+                return [p for p in propkeys if p.startswith(part)]        
+
+    def _do_dep_keyval(self, arg, option, listfun, heading):
+        vals = arg.split()
+        if len(vals) >= 2:
+            varname = vals[0]
+            if vals[1] == "rm":
+                if varname in self.curargs[option]:
+                    del self.curargs[option][varname]
+            else:
+                props = map(lambda v: v.split("="), vals[1:len(vals)])
+                dprops = {}
+                for pname, pval in props:
+                    dprops[pname] = pval
+                self.curargs[option][varname] = dprops
+            listfun("list")
+        elif arg == "list":
+            for var in self.curargs[option]:
+                msg.info("'{}' {} SETTINGS".format(var, heading.upper()))
+                for pname, pval in self.curargs[option][var].items():
+                    msg.info("  {} => {}".format(pname, pval))
+        else:
+            msg.warn("You haven't specified a valid variable and property combination.")
+
+    def do_markers(self, arg):
+        self._do_dep_keyval(arg, "markers", self.do_markers, "marker")
+    def help_markers(self):
+        lines = [("Sets the style of the markers for one of the dependent variables. "
+                  "Use <tab> completion to select the variable (using filter, file name, "
+                  "and property) and then select marker options from the lists. You can "
+                  "remove the marker settings for a variable by specifying 'rm' as the "
+                  "property name."),
+                 ("EXAMPLE \"markers */concs.in|depth size=2 marker=tri_down fill=full\" "
+                  "sets the size to 2 points^2, the marker to be an upside-down triangle "
+                  "and the filling to be full.")]
+        self._fixed_width_info(lines)
+    def complete_markers(self, text, line, istart, iend):
+        propkeys = ["marker", "size", "fill", "rm"]        
+        opts = {
+            "marker": self._possible_markers.values(),
+            "fill": (u'full', u'left', u'right', u'bottom', u'top', u'none')
+        }
+        return self._complete_dep_keyval(line, propkeys, opts)
+
+    def do_lines(self, arg):
+        self._do_dep_keyval(arg, "lines", self.do_lines, "line")
+    def help_lines(self):
+        lines = [("Sets the width and style of lines drawn on plots for a specific variable."
+                  "Use <tab> completion to select the variable (using filter, file name, "
+                  "and property) and then select line options from the lists. You can "
+                  "remove the line settings for a variable by specifying 'rm' as the "
+                  "property name."),
+                 ("EXAMPLE \"lines */concs.in|depth.fit width=2 style=_draw_dashed\" "
+                  "sets the line width to 2 points and the style to dashed.")]
+        self._fixed_width_info(lines)
+    def complete_lines(self, text, line, istart, iend):
+        propkeys = ["style", "width", "rm"]        
+        opts = {
+            "style": self._possible_linestyles.values()
+        }
+        return self._complete_dep_keyval(line, propkeys, opts)
+
+    def do_ticks(self, arg):
+        els = arg.split()
+        if len(els) > 0 and arg != "list":
+            cast = ["length", "width", "pad"]
+            dprops = {}
+            delete = False
+            for entry in els:
+                if "=" in entry:
+                    prop, val = entry.split("=")
+                    if prop in cast:
+                        dprops[prop] = float(val)
+                    else:
+                        dprops[prop] = val
+                elif entry == "rm":
+                    delete = True
+
+            if "axis" in dprops:
+                axis = dprops["axis"]
+            else:
+                axis = "both"
+            if "which" in dprops:
+                which = dprops["which"]
+            else:
+                which = "major"
+
+            key = "{}|{}".format(axis, which)
+            if delete and key in self.curargs["ticks"]:
+                del self.curargs["ticks"][key]
+            else:
+                self.curargs["ticks"][key] = dprops
+            self.do_ticks("list")
+        elif arg == "list":
+            for key in self.curargs["ticks"]:
+                axis, which = key.split("|")
+                msg.info("AXIS: {} and WHICH: {}".format(axis.upper(), which.upper()))
+                for prop, val in self.curargs["ticks"][key].items():
+                    msg.info("  {} => {}".format(prop, val))                    
+    def help_ticks(self):
+        lines = [("Sets the properties for drawing the tick marks on plots for the active "
+                  "analysis group. Use the tab completion to select properties and valid "
+                  "values for the ticks. To style the x and y axes differently, use the "
+                  "'axis' property with different settings each time. The settings are stored "
+                  "according to the 'axis' and 'which' properties and are applied in an"
+                  " arbitrary order. You can "
+                  "use \"axis=both\" to set common settings and then specialize with the other "
+                  "possibilities."),
+                 ("To remove settings for an axis-which combination, specify the axis and "
+                  "which keywords and then use 'rm' as a keyword. E.g. \"ticks rm\" would "
+                  "remove the settings for the *major* ticks on *both* axes (the default "
+                  "axis and which values). You could also use \"ticks rm axis=x which=minor\" "
+                  "to remove settings for that set.")]
+        self._fixed_width_info(lines)
+    def complete_ticks(self, text, line, istart, iend):
+        bopts = ("on", "off")
+        opts = {
+            "axis": ("x", "y", "both"),
+            "which": ("major", "minor", "both"),
+            "direction": ("in", "out", "inout"),
+            "color": self._possible_cols,
+            "bottom": bopts,
+            "top": bopts,
+            "left": bopts,
+            "right": bopts,
+            "labelbottom": bopts, 
+            "labeltop": bopts,
+            "labelleft": bopts,
+            "labelright": bopts,
+            "reset": ("true", "false")
+        }
+        propkeys = list(opts.keys()) + ["length", "width", "pad", "list", "rm"]
+        
+        els = line.split()
+        if line[-1] == " ":
+            part = ""
+        else:
+            part = els[-1]
+
+        if '=' in part:
+            prop, val = part.split('=')
+            if prop in opts:
+                return [p for p in opts[prop] if p.startswith(val)]
+        else:
+            if part in propkeys:
+                return [part + '=']
+            else:
+                return [p for p in propkeys if p.startswith(part)]
 
 parser = argparse.ArgumentParser(description="Fortpy Automated Test Result Analyzer")
 parser.add_argument("-pypath", help="Specify a path to add to sys.path before running the tests.")
