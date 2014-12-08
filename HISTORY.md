@@ -1,6 +1,14 @@
 FORTPY: Revision History
 ======
 
+Revision 1.3.3
+------
+
+- Added property editing for all variables at once using `*` as the variable name.
+- Fixed a bug when setting plot line widths.
+- Added additional support for postfix functions that return `None` values.
+- Fixed bug where line plots weren't including lines by default if any marker settings were given.
+
 Revision 1.3.2
 ------
 

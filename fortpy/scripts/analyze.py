@@ -741,9 +741,12 @@ class FortpyShell(cmd.Cmd):
             part = ""
         else:
             part = els[1]
+
         varlist = [v for v in self.curargs["dependents"] if v.startswith(part)]
         if part in "list" and "|" not in line and addlist:
             varlist.append("list")
+        if part == "":
+            varlist.append("*")
         return varlist
 
     def do_label(self, arg):
@@ -756,7 +759,11 @@ class FortpyShell(cmd.Cmd):
             if var != "plot" and not self._validate_var(var):
                 msg.err("Variable '{}' is not a valid variable|property combination.")
             else:
-                self.curargs["labels"][var] = label
+                if var == "*":
+                    for depvar in self.curargs["dependents"]:
+                        self.curargs["labels"][depvar] = label
+                else:
+                    self.curargs["labels"][var] = label
                 #Give the user some feedback so that they know it was successful.
                 self.do_label("list")
     def complete_label(self, text, line, istart, iend):
@@ -794,7 +801,11 @@ class FortpyShell(cmd.Cmd):
             if not self._validate_var(var):
                 msg.err("Variable '{}' is not a valid variable|property combination.")
             else:
-                self.curargs["colors"][var] = col
+                if var == "*":
+                    for depvar in self.curargs["dependents"]:
+                        self.curargs["colors"][depvar] = col
+                else:
+                    self.curargs["colors"][var] = col
                 #Give the user some feedback so that they know it was successful.
                 self.do_color("list")
     def complete_color(self, text, line, istart, iend):
@@ -1625,19 +1636,32 @@ class FortpyShell(cmd.Cmd):
             elif part != "list":
                 return [p for p in propkeys if p.startswith(part)]        
 
+    def _do_dep_keyval_single(self, option, varname, vals):
+        if vals[1] == "rm":
+            if varname in self.curargs[option]:
+                del self.curargs[option][varname]
+        else:
+            props = map(lambda v: v.split("="), vals[1:len(vals)])
+            if varname in self.curargs[option]:
+                #Update the existing values or insert new ones where necessary.
+                target = self.curargs[option][varname]
+            else:
+                target = {}
+
+            for pname, pval in props:
+                target[pname] = pval
+            if varname not in self.curargs[option]:
+                self.curargs[option][varname] = target
+
     def _do_dep_keyval(self, arg, option, listfun, heading):
         vals = arg.split()
         if len(vals) >= 2:
             varname = vals[0]
-            if vals[1] == "rm":
-                if varname in self.curargs[option]:
-                    del self.curargs[option][varname]
+            if varname == "*":
+                for depvar in self.curargs["dependents"]:
+                    self._do_dep_keyval_single(option, depvar, vals)
             else:
-                props = map(lambda v: v.split("="), vals[1:len(vals)])
-                dprops = {}
-                for pname, pval in props:
-                    dprops[pname] = pval
-                self.curargs[option][varname] = dprops
+                self._do_dep_keyval_single(option, varname, vals)
             listfun("list")
         elif arg == "list":
             for var in self.curargs[option]:

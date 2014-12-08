@@ -256,13 +256,13 @@ class Analysis(object):
                 #and an aggregrate function should have been specified
                 if isinstance(value, list):
                     if len(value) == 1:
-                        values.append(value[0])
+                        values.append(value[0] if value[0] is not None else 0)
                     else:
                         msg.err("Can't coerce an array to a single value without an aggregation "
                                 "function such as numpy.mean or numpy.sum")
                         return ([0], "Array Aggregation Error")
                 else:
-                    values.append(value)
+                    values.append(value if value is not None else 0)
                 cases.append(testcase)
 
         return (values, cases)
@@ -328,26 +328,31 @@ class Analysis(object):
             return dfont
 
     def _get_markers(self, dargs, markers):
-        from matplotlib.markers import MarkerStyle
         m = markers.get("marker")
         f = markers.get("fill", "full")
         #This is a bug in matplotlib that I submitted an issue on at github.
         #For the meanwhile, only full fill marker styles. So we have this hack:
         if f == "none":
             dargs["facecolors"] = f
+        dargs["edgecolors"] = dargs["color"]
         # When the bug is fixed, we can use this instead MarkerStyle(marker=m, fillstyle=f)
         dargs["marker"] = m
 
     def _reset_lineplot(self, dargs):
         if "marker" in dargs and "linestyle" not in dargs:
             #Set the default line style to solid line.
-            dargs["linestyle"] = "_"
+            dargs["linestyle"] = "-"
         if "facecolors" in dargs:
             dargs["markerfacecolor"] = dargs["facecolors"]
             del dargs["facecolors"]
         if "s" in dargs:
             dargs["markersize"] = dargs["s"]
             del dargs["s"]
+        #Set the marker edge color if markers are specified; otherwise they show up gray.
+        if "marker" in dargs:
+            dargs["markeredgecolor"] = dargs["color"]
+            if "edgecolors" in dargs:
+                del dargs["edgecolors"]
 
     def plot(self, independent, dependents, threshold=1., xlabel=None, ylabel=None,
              savefile=None, functions=None, xscale=None, yscale=None,
@@ -408,22 +413,23 @@ class Analysis(object):
             #Set up a dictionary with all the kwargs for the plotting options
             #that may be common to both kinds of plots.
             dargs = {}
+            if colors is not None and ylabel in colors:
+                dargs["color"] = colors[ylabel]
+            else:
+                dargs["color"] = next(cycols)
+
             if markers is not None and ylabel in markers:
                 self._get_markers(dargs, markers[ylabel])
                 if "size" in markers[ylabel]:
                     dargs["s"] = float(markers[ylabel]["size"])
             if "s" not in dargs:
                 dargs["s"] = 15
-            if colors is not None and ylabel in colors:
-                dargs["color"] = colors[ylabel]
-            else:
-                dargs["color"] = next(cycols)
                     
             if lines is not None and ylabel in lines:
                 if "style" in lines[ylabel]:
                     dargs["linestyle"] = lines[ylabel]["style"]
                 if "width" in lines[ylabel]:
-                    dargs["linewidth"] = lines[ylabel]["width"]
+                    dargs["linewidth"] = float(lines[ylabel]["width"])
 
             if labels is not None and ylabel in labels:
                 dargs["label"] = None if labels[ylabel].lower() == "[none]" else labels[ylabel] 
@@ -455,7 +461,9 @@ class Analysis(object):
                     sdata = array(sorted(zip(x,y),key=itemgetter(0)))
                     ax.plot(sdata[:,0], sdata[:,1], **dargs)
                 else:
-                    ax.scatter(x, y, **dargs)
+                    size = dargs["s"]
+                    del dargs["s"]
+                    ax.scatter(x, y, s=size, **dargs)
             except ValueError:
                 msg.err("The values for {} can't be log-plotted.".format(ylabel))
 
