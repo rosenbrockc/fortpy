@@ -165,13 +165,14 @@ class Analysis(object):
             return (("*" in tfilter and fnmatch(caseid, tfilter)) or
                     (not "*" in tfilter and tfilter == caseid))
 
-    def _get_data(self, variable, order=None, threshold=1., tfilter=None, functions=None,
+    def _get_data(self, variable, fullvar, order=None, threshold=1., tfilter=None, functions=None,
                   independent=None, x=None):
         """Returns a list of the valid data points for the specified variable.
 
         :arg variable: a string indentifying the variable's filename and the
           appropriate property of the data in the file. For example: "concs.in|depth" would
           use the depth of the data in the file 'concs.in' as its value for each test case.
+        :arg fullvar: the full variable name including the filter and property spec.
         :arg threshold: a float value specifying the minimum level of success that the output
           file must attain before it can be used in the plot.
         :arg independent: the name of the independent variable including property.
@@ -207,15 +208,15 @@ class Analysis(object):
 
         #Handle cases where the values need to have functions applied to them before tabulating
         #or printing the values.
-        if functions is not None and variable in functions:
-            if isinstance(functions[variable], str) or isinstance(functions[variable], unicode):
+        if functions is not None and fullvar in functions:
+            if isinstance(functions[fullvar], str) or isinstance(functions[fullvar], unicode):
                 from importlib import import_module
-                module = functions[variable].split(".")
+                module = functions[fullvar].split(".")
                 fname = module.pop()
                 numpy = import_module('.'.join(module))
                 fx = getattr(numpy, fname)
             else:
-                fx = functions[variable]
+                fx = functions[fullvar]
         else:
             fx = None
 
@@ -289,13 +290,14 @@ class Analysis(object):
         xs = []
         for variable in dependents:
             tfilter, depvar = variable.split("/")
-            x, cases = self._get_data(independent, None, threshold, tfilter, functions)
+            fullindvar = "{}/{}".format(tfilter, independent)
+            x, cases = self._get_data(independent, fullindvar, None, threshold, tfilter, functions)
             if (len(x) == 1 and isinstance(x[0], list) and 
                 ("rowvals" in independent or "colvals" in independent)):
                 x = x[0]
-            xs.append((x, "{}/{}".format(tfilter, independent)))
+            xs.append((x, fullindvar))
 
-            ypts, names = self._get_data(depvar, cases, threshold, tfilter, functions,
+            ypts, names = self._get_data(depvar, variable, cases, threshold, tfilter, functions,
                                          independent, x)
             if (len(ypts) == 1 and isinstance(ypts[0], list) and
                 ("rowvals" in variable or "colvals" in variable)):

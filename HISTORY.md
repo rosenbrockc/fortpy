@@ -1,6 +1,11 @@
 FORTPY: Revision History
 ======
 
+Revision 1.3.4
+------
+
+- Postfix functions weren't being applied anymore to the data because of the filter inclusion in each dependent variable. Fixed.
+
 Revision 1.3.3
 ------
 
