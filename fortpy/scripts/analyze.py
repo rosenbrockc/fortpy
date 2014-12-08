@@ -17,7 +17,7 @@ class FortpyShell(cmd.Cmd):
         self.group = None
         """The name of the analysis group in the current unit test being worked on."""
         self._template_args = {
-            "version": 4,
+            "version": 6,
             "xscale": None,
             "yscale": None,
             "tfilter": ["*"],
@@ -34,7 +34,9 @@ class FortpyShell(cmd.Cmd):
             "fonts": {},
             "markers": {},
             "ticks": {},
-            "lines": {}
+            "lines": {},
+            "plottypes": {},
+            "limits": {}
         }
         """A dictionary of template arguments that can be set to affect the plotting/tabulating 
         behavior of the shell for a unit test analysis group. This gets duplicated for each
@@ -53,7 +55,7 @@ class FortpyShell(cmd.Cmd):
         'curargs' relies on a valid analysis group.
         """
         self._var_cmds = ["plot", "logplot", "loglogplot", "table", "fit", "color", "label",
-                          "font", "fontsave", "fontload", "ticks", "lines", "markers"]
+                          "font", "fontsave", "fontload", "ticks", "lines", "markers", "limit"]
         """List of commands that require an independent variable to be set and at least one
         dependent variable to be set."""
         self._maxerr = 10
@@ -528,16 +530,39 @@ class FortpyShell(cmd.Cmd):
     def do_dep(self, args):
         """Adds the name and attribute of a dependent variable to the list 
         for plotting/tabulating functions."""
-        for arg in args.split():
-            if not self._validate_var(arg):
-                msg.err("Variable {} is not a valid file name and property combination.".format(arg))
-                continue
-            if arg not in self.curargs["dependents"]:
-                self.curargs["dependents"].append(arg)
+        vals = args.split()
+        if len(vals) > 1:
+            var, plot = vals
+        else:
+            var = vals[0]
+            plot = None
+
+        if not self._validate_var(var):
+            msg.err("Variable {} is not a valid file name and property combination.".format(var))
+        else:
+            if var in self.curargs["dependents"]:
+                self.curargs["dependents"].remove(var)
+            if var in self.curargs["plottypes"]:
+                del self.curargs["plottypes"][var]
+            self.curargs["dependents"].append(var)
+            if plot is not None:
+                self.curargs["plottypes"][var] = plot                
     def complete_dep(self, text, line, istart, iend):
-        return self._complete_fullvar(text, line, istart, iend)
+        els = line.split()
+        if len(els) == 1 or (len(els) == 2 and line[-1] != " "):
+            if len(els) == 1:
+                part = ""
+            else:
+                part = els[-1]
+            return self._complete_fullvar(part, line, istart, iend)
+        else:
+            keys = ["line", "scatter"]
+            if line[-1] == " ":
+                return keys
+            else:
+                return [c for c in keys if c.startswith(text)]
     def help_dep(self):
-        lines = [("Adds one or more variables as *dependent* variables for plotting or tabulating. "
+        lines = [("Adds one variable as a *dependent* variable for plotting or tabulating. "
                   "A description of the format of the variables and properties can be found by typing "
                   "\"help indep\" in the shell. The dependent variables follow similar "
                   "conventions and the same limitations apply regarding the use of 'rowvals' and "
@@ -545,11 +570,10 @@ class FortpyShell(cmd.Cmd):
                   "each variable can have its own filter specification. The filter must have been "
                   "added using the 'filter' command. This allows dependent variables from different "
                   "sets of test cases to be plotted on the same plot."),
-                 ("EXAMPLE: \"dep */concs.in|width */timing *fg/polya.out|value\" adds three "
-                  "dependent variables whose values will be extracted across all test cases"
-                  " that match the filter specified. The '*' filter matches *all* test cases, while "
-                  "'*fg' would only include the 'polya.out|value' from test cases whose case folder "
-                  "ends in 'fg'.")
+                 ("EXAMPLE: \"dep */concs.in|width line\" adds 'concs.in|depth' as a "
+                  "dependent variable whose values will be extracted across all test cases"
+                  " that match the filter specified. The '*' filter matches *all* test cases. The "
+                  "line specification sets the plot-type to line instead of scatter."),
                  ("NOTE: use tab completion to make sure that the variable names and properties you "
                   "select are valid. The auto-completion is specific to the file you choose, so it "
                   "only reflects what is possible.")]
@@ -581,8 +605,11 @@ class FortpyShell(cmd.Cmd):
         result.append("INDEPENDENT: '{}'".format(self.curargs["independent"]))
         result.append("DEPENDENTS")
         for i in range(len(self.curargs["dependents"])):
-            result.append("  {}. '{}'".format(i, self.curargs["dependents"][i]))
-
+            var = self.curargs["dependents"][i]
+            if var in self.curargs["plottypes"]:
+                result.append("  {}. '{}' ({})".format(i, var, self.curargs["plottypes"][var]))
+            else:
+                result.append("  {}. '{}' (scatter)".format(i, var))
         self._redirect_output('\n'.join(result), filename, append, msg.info)
     def help_vars(self):
         lines = [("Prints the current status of the independent and dependent variables for the "
@@ -836,7 +863,7 @@ class FortpyShell(cmd.Cmd):
         a.plot(args["independent"], args["dependents"], args["threshold"], args["xlabel"], 
                args["ylabel"], filename, args["functions"], 
                args["xscale"], args["yscale"], args["colors"], args["labels"], args["fonts"],
-               markdict, linedict, args["ticks"])
+               markdict, linedict, args["ticks"], args["plottypes"], args["limits"])
 
     def do_logplot(self, arg):
         """Plots the current state of the shell's independent vs. dependent variables on the
@@ -1744,6 +1771,32 @@ class FortpyShell(cmd.Cmd):
                 return [part + '=']
             else:
                 return [p for p in propkeys if p.startswith(part)]
+
+    def do_limit(self, arg):
+        vals = arg.split()
+        if len(vals) == 3:
+            if vals[0] in ["x", "y"]:
+                self.curargs["limits"][vals[0]] = tuple(map(float, vals[1:3]))
+            else:
+                msg.err("Only 'x', 'y' and 'z' are valid axis designations.")                
+        elif arg == "list":
+            for dim in self.curargs["limits"]:
+                msg.info("{0} LIMITS: {1[0]}-{1[1]}".format(dim.upper(), self.curargs["limits"][dim]))
+        else:
+            msg.warn("Enter the axis type ('x' or 'y') and the start and end values. "
+                     "E.g. \"limit x 0 20\"")
+    def help_limit(self, arg):
+        lines = [("Sets the limiting values for the axes on the plot."),
+                 ("EXAMPLE \"limit x 0 20\" sets the x-axis to only plot from zero to twenty.")]
+        self._fixed_width_info(lines)
+    def complete_limit(self, text, line, istart, iend):
+        els = line.split()
+        if len(els) == 1 or (len(els) == 2 and line[-1] != ' '):
+            axes = ["x", "y", "z", "list"]
+            if len(els) == 2:
+                return [a for a in axes if a.startswith(els[1])]
+            else:
+                return axes
 
 parser = argparse.ArgumentParser(description="Fortpy Automated Test Result Analyzer")
 parser.add_argument("-pypath", help="Specify a path to add to sys.path before running the tests.")

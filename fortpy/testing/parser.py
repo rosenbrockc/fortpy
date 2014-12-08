@@ -338,9 +338,21 @@ class Analysis(object):
         # When the bug is fixed, we can use this instead MarkerStyle(marker=m, fillstyle=f)
         dargs["marker"] = m
 
+    def _reset_lineplot(self, dargs):
+        if "marker" in dargs and "linestyle" not in dargs:
+            #Set the default line style to solid line.
+            dargs["linestyle"] = "_"
+        if "facecolors" in dargs:
+            dargs["markerfacecolor"] = dargs["facecolors"]
+            del dargs["facecolors"]
+        if "s" in dargs:
+            dargs["markersize"] = dargs["s"]
+            del dargs["s"]
+
     def plot(self, independent, dependents, threshold=1., xlabel=None, ylabel=None,
              savefile=None, functions=None, xscale=None, yscale=None,
-             colors=None, labels=None, fonts=None, markers=None, lines=None, ticks=None):
+             colors=None, labels=None, fonts=None, markers=None, lines=None, ticks=None,
+             plottypes=None, limits=None):
         """Plots the specified dependent variables as functions of the independent one.
 
         :arg independent: a string indentifying the independent variable's filename and the
@@ -359,7 +371,7 @@ class Analysis(object):
         """
         import matplotlib.pyplot as plt
         from matplotlib import cm, rc
-        from numpy import linspace
+        from numpy import linspace, array
         from itertools import cycle
         from matplotlib.font_manager import FontProperties
 
@@ -406,8 +418,24 @@ class Analysis(object):
                 dargs["color"] = colors[ylabel]
             else:
                 dargs["color"] = next(cycols)
+                    
+            if lines is not None and ylabel in lines:
+                if "style" in lines[ylabel]:
+                    dargs["linestyle"] = lines[ylabel]["style"]
+                if "width" in lines[ylabel]:
+                    dargs["linewidth"] = lines[ylabel]["width"]
+
+            if labels is not None and ylabel in labels:
+                dargs["label"] = None if labels[ylabel].lower() == "[none]" else labels[ylabel] 
+            else:
+                dargs["label"] = ylabel
 
             try:
+                if plottypes is not None and ylabel in plottypes:
+                    lineplot = plottypes[ylabel] == "line"
+                else:
+                    lineplot = None
+
                 if ylabel[len(ylabel)-4:len(ylabel)] in ["|fit", ".fit"]:
                     varfile = ylabel[0:len(ylabel)-4]
                     key = "{}${}".format(independent, varfile)
@@ -418,20 +446,15 @@ class Analysis(object):
                             dargs["label"] = None
                     else:
                         dargs["label"] = self._format_fit(key)
-                    
-                    if lines is not None and ylabel in lines:
-                        if "style" in lines[ylabel]:
-                            dargs["linestyle"] = lines[ylabel]["style"]
-                        if "width" in lines[ylabel]:
-                            dargs["linewidth"] = lines[ylabel]["width"]
 
+                    self._reset_lineplot(dargs)
                     ax.plot(allx, self.fits[key]["function"](allx), **dargs)
+                elif lineplot:
+                    self._reset_lineplot(dargs)
+                    from operator import itemgetter
+                    sdata = array(sorted(zip(x,y),key=itemgetter(0)))
+                    ax.plot(sdata[:,0], sdata[:,1], **dargs)
                 else:
-                    if labels is not None and ylabel in labels:
-                        dargs["label"] = None if labels[ylabel].lower() == "[none]" else labels[ylabel] 
-                    else:
-                        dargs["label"] = ylabel
-
                     ax.scatter(x, y, **dargs)
             except ValueError:
                 msg.err("The values for {} can't be log-plotted.".format(ylabel))
@@ -452,10 +475,14 @@ class Analysis(object):
                     ticks[key]["reset"] = ticks[key]["reset"] == "true"
                 ax.tick_params(**ticks[key])
 
+        for dim in ["x", "y", "z"]:
+            if limits is not None and dim in limits:
+                getattr(plt, "{}lim".format(dim))(limits[dim])
+
         if len(dependents) > 1:
             plt.legend(loc='upper left', prop=self._get_font(dfont, fonts, "legend"))
         if savefile is None:
-            plt.show()
+            plt.show(block=False)
         else:
             plt.savefig(savefile)
 

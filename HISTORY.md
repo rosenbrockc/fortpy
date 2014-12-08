@@ -1,6 +1,13 @@
 FORTPY: Revision History
 ======
 
+Revision 1.3.2
+------
+
+- Added option to set x and y axis plot limits.
+- Added option for dependent variables to be plotted either with scatter *or* with plot. In the future it will be easier to add other options if we need to.
+- Fixed some minor bugs from previous revisions uncovered during the enhancements.
+
 Revision 1.3.1
 ------
 
