@@ -118,7 +118,11 @@ class VariableParser(object):
 
             result = []
             for s in sets:
-                name = s[0].strip(",")
+                if isinstance(s[0], str):
+                    name = s[0].strip(",")
+                elif len(s) == 1:
+                    name = self._collapse_default(s[0])
+                    
                 if len(s) > 1:
                     args = self._collapse_default(s[1])
                 else:

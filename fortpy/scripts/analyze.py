@@ -733,6 +733,13 @@ class FortpyShell(cmd.Cmd):
         """Removes a fit function from a variable. See 'fit'."""
         if arg in self.curargs["fits"]:
             del self.curargs["fits"][arg]        
+        #We also need to remove the variable entry if it exists.
+        if "timing" in arg:
+            fitvar = "{}|fit".format(arg)
+        else:
+            fitvar = "{}.fit".format(arg)
+        if fitvar in self.curargs["dependents"]:
+            self.curargs["dependents"].remove(fitvar)
     def complete_rmfit(self, text, lines, istart, iend):
         return [p for p in self.curargs["fits"].keys() if p.startswith(text)]
 

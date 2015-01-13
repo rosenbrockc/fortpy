@@ -592,7 +592,7 @@ class Analysis(object):
         """
         key = "{}${}".format(independent, dependent)
         xs, ys = self._get_data_series(independent, [dependent], threshold, functions)
-        if x is None:
+        if xs[0][0] is None:
             return
 
         if len(xs[0][0]) != len(ys[0][0]):

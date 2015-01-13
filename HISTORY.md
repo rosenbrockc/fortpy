@@ -1,6 +1,13 @@
 FORTPY: Revision History
 ======
 
+Revision 1.3.5
+------
+
+- Fixed a bug with function fitting introduced with Revision 1.3.5.
+- Added fit-related dependent variable removal from `self.curargs["dependents"]` when `rmfit` is used.
+- Fixed issue #28
+
 Revision 1.3.4
 ------
 
