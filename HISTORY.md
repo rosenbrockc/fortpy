@@ -1,6 +1,11 @@
 FORTPY: Revision History
 ======
 
+Revision 1.3.7
+------
+
+- Changed the data type kind variable names to be `fdp`, `fsi`, `fli` and `fsp` to avoid conflict with common naming conventions.
+
 Revision 1.3.6
 ------
 

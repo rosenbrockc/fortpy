@@ -2051,7 +2051,7 @@ class MethodFinder(object):
             lines.append("{}{}".format(spacer, self.executable.definition("_fpy")))
 
         if self.timed(testid):
-            lines.append("{}real(dp) :: fpy_start, fpy_end, fpy_elapsed = 0".format(spacer))
+            lines.append("{}real(fdp) :: fpy_start, fpy_end, fpy_elapsed = 0".format(spacer))
 
     def _code_call(self, lines, spacer, testid):
         """Appends the code to call the executable that this method finder represents."""
