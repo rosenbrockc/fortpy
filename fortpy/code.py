@@ -329,6 +329,7 @@ class CodeParser(object):
                              " name for module {}".format(key))
                 self.parse(self._pathfiles[self.mappings[key]], dependencies, recursive)
             else:
+                #The parsing can't continue without the necessary dependency modules.
                 msg.err(("could not find module {}. Enable greedy search or"
                        " add a module filename mapping.".format(key)))
                 if self.austere:

@@ -127,6 +127,7 @@ class TestGenerator(object):
         files = {}
         for needk in needs:
             #Ignore references to fortpy since we include it automatically.
+            #Also ignore MPI since it isn't something we need to worry about.
             if needk == "fortpy":
                 continue
 

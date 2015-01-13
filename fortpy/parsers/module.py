@@ -234,6 +234,9 @@ class ModuleParser(object):
             #We also handle comments for individual use cases, the "only" section
             #won't pick up any comments.
             name = ruse.group("name").split("!")[0].strip()
+            if name.lower() == "mpi":
+                continue
+            
             if ruse.group("only"):
                 only = ruse.group("only").split(",")
                 for method in only:

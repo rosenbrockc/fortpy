@@ -319,6 +319,7 @@ class DocStringParser(object):
             if modname in modules:
                 module = modules[modname]
                 #We only need to check the members, types and executables
+                memname = memname.lower()
                 if memname in module.members:
                     docs = self.to_doc(xmldict[kdecor], modname)
                     self.process_memberdocs(docs, module)

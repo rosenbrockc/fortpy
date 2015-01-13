@@ -1,6 +1,12 @@
 FORTPY: Revision History
 ======
 
+Revision 1.3.6
+------
+
+- Fixed a problem with docstring orphaning caused by searching for module member keys (lower case) using an upper case search string.
+- Added statements to ignore the MPI module in compilation; it was raising module not found exceptions when MPI is obviously something we don't need to worry about.
+
 Revision 1.3.5
 ------
 
