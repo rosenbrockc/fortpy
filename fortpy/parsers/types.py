@@ -11,7 +11,7 @@ class TypeParser(object):
     def setup_regex(self):
         """Sets up the patterns and compiled regex objects for parsing types."""
         #Regex for matching the entire body of the type and getting top-level modifiers.
-        self._RX_TYPE = r"(?<!!)\s+type(?P<modifiers>,\s+(public|private))?(\s+::)?\s+(?P<name>[A-Za-z0-9_]+)" + \
+        self._RX_TYPE = r"\n\s*type(?P<modifiers>,\s+(public|private))?(\s*::)?\s+(?P<name>[A-Za-z0-9_]+)" + \
                         r"(?P<contents>.+?)end\s*type(\s+(?P=name))?"
         self.RE_TYPE = re.compile(self._RX_TYPE, re.DOTALL | re.I)
         #This regex is the same as RE_TYPE, only the contents are removed from the definition.
@@ -111,6 +111,7 @@ class TypeParser(object):
         """Extracts all the types from the specified module body."""
         matches = self.RE_TYPE.finditer(module.contents)
         result = {}
+
         for match in matches:
             name = match.group("name")
             modifiers = match.group("modifiers")

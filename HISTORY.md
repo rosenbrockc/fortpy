@@ -1,6 +1,11 @@
 FORTPY: Revision History
 ======
 
+Revision 1.3.10
+------
+
+- Fixed a bug for type parsing where the type would not be found if the `::` followed immediately without a space.
+
 Revision 1.3.9
 ------
 
