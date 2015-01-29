@@ -84,7 +84,7 @@ class Evaluator(object):
         if symbol != fullsymbol:
             #We have a sym%sym%... chain and the completion just needs to
             #be the signature of the member method.
-            target = self._get_chain_parent_symbol(symbol, fullsymbol)
+            target, targmod = self._get_chain_parent_symbol(symbol, fullsymbol)
 
             if symbol in target.executables:
                 child = target.executables[symbol]
@@ -222,11 +222,11 @@ class Evaluator(object):
         """Gets completion or call signature information for the current cursor."""
         #We can't really do anything sensible without the name of the function
         #whose signature we are completing.
-        iexec = self.context.parser.tree_find(self.context.el_name, 
+        iexec, execmod = self.context.parser.tree_find(self.context.el_name, 
                                               self.context.module, "executables")
         if iexec is None:
             #Look in the interfaces next using a tree find as well
-            iexec = self.context.parser.tree_find(self.context.el_name, self.context.module,
+            iexec, execmod = self.context.parser.tree_find(self.context.el_name, self.context.module,
                                                   "interfaces")
         if iexec is None:
             return []
@@ -327,7 +327,7 @@ class Evaluator(object):
         #We assume that if symbol != fullsymbol, we have at least a % at the end that 
         #tricked the symbol regex.
         if len(chain) < 2:
-            return []
+            return ([], None)
         previous = chain[-2].lower()
 
         #Now we need to use the name of the variable to find the actual type name
@@ -339,13 +339,13 @@ class Evaluator(object):
             target_name = self.element.parameters[previous].kind
 
         if target_name == "":
-            return None
+            return (None, None)
 
         return self.context.parser.tree_find(target_name, self.context.module, "types")
 
     def _complete_type_chain(self, symbol, fullsymbol):
         """Suggests completion for the end of a type chain."""
-        target = self._get_chain_parent_symbol(symbol, fullsymbol)
+        target, targmod = self._get_chain_parent_symbol(symbol, fullsymbol)
         if target is None:
             return {}
 
@@ -383,11 +383,11 @@ class Evaluator(object):
         """Suggests completion for calling a function or subroutine."""
         #Return a list of valid parameters for the function being called
         fncall = self.context.el_name
-        iexec = self.context.parser.tree_find(fncall, self.context.module, "executables")
+        iexec, execmod = self.context.parser.tree_find(fncall, self.context.module, "executables")
 
         if iexec is None:
             #Try the interfaces as a possible executable to complete.
-            iexec = self.context.parser.tree_find(fncall, self.context.module, "interfaces")
+            iexec, execmod = self.context.parser.tree_find(fncall, self.context.module, "interfaces")
 
         if iexec is not None:
             if symbol == "":

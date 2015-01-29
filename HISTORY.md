@@ -1,6 +1,15 @@
 FORTPY: Revision History
 ======
 
+Revision 1.3.8
+------
+
+- Fixed a bug where the data file reading for unit testing was not skipping lines with the comment character, which obviously couldn't be cast as integers, reals, etc. Instead, I created two interfaces that can take real or integer values and read them from an arbitrary file; lots of code duplication in `fortpy.f90`, but the drivers are *much* cleaner now.
+- Fixed a variable parser bug where variables separated only by `,` and not `, ` were not found.
+- Fixed a bug with allocate dimensions where the logic was switched.
+- Added dependency chaining when special kind parameters or derived types need to be declared in the driver that are not in the same module as the executable being unit tested.
+- Added support for an `<assignment>` tag to set a constant value directly without needing to embed a `<value>` tag. Just add the attribute `constant="value"` instead of setting the _value_ attribute.
+
 Revision 1.3.7
 ------
 

@@ -380,7 +380,7 @@ class CodeParser(object):
         :arg origin: an instance of the Module class that started the request.
         """
         symbols = symbolstr.split("%")
-        base = self.tree_find(basetype, origin, "types")
+        base, basemod = self.tree_find(basetype, origin, "types")
 
         #As long as we keep finding child objects, we can continue
         #until we run out of symbols in the list
@@ -392,7 +392,7 @@ class CodeParser(object):
                 #is a member, we need to check if it is also a custom type
                 base = base.members[symbols[i]]
                 if base.is_custom:
-                    base = self.tree_find(base.kind, origin, "types")
+                    base, basemod = self.tree_find(base.kind, origin, "types")
             elif symbols[i] in base.executables:
                 base = base.executables[symbols[i]]
             #We want to keep iterating through until we find a non-type
@@ -448,7 +448,7 @@ class CodeParser(object):
 
         #By now, we either have the item we were after or we don't have
         #code for the module it needs
-        return base
+        return (base, lorigin)
     
     def get_executable(self, fullname):
         """Gets the executable corresponding to the specified full name.

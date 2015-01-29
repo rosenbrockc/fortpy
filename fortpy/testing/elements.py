@@ -259,6 +259,7 @@ class AssignmentValue(object):
         self.ragged = False
         self.dtype = None
         self.kind = None
+        self.commentchar = "#"
 
         self._derived_type = None
         self._codes = {
@@ -269,7 +270,8 @@ class AssignmentValue(object):
             "before": self._code_before
         }
 
-        self._parse_xml()
+        if xmltag is not None:
+            self._parse_xml()
 
     @property
     def iid(self):
@@ -322,7 +324,7 @@ class AssignmentValue(object):
             var = self.parent.variable
             target = var.kind
             module = self.parent.parent.module
-            self._derived_type = self.parent.parser.tree_find(target, module, "types")
+            self._derived_type, typemod = self.parent.parser.tree_find(target, module, "types")
 
             if self._derived_type is None:
                 raise ValueError("The type for embedded method {} cannot be found.".format(self.embedded))
@@ -481,11 +483,7 @@ class AssignmentValue(object):
             else:
                 varname = self.parent.name
 
-            flines.append("call fpy_linevalue_count({}, ".format(rtname) +
-                          "{1}, '{0}'".format(self.commentchar, rtlen) + 
-                          ", {0}_nlines, {0}_nvalues)".format(self.iid))
-
-            if not self.ragged:
+            if not self.ragged and self.D == 0:
                 flines.append("open(fpy_newunit({}_funit), ".format(self.iid) + 
                               "file={})".format(rtname))
 
@@ -495,31 +493,29 @@ class AssignmentValue(object):
 
             #We are working with a vector or scalar. Check the dimensionality of
             #the actual variable and see if it needs to be allocated.
-            if self.D == 1 or self.ragged:
+            if self.ragged:
                 #For the ragged option, this is the only place that we handle it.
-                if self.ragged:
-                    flines.append("allocate({}({}_nlines))".format(self.parent.name, self.iid))
-                    flines.append("call fpy_linevalue_count_all({}, ".format(rtname) +
-                                  "{1}, '{0}'".format(self.commentchar, rtlen) + 
-                                  ", {0}_nlines, {0}_ragvals)".format(self.iid))
-                    flines.append("open(fpy_newunit({}_funit), ".format(self.iid) + 
-                                  "file={})".format(rtname))
-                    flines.append("do {0}_rag=1, {0}_nlines".format(self.iid))
-                    flines.append("  allocate({0}_fvar({0}_ragvals({0}_rag)))".format(self.iid))
-                    ragspace = "  "
-                else:
-                    flines.append("allocate({}({}_nvalues))".format(self.parent.name, self.iid))
-                    ragspace = ""
-
-                flines.append("{}read({}_funit, *) {}".format(ragspace, self.iid, varname))
+                flines.append("call fpy_linevalue_count({}, ".format(rtname) +
+                              "'{0}'".format(self.commentchar) + 
+                              ", {0}_nlines, {0}_nvalues)".format(self.iid))
+                flines.append("allocate({}({}_nlines))".format(self.parent.name, self.iid))
+                flines.append("call fpy_linevalue_count_all({}, ".format(rtname) +
+                              "'{0}'".format(self.commentchar) + 
+                              ", {0}_nlines, {0}_ragvals)".format(self.iid))
+                flines.append("open(fpy_newunit({}_funit), ".format(self.iid) + 
+                              "file={})".format(rtname))
+                flines.append("do {0}_rag=1, {0}_nlines".format(self.iid))
+                flines.append("  allocate({0}_fvar({0}_ragvals({0}_rag)))".format(self.iid))
+                flines.append("  read({}_funit, *) {}".format(self.iid, varname))
                     
             #Now handle the case where the input file fills a 2D variable.
-            if self.D == 2:
-                if slices is not None or self.parent.allocatable:
-                    allocstr = "allocate({0}({1}_nlines, {1}_nvalues))"
-                    flines.append(allocstr.format(varname, self.iid))
-                fmtstr = "read({0}_funit,*)({1}(nrow,:), nrow =1, {0}_nlines)"
-                flines.append(fmtstr.format(self.iid, varname))
+            if (self.D == 2 or self.D == 1) and not self.ragged:
+                fmtstr = "call fpy_read{}({}, '{}', {})"
+                if ("pointer" in self.parent.global_attr("modifiers") and
+                    "fvar" not in varname):
+                    flines.append(fmtstr.format("_p", rtname, self.commentchar, varname))
+                else:
+                    flines.append(fmtstr.format("", rtname, self.commentchar, varname))
 
             #Handle the mixture of embed/function and filename case.
             if slices is not None:
@@ -532,10 +528,10 @@ class AssignmentValue(object):
             if self.ragged:
                 flines.append("  deallocate({0}_fvar)".format(self.iid))
                 flines.append("end do")
+                flines.append("close({}_funit)".format(self.iid))
             if self.D == 2 and slices is not None:
                 flines.append("deallocate({0}_fvar)".format(self.iid))
 
-            flines.append("close({}_funit)".format(self.iid))
             if slices is None: #Just whitespace for formatting
                 flines.append("")
 
@@ -564,15 +560,6 @@ class AssignmentValue(object):
         operations later on.
         """
         if self.filename is not None:
-            lines.append("{}!Vars for initializing variable {} ".format(spacer, self.parent.name) +
-                         "from file {}".format(self.filename))
-            lines.append("{0}integer :: {1}_nlines, {1}_nvalues, {1}_funit".format(spacer, self.iid))
-            if "*" in self.xname:
-                lines.append("{}character(100) :: {}_pslist".format(spacer, self.iid))
-            if self.ragged:
-                lines.append("{}integer :: {}_rag".format(spacer, self.iid))
-                lines.append("{}integer, allocatable :: {}_ragvals(:)".format(spacer, self.iid))
-
             if "*" in self.xname or self.ragged:
                 if self.dtype is None:
                     raise ValueError("Wildcard file names and ragged array inputs both require "
@@ -583,8 +570,19 @@ class AssignmentValue(object):
                     skind = "({})".format(self.kind)
 
                 fdim = [":"]*self.D
+                
+                lines.append("{}!Vars for initializing variable {} ".format(spacer, self.parent.name) +
+                         "from file {}".format(self.filename))
                 lines.append("{}{}{}, allocatable".format(spacer, self.dtype, skind) + 
                              " :: {}_fvar({})".format(self.iid, ','.join(fdim)))
+
+            if "*" in self.xname:
+                lines.append("{}character(100) :: {}_pslist".format(spacer, self.iid))
+            if self.ragged:
+                lines.append("{0}integer :: {1}_nlines, {1}_nvalues, {1}_funit".format(spacer, self.iid))
+                lines.append("{}integer :: {}_rag".format(spacer, self.iid))
+                lines.append("{}integer, allocatable :: {}_ragvals(:)".format(spacer, self.iid))
+
 
     def _parse_xml(self):
         """Extracts the relevant attributes from the <value> tag."""
@@ -605,14 +603,10 @@ class AssignmentValue(object):
             self.function = self.xml.attrib["function"]
         if "commentchar" in self.xml.attrib:
             self.commentchar = self.xml.attrib["commentchar"]
-        else:
-            self.commentchar = '#'
         if "paramlist" in self.xml.attrib:
             self.paramlist = self.xml.attrib["paramlist"]
         if "rename" in self.xml.attrib:
             self.rename = self.xml.attrib["rename"]
-        else:
-            self.commentchar = "#"
         if "repeats" in self.xml.attrib:
             self.repeats = self.xml.attrib["repeats"].lower() == "true"
         else:
@@ -1021,7 +1015,7 @@ class Assignment(object):
 
         if ("pointer" in self.global_attr("modifiers", "") and
             "class" in self.global_attr("type", "")):
-            if self.allocate == True:
+            if self.allocate == True or not self.allocate:
                 lines.append("{}allocate({})".format(spacer, self.name))
             else:
                 lines.append("{}allocate({}({}))".format(spacer, self.name, self.allocate))
@@ -1083,6 +1077,14 @@ class Assignment(object):
 
         if "value" in self.attributes:
             self.value = self.attributes["value"]
+        if "constant" in self.attributes:
+            #We want to manually create an AssignmentValue object for the constant and
+            #add it to the child list.
+            val = AssignmentValue(None, self)
+            val.identifier = "constant"
+            val.constant = self.attributes["constant"]
+            self.values["constant"] = val
+            self.value = "constant"
         if "allocate" in self.element.xml.attrib:
             if self.element.xml.attrib["allocate"] in ["false", "true"]:
                 self.allocate = self.element.xml.attrib["allocate"] == "true"
@@ -2180,7 +2182,7 @@ class MethodFinder(object):
 
     @property
     def module(self):
-        """Returns the module name for this method."""
+        """Returns the module instance for this method."""
         if self._module is None:
             if not self.identifiers[0] in self._parser.modules:
                 #Try a dependency search for the specific module

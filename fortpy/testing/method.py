@@ -249,8 +249,53 @@ class MethodWriter(object):
                     executable = self._method_dict[methodk].executable
                     self._process_uses_dependency(executable, executable.parent, self._uses)
 
+            #We also need to add dependencies for variables whose types have custom kinds
+            #so that we include the relevant modules. This is because an executable that
+            #consumes a derived type doesn't necessarily have that derived type in declared
+            #in its *same* module.
+            for glob in self.globaldefs:
+                if glob.kind is not None:
+                    self._find_global_dependency(glob, self._uses)
+
+            #Next, we check that the output type of the function (if the unit tested executable
+            #is a function).
+            if type(self.method.executable).__name__ == "Function":
+                if self.method.executable.kind is not None:
+                    self._find_global_dependency(self.method.executable, self._uses)
+
         return self._uses
 
+    def _find_global_dependency(self, glob, result):
+        """Makes sure that the name of the module and derived type for the kind of
+        a global variable is in the dependencies list.
+
+        :arg glob: an instance of GlobalDeclaration to extract kind information from.
+        :arg result: the dictionary of module dependencies (keys) and executables, types
+          or parameters to use (list of values).
+        """
+        #We need to make sure that the module who has the kind declaration is
+        #included in self._uses. However, some kinds need to be ignored like len=*, digits
+        #etc. Variable names cannot have a digit as their first character. We are only
+        #interested in variable names.
+        if "len" not in glob.kind.lower() and not re.match("\d", glob.kind[0]):
+            #Find the module that declares this kind as:
+            # 1) derived type
+            # 2) parameter/member
+            #The good news is that in order for the module being unit tested to compile,
+            #it must have a 'use' statement for the derived type. We can just search from
+            #that module with a tree find. Also, at the end of the day, it will have to
+            #be declared as public, in order to be used in other modules.
+            found, foundmod = self.method.parser.tree_find(glob.kind, self.method.module, "publics")
+            if found is not None:
+                if foundmod.name in result:
+                    if found not in result[foundmod.name]:
+                        result[foundmod.name].append(glob.kind)
+                else:
+                    result[foundmod.name] = [ glob.kind ]
+            else:
+                print(glob.definition())
+                raise ValueError("Cannot find dependency for variable kind '{}'".format(glob.kind))
+    
     def _process_uses_dependency(self, method, module, result):
         """Adds the specified dependency to the result dictionary, ignoring duplicates."""
         if module.name in result:

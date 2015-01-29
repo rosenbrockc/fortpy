@@ -1,11 +1,11 @@
-!!<fortpy version="1.3.7" />
+!!<fortpy version="1.3.8" />
 !!<summary>Provides an interface for saving the values of multiple variable
 !!types using a single call. Used as part of the FORTPY unit testing framework.</summary>
 module fortpy
   implicit none
   private
-  public pysave, fdp, fsp, fsi, fli, fpy_linevalue_count, fpy_newunit, pysave_integer_li, &
-       fpy_value_count, fpy_period_join_indices, fpy_linevalue_count_all
+  public pysave, fdp, fsp, fsi, fli, fpy_linevalue_count, fpy_newunit, fpy_read, &
+       fpy_value_count, fpy_period_join_indices, fpy_linevalue_count_all, fpy_read_p
 
   !!<member name="fileunit">I/O unit for the file to write the output to.</member>
   integer :: fileunit
@@ -39,7 +39,381 @@ module fortpy
      module procedure in_range_integer, in_range_integer_1d, in_range_integer_2d, &
           in_range_real, in_range_real_1d, in_range_real_2d
   end interface fpyin_range
+
+  !!<summary>Reads values from a data file into a variable.</summary>
+  interface fpy_read
+     module procedure fpy_read_integer, fpy_read_integer_1d, fpy_read_integer_2d, &
+          fpy_read_real, fpy_read_real_1d, fpy_read_real_2d
+  end interface fpy_read
+
+  !!<summary>Provides an interface for fpy_read for pointer-valued variables that
+  !!need to be allocated before reading data.</summary>
+  interface fpy_read_p
+     module procedure fpy_read_integer_p1d, fpy_read_integer_p2d, fpy_read_real_p1d, &
+          fpy_read_real_p2d
+  end interface fpy_read_p
 contains
+  !!<summary>Reads a single integer value from a file that may have comments.</summary>
+  !!<parameter name="filename">The name of the file to get the value(s) from.</parameter>
+  !!<parameter name="n">The number of characters in n.</parameter>
+  !!<parameter name="commentchar">The character that marks the start of a line with
+  !!that is commented out.</parameter>
+  !!<parameter name="variable">The variable that the value in the file should be
+  !!placed into.</parameter>
+  subroutine fpy_read_integer(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer, intent(inout) :: variable
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit, nlines, nvalues
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nvalues .gt. 1) .or. (nlines /= 1)) then
+       write(*,*) "Cannot read a single value from ", filename
+       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+       stop
+    end if
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+       do
+          read(funit, "(A)", iostat=ioerr) line
+          if (ioerr == 0) then
+             cleaned = trim(adjustl(line))
+             if (len(cleaned) .gt. 0) then
+                if (cleaned(1:1) /= commentchar) then
+                   read(line, *) variable
+                end if
+             end if
+          else
+             exit
+          end if
+       end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integer
+
+  subroutine fpy_read_integer_1d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer, allocatable, intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit, nlines, nvalues
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if (nlines /= 1) then
+       write(*,*) "Cannot read a vector value from ", filename
+       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+       stop
+    end if
+    if (allocated(variable)) deallocate(variable)
+    allocate(variable(nvalues))
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+       do
+          read(funit, "(A)", iostat=ioerr) line
+          if (ioerr == 0) then
+             cleaned = trim(adjustl(line))
+             if (len(cleaned) .gt. 0) then
+                if (cleaned(1:1) /= commentchar) then
+                   read(line, *) variable
+                end if
+             end if
+          else
+             exit
+          end if
+       end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integer_1d
+
+  subroutine fpy_read_integer_2d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer, allocatable, intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit, nlines, nvalues, i
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if (allocated(variable)) deallocate(variable)
+    allocate(variable(nlines, nvalues))
+    i=1
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+       do
+          read(funit, "(A)", iostat=ioerr) line
+          if (ioerr == 0) then
+             cleaned = trim(adjustl(line))
+             if (len(cleaned) .gt. 0) then
+                if (cleaned(1:1) /= commentchar) then
+                   read(line, *) variable(i,:)
+                   i = i+1
+                end if
+             end if
+          else
+             exit
+          end if
+       end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integer_2d
+  
+  subroutine fpy_read_integer_p1d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer, pointer, intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit, nlines, nvalues
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if (nlines /= 1) then
+       write(*,*) "Cannot read a vector value from ", filename
+       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+       stop
+    end if
+    if (associated(variable)) variable => null()
+    allocate(variable(nvalues))
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+       do
+          read(funit, "(A)", iostat=ioerr) line
+          if (ioerr == 0) then
+             cleaned = trim(adjustl(line))
+             if (len(cleaned) .gt. 0) then
+                if (cleaned(1:1) /= commentchar) then
+                   read(line, *) variable
+                end if
+             end if
+          else
+             exit
+          end if
+       end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integer_p1d
+
+  subroutine fpy_read_integer_p2d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer, pointer, intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit, nlines, nvalues, i
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if (associated(variable)) variable => null()
+    allocate(variable(nlines, nvalues))
+    i=1
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+       do
+          read(funit, "(A)", iostat=ioerr) line
+          if (ioerr == 0) then
+             cleaned = trim(adjustl(line))
+             if (len(cleaned) .gt. 0) then
+                if (cleaned(1:1) /= commentchar) then
+                   read(line, *) variable(i,:)
+                   i = i+1
+                end if
+             end if
+          else
+             exit
+          end if
+       end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integer_p2d
+
+  subroutine fpy_read_real(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fdp), intent(inout) :: variable
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit, nlines, nvalues
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nvalues .gt. 1) .or. (nlines /= 1)) then
+       write(*,*) "Cannot read a single value from ", filename
+       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+       stop
+    end if
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+       do
+          read(funit, "(A)", iostat=ioerr) line
+          if (ioerr == 0) then
+             cleaned = trim(adjustl(line))
+             if (len(cleaned) .gt. 0) then
+                if (cleaned(1:1) /= commentchar) then
+                   read(line, *) variable
+                end if
+             end if
+          else
+             exit
+          end if
+       end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_real
+
+  subroutine fpy_read_real_1d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fdp), allocatable, intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit, nlines, nvalues
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if (nlines /= 1) then
+       write(*,*) "Cannot read a vector value from ", filename
+       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+       stop
+    end if
+    if (allocated(variable)) deallocate(variable)
+    allocate(variable(nvalues))
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+       do
+          read(funit, "(A)", iostat=ioerr) line
+          if (ioerr == 0) then
+             cleaned = trim(adjustl(line))
+             if (len(cleaned) .gt. 0) then
+                if (cleaned(1:1) /= commentchar) then
+                   read(line, *) variable
+                end if
+             end if
+          else
+             exit
+          end if
+       end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_real_1d
+
+  subroutine fpy_read_real_2d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fdp), allocatable, intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit, nlines, nvalues, i
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if (allocated(variable)) deallocate(variable)
+    allocate(variable(nlines, nvalues))
+    i=1
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+       do
+          read(funit, "(A)", iostat=ioerr) line
+          if (ioerr == 0) then
+             cleaned = trim(adjustl(line))
+             if (len(cleaned) .gt. 0) then
+                if (cleaned(1:1) /= commentchar) then
+                   read(line, *) variable(i,:)
+                   i = i+1
+                end if
+             end if
+          else
+             exit
+          end if
+       end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_real_2d
+
+  subroutine fpy_read_real_p1d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fdp), pointer, intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit, nlines, nvalues
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if (nlines /= 1) then
+       write(*,*) "Cannot read a vector value from ", filename
+       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+       stop
+    end if
+    if (associated(variable)) variable => null()
+    allocate(variable(nvalues))
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+       do
+          read(funit, "(A)", iostat=ioerr) line
+          if (ioerr == 0) then
+             cleaned = trim(adjustl(line))
+             if (len(cleaned) .gt. 0) then
+                if (cleaned(1:1) /= commentchar) then
+                   read(line, *) variable
+                end if
+             end if
+          else
+             exit
+          end if
+       end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_real_p1d
+
+  subroutine fpy_read_real_p2d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fdp), pointer, intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit, nlines, nvalues, i
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if (associated(variable)) variable => null()
+    allocate(variable(nlines, nvalues))
+    i=1
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+       do
+          read(funit, "(A)", iostat=ioerr) line
+          if (ioerr == 0) then
+             cleaned = trim(adjustl(line))
+             if (len(cleaned) .gt. 0) then
+                if (cleaned(1:1) /= commentchar) then
+                   read(line, *) variable(i,:)
+                   i = i+1
+                end if
+             end if
+          else
+             exit
+          end if
+       end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_real_p2d
+
   !!<summary>Joins an array of integer indices as a period-separated string for
   !!concatenating to a file name.</summary>
   !!<parameter name="pslist">The period-separated result.</parameter>
@@ -408,20 +782,21 @@ contains
     if (indx == 0) fpy_value_count = fpy_value_count + 1
   end function fpy_value_count
 
-  subroutine fpy_linevalue_count_all(filename, n, commentchar, nlines, nvalues)
-    integer, intent(in) :: n
-    character(n), intent(in) :: filename
+  !!<summary>Gets the lengths of ragged-array structured lines for each line
+  !!in the specified data file.</summary>
+  subroutine fpy_linevalue_count_all(filename, commentchar, nlines, nvalues)
+    character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
     integer, intent(out) :: nlines
     integer, allocatable, intent(out) :: nvalues(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit, i, firstnval
-    character(5000) :: line
+    character(150000) :: line
 
     !Initialize the value for the result; if we get an error during the read, we
     !end the loop. It can be caused by badly formatted data or the EOF marker.
-    call fpy_linevalue_count(filename, n, commentchar, nlines, firstnval)
+    call fpy_linevalue_count(filename, commentchar, nlines, firstnval)
     allocate(nvalues(nlines))
     nvalues = 0
     i = 0
@@ -435,8 +810,6 @@ contains
              if (len(cleaned) .gt. 0) then
                 if (cleaned(1:1) /= commentchar) then
                    i = i + 1
-                   !We only need to get the number of values present in a line once.
-                   !We restrict the file structure to have rectangular arrays.
                    nvalues(i) = fpy_value_count(cleaned, len(cleaned))
                 end if
              end if
@@ -454,20 +827,20 @@ contains
   !!<parameter name="n">The number of characters in 'filename'.</parameter>
   !!<parameter name="commentchar">A single character which, when present at the start
   !!of a line designates it as a comment.</parameter>
-  subroutine fpy_linevalue_count(filename, n, commentchar, nlines, nvalues)
-    integer, intent(in) :: n
-    character(n), intent(in) :: filename
+  subroutine fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
     integer, intent(out) :: nlines, nvalues
+    
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
-    character(5000) :: line
+    character(150000) :: line
 
     !Initialize the value for the result; if we get an error during the read, we
     !end the loop. It can be caused by badly formatted data or the EOF marker.
     nlines = 0
     nvalues = 0
-
+    
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
        do

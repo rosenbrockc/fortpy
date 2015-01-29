@@ -58,7 +58,7 @@ class VariableParser(object):
         result = []
 
         #They might have defined multiple vars on the same line
-        ready = self._separate_multiple_def(names.strip())
+        ready = self._separate_multiple_def(re.sub(",\s*", ", ", names.strip()))
         for name, dimension, default, D in self._clean_multiple_def(ready):
             #Now construct the element and set all the values, then add it in the results list.
             result.append(ValueElement(name, modifiers, dtype, kind, default, dimension, parent, D))
