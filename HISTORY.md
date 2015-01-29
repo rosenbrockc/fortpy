@@ -1,6 +1,12 @@
 FORTPY: Revision History
 ======
 
+Revision 1.3.9
+------
+
+- Fixed a bug in the member and parameter parsing that couldn't handle `len=*` for character types.
+- Fixed a bug that would break the `<summary>` tag for modules if the tag included the word "module" in its text, even though it was commented out.
+
 Revision 1.3.8
 ------
 

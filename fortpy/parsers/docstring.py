@@ -32,7 +32,7 @@ class DocStringParser(object):
         #Regex for getting the docstrings decorating one or more modules in a code file,
         #Since they aren't contained inside any other code element, we can't just use
         #the normal docblocks routines.
-        self._RX_MODDOCS = (r"^(?P<docstring>\s*!!.+?)module\s+(?P<name>[A-Za-z0-9_]+)"
+        self._RX_MODDOCS = (r"^(?P<docstring>\s*!!.+?)\n\s*module\s+(?P<name>[A-Za-z0-9_]+)"
                             ".+?end\s+module(\s+(?P=name))?")
         self.RE_MODDOCS = re.compile(self._RX_MODDOCS, re.DOTALL | re.I)
 
