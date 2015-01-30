@@ -166,6 +166,10 @@ class ModuleParser(object):
                 module.docstring = self.docparser.to_doc(moddocs[name][0], name)
                 module.docstart, module.docend = module.absolute_charindex(string, moddocs[name][1],
                                                                            moddocs[name][2])
+
+            #Before we append the module to the list, we need to update its list
+            #of publics if it hasn't explicitly been declared as private.
+            module.all_to_public()                
             result.append(module)
         return result
 
@@ -183,7 +187,7 @@ class ModuleParser(object):
             if start == 0:
                 start = public.start("methods")
             for item in re.split(r"[\s&\n,]+", methods.strip()):
-                self._dict_increment(result, item)
+                self._dict_increment(result, item.lower())
         return (result, start)
 
     def _process_module(self, name, contents, parent, match):

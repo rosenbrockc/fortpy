@@ -123,7 +123,7 @@ class TypeParser(object):
             contents = match.group("contents")
             result[name] = self._process_type(name, cleanmods, contents, module, match)
             if "public" in result[name].modifiers:
-                module.publics[name] = 1
+                module.publics[name.lower()] = 1
 
         #Set the types we found in the module and then move the embedded
         #ones into their correct parent executables.

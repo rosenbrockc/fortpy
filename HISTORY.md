@@ -1,6 +1,13 @@
 FORTPY: Revision History
 ======
 
+Revision 1.3.11
+------
+
+- Bug fix: when modules were *not* marked as `private`, the contents were not being recognized as all public by fortpy.
+- Bug fix: standardized the keys for the `publics` attribute of modules to have only lower-case names, so that it is easier to `tree_find()` dependencies for variables with special types and kinds.
+- Fixed `allocate` statements for pointers to derived type variables; allocation was inserting `True` as the size of the array to allocate to, when it should have done nothing.
+
 Revision 1.3.10
 ------
 

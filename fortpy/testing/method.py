@@ -285,10 +285,11 @@ class MethodWriter(object):
             #it must have a 'use' statement for the derived type. We can just search from
             #that module with a tree find. Also, at the end of the day, it will have to
             #be declared as public, in order to be used in other modules.
-            found, foundmod = self.method.parser.tree_find(glob.kind, self.method.module, "publics")
+            found, foundmod = self.method.parser.tree_find(glob.kind.lower(), self.method.module,
+                                                           "publics")
             if found is not None:
                 if foundmod.name in result:
-                    if found not in result[foundmod.name]:
+                    if glob.kind not in result[foundmod.name]:
                         result[foundmod.name].append(glob.kind)
                 else:
                     result[foundmod.name] = [ glob.kind ]

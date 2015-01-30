@@ -511,7 +511,7 @@ class AssignmentValue(object):
             #Now handle the case where the input file fills a 2D variable.
             if (self.D == 2 or self.D == 1) and not self.ragged:
                 fmtstr = "call fpy_read{}({}, '{}', {})"
-                if ("pointer" in self.parent.global_attr("modifiers") and
+                if ("pointer" in self.parent.global_attr("modifiers", []) and
                     "fvar" not in varname):
                     flines.append(fmtstr.format("_p", rtname, self.commentchar, varname))
                 else:
@@ -1816,7 +1816,7 @@ class TestingGroup(object):
         """Searches for <global> tags and adds them to the variables dict."""
         for child in self.children:
             if (child.doctype == "global" and "name" in child.attributes):
-                self._global_add(child.attributes["name"], child)
+                self._global_add(child.attributes["name"].lower(), child)
 
         if type(self.element).__name__ in ["Subroutine", "Function"]:
             self._get_param_globals()
@@ -1851,7 +1851,7 @@ class TestingGroup(object):
             param = self.element.parameters[name]
             result = DocElement(None, None)
             result.doctype = "AUTOPARAM"
-            result.attributes["name"] = name
+            result.attributes["name"] = param.name
             result.attributes["type"] = param.dtype
             self._global_clean_param(result, "kind", param.kind)
             self._global_clean_param(result, "modifiers", ", ".join(param.modifiers))

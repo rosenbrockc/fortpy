@@ -1043,6 +1043,19 @@ class Module(CodeElement, Decoratable):
         else:
             return self.parent.get_xmldoc_path(self.filepath)
 
+    def all_to_public(self):
+        """Sets all members, types and executables in this module as public as
+        long as it doesn't already have the 'private' modifier.
+        """
+        if "private" not in self.modifiers:
+            def public_collection(attribute):
+                for key in self.collection(attribute):
+                    if key not in self.publics:
+                        self.publics[key.lower()] = 1
+            public_collection("members")
+            public_collection("types")
+            public_collection("executables")
+        
     def rt_update(self, statement, linenum, mode, modulep, lineparser):
         """Uses the specified line parser to parse the given statement.
 
