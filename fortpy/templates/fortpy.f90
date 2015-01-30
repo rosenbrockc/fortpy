@@ -1,4 +1,4 @@
-!!<fortpy version="1.3.8" />
+!!<fortpy version="1.3.12" />
 !!<summary>Provides an interface for saving the values of multiple variable
 !!types using a single call. Used as part of the FORTPY unit testing framework.</summary>
 module fortpy
@@ -666,7 +666,7 @@ contains
     character(n), intent(in) :: filename
 
     call file_open(filename, n, 'float')
-    write(fileunit, '(f12.7)') variable
+    write(fileunit, '(f22.12)') variable
 
     call file_close()
   end subroutine pysave_real
@@ -682,7 +682,7 @@ contains
     write(FMT, *) c
 
     call file_open(filename, n, 'float')
-    write(fileunit, '('// adjustl(FMT) // 'f12.7)') variable
+    write(fileunit, '('// adjustl(FMT) // 'f22.12)') variable
     call file_close()
   end subroutine pysave_real_1d
 
@@ -699,7 +699,7 @@ contains
 
     call file_open(filename, n, 'float')
     do i = 1, r
-       write(fileunit, '(' // adjustl(FMT) // 'f12.7)') variable(i, :)
+       write(fileunit, '(' // adjustl(FMT) // 'f22.12)') variable(i, :)
     end do
 
     call file_close()

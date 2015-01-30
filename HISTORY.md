@@ -1,6 +1,11 @@
 FORTPY: Revision History
 ======
 
+Revision 1.3.12
+------
+
+- Increased the precision on real types written out using `pysave()` in `fortpy.f90` to be `F22.12` instead of `F12.7`.
+
 Revision 1.3.11
 ------
 
