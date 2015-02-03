@@ -1,6 +1,13 @@
 FORTPY: Revision History
 ======
 
+Revision 1.4.2
+------
+
+- Fixed a bug raising an exception for `<prereqs>` that had no unit tests defined. The user ought to be able to call another pre-req method even if no unit test is defined, so long as that method is simple, has common parameters with the main one being unit tested and requires no initialization.
+- In connection with the first point, if `<prereq ... terminate="true" />`, we should also not look for any test docmentation or raises errors in connection with missing unit tests.
+- Fixed a bug that was appending test specification `Assignment()` objects to a non-existent collection on the parent object.
+
 Revision 1.4.1
 ------
 

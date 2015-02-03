@@ -1002,7 +1002,10 @@ class Assignment(object):
     @property
     def attributes(self):
         """Provides one-level-up access to the XML elements attributes collection."""
-        return self.element.attributes
+        if isinstance(self.element, DocElement):
+            return self.element.attributes
+        else:
+            return self.element.attrib
 
     @property
     def allocatable(self):
@@ -1114,8 +1117,8 @@ class Assignment(object):
         
     def _parse_xml(self):
         """Parses attributes and child tags from the XML element."""
-        if "name" in self.element.attributes:
-            self.name = self.element.attributes["name"]
+        if "name" in self.attributes:
+            self.name = self.attributes["name"]
         else:
             raise ValueError("'name' is a required attribute for <assignment> tags.")
 
@@ -1129,15 +1132,16 @@ class Assignment(object):
             val.constant = self.attributes["constant"]
             self.values["constant"] = val
             self.value = "constant"
-        if "allocate" in self.element.xml.attrib:
-            if self.element.xml.attrib["allocate"] in ["false", "true"]:
-                self.allocate = self.element.xml.attrib["allocate"] == "true"
+        if "allocate" in self.attributes:
+            if self.attributes["allocate"] in ["false", "true"]:
+                self.allocate = self.attributes["allocate"] == "true"
             else:
-                self.allocate = self.element.xml.attrib["allocate"]
-        if "position" in self.element.xml.attrib:
-            self.position = self.element.xml.attrib["position"]        
+                self.allocate = self.attributes["allocate"]
+        if "position" in self.attributes:
+            self.position = self.attributes["position"]        
 
-        for child in self.element.xml:
+        kids = self.element.xml if isinstance(self.element, DocElement) else self.element
+        for child in kids:
             if child.tag == "value":
                 val = AssignmentValue(child, self)
                 self.values[val.identifier] = val
@@ -1781,7 +1785,7 @@ class TestSpecification(object):
             elif child.tag == "prereq" and "method" in child.attrib:
                 self.methods.append(TestPreReq(child, self))
             elif child.tag == "assignment":
-                self.assignments.append(Assignment(child, self))
+                self.methods.append(Assignment(child, self))
             elif (child.tag == "global" and "name" in child.attrib):
                 TestingGroup.global_add(self.variables, self._variable_order,
                                         child.attributes["name"].lower(), child)
@@ -2141,6 +2145,9 @@ class MethodFinder(object):
         self.element = element
         self.testid = testid
         self.main = main
+        self.test = None
+        """The TestSpecification instance for the unit test that this method finder is
+        operating under."""
 
         self._parser = parser
         self._module = None
@@ -2163,9 +2170,10 @@ class MethodFinder(object):
         else:
             self.repeats = False
 
-        if basic:
-            #This is important so that we can efficiently find the executables with this
-            #class but not have the overhead of the recursive find.
+        if basic or ("terminate" in self.attributes and self.attributes["terminate"] == "true"):
+            #'basic' is important so that we can efficiently find the executables with this
+            #class but not have the overhead of the recursive find. If they manually specified
+            #a termination, we should honor that now as well.
             return
 
         if self.group is None:
@@ -2173,9 +2181,6 @@ class MethodFinder(object):
             return
 
         #Get the reference to the specific test that this finder is running for.
-        self.test = None
-        """The TestSpecification instance for the unit test that this method finder is
-        operating under."""
         if testid is not None:
             if self.testid in self.group.tests:
                 self.test = self.group.tests[self.testid]
