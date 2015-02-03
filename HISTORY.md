@@ -1,6 +1,12 @@
 FORTPY: Revision History
 ======
 
+Revision 1.4.3
+------
+
+- Fixed a bug where derived-type variable instances with `allocate="true"` were not being allocated if their type was set as `type` instead of `class`.
+- Added `None`-type checks for the `MethodFinder` testing group because of the allowances made in Revision 1.4.2.
+
 Revision 1.4.2
 ------
 

@@ -1061,7 +1061,7 @@ class Assignment(object):
             lines.append(allocstr.format(self.name, self.allocate, spacer))
 
         if ("pointer" in self.global_attr("modifiers", "") and
-            "class" in self.global_attr("type", "")):
+            ("class" in self.global_attr("type", "") or "type" in self.global_attr("type", ""))):
             if self.allocate == True or not self.allocate:
                 lines.append("{}allocate({})".format(spacer, self.name))
             else:
@@ -2345,10 +2345,10 @@ class MethodFinder(object):
                 else:
                     optstr = ""
                     
-                if param in self.group.mappings:
+                if self.group is not None and param in self.group.mappings:
                     calllist.append(optstr + self.group.mappings[param])
                 else:
-                    if param.name in self.group.variables:
+                    if self.group is not None and param.name in self.group.variables:
                         if not self.group.variables[param.name].ignore:
                             calllist.append(optstr + param.name)
                     else:
