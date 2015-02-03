@@ -24,6 +24,16 @@ class GlobalDeclaration(object):
             return ""
 
     @property
+    def position(self):
+        """Returns the position of a <global> declaration in a testing group relative
+        to the test-local <global> definitions.
+        """
+        if "position" in self.attributes:
+            return self.attributes["position"]
+        else:
+            return "before"
+        
+    @property
     def dimension(self):
         """Returns the dimension specification from the <global> tag."""
         if "dimensions" not in self.attributes:
@@ -136,7 +146,12 @@ class GlobalDeclaration(object):
     @property
     def attributes(self):
         """Returns a dictionary of attributes for this global variable declaration."""
-        return self.element.attributes
+        if isinstance(self.element, DocElement):
+            return self.element.attributes
+        else:
+            #This handles the case that we are constructing from an XML element rather
+            #than a DocElement
+            return self.element.attrib
 
     def definition(self):
         """Returns the fortran declaration that defines a global variable."""
@@ -233,8 +248,9 @@ class AssignmentValue(object):
     :attr repeats: if the variable will have its value set as part of a 
       constant-input mode program, this specifies whether it should keep being
       set during each iteration of the main method being tested.
-    :attr prereq: if true, and embedde method on a derived type will be treated
-      along with all its prereqs as part of the execution chain.
+    :attr prereq: if not None/False, the embedded method on a derived type will be treated
+      along with all its prereqs as part of the execution chain. This value should be the
+      test identifier of the embedded subroutine's test spec to use.
     :attr D: the dimensionality of the data in the file that is setting the variable value.
     :attr ragged: when true, the lines in a 2D array file are treated individually with
       some other (embedded or function) value assignment.
@@ -255,7 +271,6 @@ class AssignmentValue(object):
         self.repeats = None
         self.prereqs = None
         self.paramlist = None
-        self.D = 0
         self.ragged = False
         self.dtype = None
         self.kind = None
@@ -314,7 +329,7 @@ class AssignmentValue(object):
                     target = path.join(testroot, self.filename.format(case))
                 copyfile(source, target)
 
-    def check_prereqs(self):
+    def check_prereqs(self, finder):
         """Checks whether this value element requires an embedded method to be
         added to the prereq chain of the method writer."""
         if self.embedded is not None:
@@ -323,7 +338,7 @@ class AssignmentValue(object):
             #instance of the TypeExecutable to locate its actual target.
             var = self.parent.variable
             target = var.kind
-            module = self.parent.parent.module
+            module = finder.module
             self._derived_type, typemod = self.parent.parser.tree_find(target, module, "types")
 
             if self._derived_type is None:
@@ -336,7 +351,11 @@ class AssignmentValue(object):
                 else:
                     key = "{}.{}".format(self._derived_type.module, typex.name)
 
-                self.parent.parent.add_prereq(key, self.parent.element)
+                if self.prereqs == True:
+                    #Let the MethodFinder use the first testing group test.
+                    finder.add_prereq(key, self.parent.element, None)
+                else:
+                    finder.add_prereq(key, self.parent.element, self.prereqs)
  
     def code(self, lines, position, spacer, slices=None):
         """Appends the code lines to initialize the parent variable.
@@ -483,14 +502,6 @@ class AssignmentValue(object):
             else:
                 varname = self.parent.name
 
-            if not self.ragged and self.D == 0:
-                flines.append("open(fpy_newunit({}_funit), ".format(self.iid) + 
-                              "file={})".format(rtname))
-
-            #It is possible that a single value could be read from the file.
-            if self.D == 0:
-                flines.append("read({}_funit, *) {}".format(self.iid, varname))
-
             #We are working with a vector or scalar. Check the dimensionality of
             #the actual variable and see if it needs to be allocated.
             if self.ragged:
@@ -509,7 +520,7 @@ class AssignmentValue(object):
                 flines.append("  read({}_funit, *) {}".format(self.iid, varname))
                     
             #Now handle the case where the input file fills a 2D variable.
-            if (self.D == 2 or self.D == 1) and not self.ragged:
+            if (self.D in [0, 1, 2]) and not self.ragged:
                 fmtstr = "call fpy_read{}({}, '{}', {})"
                 if ("pointer" in self.parent.global_attr("modifiers", []) and
                     "fvar" not in varname):
@@ -531,9 +542,6 @@ class AssignmentValue(object):
                 flines.append("close({}_funit)".format(self.iid))
             if self.D == 2 and slices is not None:
                 flines.append("deallocate({0}_fvar)".format(self.iid))
-
-            if slices is None: #Just whitespace for formatting
-                flines.append("")
 
             #Deallocate the variable for concatenating the loop ids to form the file name
             #if "*" in self.xname:
@@ -583,6 +591,18 @@ class AssignmentValue(object):
                 lines.append("{}integer :: {}_rag".format(spacer, self.iid))
                 lines.append("{}integer, allocatable :: {}_ragvals(:)".format(spacer, self.iid))
 
+    @property
+    def D(self):
+        """Returns the dimensionality of the variable having its value changed."""
+        #We have to do delayed assignment because we don't have a method finder available in the
+        #parent assignment until a specific test specification is being setup.
+        if "filedim" in self.xml.attrib:
+            D = int(self.xml.attrib["filedim"])
+            if D > 2:
+                raise ValueError("Only 2D arrays are handled automatically via file assignment.")
+            return D
+        else:
+            return self.parent.variable.D
 
     def _parse_xml(self):
         """Extracts the relevant attributes from the <value> tag."""
@@ -611,16 +631,8 @@ class AssignmentValue(object):
             self.repeats = self.xml.attrib["repeats"].lower() == "true"
         else:
             self.repeats = False
-        if "prereqs" in self.xml.attrib:
-            self.prereqs = self.xml.attrib["prereqs"].lower() == "true"
-        else:
-            self.prereqs = False
-        if "filedim" in self.xml.attrib:
-            self.D = int(self.xml.attrib["filedim"])
-            if self.D > 2:
-                raise ValueError("Only 2D arrays are handled automatically via file assignment.")
-        else:
-            self.D = self.parent.variable.D
+        if "prereqs" in self.xml.attrib and self.xml.attrib["prereqs"] != "false":
+            self.prereqs = self.xml.attrib["prereqs"]
 
         if "ragged" in self.xml.attrib:
             self.ragged = self.xml.attrib["ragged"] == "true"
@@ -888,6 +900,8 @@ class Assignment(object):
     :attr parent: the MethodFinder instance who owns this assignment.
     :attr methods: a list that will never get used; needed for compatibility
       with method.MethodWriter._order_dependencies recursion.
+    :attr group: the parent TestingGroup instance, even if the immediate parent
+      is not a testing group.
     :attr name: the name of the variable whose value will be set.
     :attr conditionals: a list of 'if' blocks that conditionally set the value
       of the variable at run-time.
@@ -902,6 +916,10 @@ class Assignment(object):
         self.element = element
         self.parent = parent
         self.methods = []
+        if isinstance(self.parent, TestingGroup):
+            self.group = self.parent
+        else:
+            self.group = self.parent.testgroup
 
         self.name = None
         self.conditionals = []
@@ -912,6 +930,10 @@ class Assignment(object):
         self.writekey = None
         """Establishes a unique key for the driver writer so that multiple assignments
         of the same variable don't interfere with each other."""
+        self.position = "before"
+        """If a test specification includes assignments local to the test then *global*
+        <assignments> attached to the testing group are added either before/after the
+        local assignments. This value specifies that position relative to the local ones."""
 
         self._variable = None
 
@@ -925,8 +947,8 @@ class Assignment(object):
     @property
     def parser(self):
         """Returns this Assignment's parent's CodeParser instance."""
-        return self.parent.parser
-
+        return self.group.element.module.parent
+    
     def global_attr(self, key, default=None):
         """Retuns the value of attribute with the specified key from the GlobalDeclaration
         instance for this variable being assigned.
@@ -940,10 +962,11 @@ class Assignment(object):
     @property
     def globaldecl(self):
         """Returns the GlobalDeclaration instance for the current variable, which may have
-        different parameters and modifiers as the actual code element.
+        different parameters and modifiers than the actual code element.
         """
-        if self.name.lower() in self.parent.group.variables:
-            return self.parent.group.variables[self.name.lower()]
+        vars = self.group.variables
+        if self.name.lower() in vars:
+            return vars[self.name.lower()]
         else:
             return None
 
@@ -953,12 +976,29 @@ class Assignment(object):
         if self._variable is None:
             #Search the global declarations for the variable and then track down
             #the code element that it represents
-            self._variable = MethodFinder.recurse_find_variable(self.name.lower(), self.parent)
+            if self.name.lower() in self.group.element.parameters:
+                self._variable = self.group.element.parameters[self.name.lower()]
             if self._variable is None and self.globaldecl is not None:
                 self._variable = self.globaldecl
 
         return self._variable
 
+    # def _recurse_find_variable(name, finder):
+    #     """Finds the ValueElement instance for the variable of the specified name
+    #     if it exists. Found by searching the parameter list of all methods that get
+    #     called as part of the pre-req chain."""
+    #     result = None
+
+    #     if isinstance(finder, MethodFinder) and finder.executable is not None:
+    #         if name in finder.executable.parameters:
+    #             result = finder.executable.parameters[name]
+    #         else:
+    #             for nested in finder.methods:
+    #                 result = MethodFinder.recurse_find_variable(name, nested)
+    #                 if result is not None:
+    #                     break
+    #     return result                        
+    
     @property
     def attributes(self):
         """Provides one-level-up access to the XML elements attributes collection."""
@@ -975,13 +1015,17 @@ class Assignment(object):
                 ("allocatable" in self.global_attr("modifiers", "") or
                  "pointer" in self.global_attr("modifiers", "") or
                  (self.variable.D > 0 and ":" in self.variable.dimension)))
-
-    def check_prereqs(self):
+    
+    def check_prereqs(self, finder):
         """Checks all the values this assignment may use to make sure they reference
         a valid derived type. If an AssignmentValue specifies to check pre-reqs, 
-        they are added to the pre-req chain."""
+        they are added to the pre-req chain.
+
+        :arg finder: the instance of MethodFinder for which the pre-reqs are being
+          checked and added.
+        """
         for v in self.values:
-            self.values[v].check_prereqs()
+            self.values[v].check_prereqs(finder)
 
     def copy(self, coderoot, testroot, case):
         """Copies the input files needed for this assignment to set a variable.
@@ -1090,6 +1134,8 @@ class Assignment(object):
                 self.allocate = self.element.xml.attrib["allocate"] == "true"
             else:
                 self.allocate = self.element.xml.attrib["allocate"]
+        if "position" in self.element.xml.attrib:
+            self.position = self.element.xml.attrib["position"]        
 
         for child in self.element.xml:
             if child.tag == "value":
@@ -1125,6 +1171,7 @@ class TestInput(object):
         self.filename = None
         self.rename = None
         self.line = None
+        self.position = "before"
 
         self._parse_xml()
 
@@ -1247,6 +1294,8 @@ class TestInput(object):
             self.filename = self.xml.attrib["file"]
         if "rename" in self.xml.attrib:
             self.rename = self.xml.attrib["rename"]
+        if "position" in self.xml.attrib:
+            self.position = self.xml.attrib["position"]
         
         self._parse_lines()
 
@@ -1285,6 +1334,7 @@ class TestOutput(object):
         self.mode = "default"
         self.value = None
         self.tolerance = None
+        self.position = "before"
 
         self._parse_attributes()
 
@@ -1329,6 +1379,8 @@ class TestOutput(object):
             self.tolerance = float(self.xml.attrib["tolerance"])
         else:
             self.tolerance = 1
+        if "position" in self.xml.attrib:
+            self.position = self.xml.attrib["position"]
         
 class TestTarget(object):
     """Represents a specification to save the state of a variable at the end
@@ -1360,6 +1412,7 @@ class TestTarget(object):
         self.compareto = None
         self.testspec = testspec
         self.member = None
+        self.position = "before"
 
         self._code = None
         self._parse_attributes()
@@ -1449,6 +1502,8 @@ class TestTarget(object):
             self.compareto = self.xml.attrib["compareto"]
         if "member" in self.xml.attrib:
             self.member = self.xml.attrib["member"]
+        if "position" in self.xml.attrib:
+            self.position = self.xml.attrib["position"]
 
 class TestSpecification(object):
     """Represents a single test that needs to be performed. Each test compiles
@@ -1491,6 +1546,11 @@ class TestSpecification(object):
         self.targets = []
         self.inputs = []
         self.outputs = {}
+        self.methods = []
+        """A set of *local* assignments and pre-reqs that apply to this test."""
+        self.variables = {}
+        """A set of *local* variable declarations for this test."""
+        self._variable_order = []
 
         self.testgroup = testgroup
 
@@ -1500,8 +1560,13 @@ class TestSpecification(object):
         #If any of the inputs runs in constant mode, this variable with be True.
         self._constant = None
 
-        self._parse_attributes()
-        self._parse_children()
+        #The identifier is necessary to proceed; all the other xml attributes
+        #and tags are parsed once the parent TestingGroup instance has parsed
+        #*all* of its children.
+        if "identifier" in self.xml.attrib:
+            self.identifier = self.xml.attrib["identifier"]
+        else:
+            raise ValueError("'identifier' is a required attribute for <test> tags.")
 
     @property 
     def executable(self):
@@ -1554,7 +1619,7 @@ class TestSpecification(object):
             if path.isfile(timepath):
                 remove(timepath)
 
-    def code_validate(self, lines, variables, spacer):
+    def code_validate(self, lines, spacer):
         """Appends the fortran code to validate the length of the constant-valued
         input files if there is more than one of them.
 
@@ -1589,7 +1654,7 @@ class TestSpecification(object):
 
         return result
 
-    def code_vars(self, lines, variables, spacer):
+    def code_vars(self, lines, spacer):
         """Appends all the code required by all the input file specifications
         in order to run the unit test to the list.
 
@@ -1600,7 +1665,7 @@ class TestSpecification(object):
         for i in self.inputs:
             i.code_vars(lines, spacer)
 
-    def code_init(self, lines, variables, spacer):
+    def code_init(self, lines, spacer):
         """Appends all code required to initialize all the constant-mode input
         file specifications and save starting values of targets.
 
@@ -1612,9 +1677,9 @@ class TestSpecification(object):
             i.code_init(lines, spacer)
 
         for t in self.targets:
-            t.code(lines, variables, "begin", spacer)
+            t.code(lines, self.variables, "begin", spacer)
 
-    def code_before(self, lines, variables, spacer):
+    def code_before(self, lines, spacer):
         """Appends all code required to read the next values from a file into
         their variables *before* the main test function is called again.
 
@@ -1628,7 +1693,7 @@ class TestSpecification(object):
         for i in self.inputs:
             i.code_read(lines, spacer)
 
-    def code_after(self, lines, variables, spacer):
+    def code_after(self, lines, spacer):
         """Appends the code required to save the value of any targets for this
         test to their files when their save frequency is set to 'each'.
 
@@ -1637,9 +1702,9 @@ class TestSpecification(object):
         :arg variables: the dictionary of all global variables declared in
           the program to be used by any methods being run."""
         for t in self.targets:
-            t.code(lines, variables, "each", spacer)
+            t.code(lines, self.variables, "each", spacer)
 
-    def code_finalize(self, lines, variables, spacer):
+    def code_finalize(self, lines, spacer):
         """Appends the code for cleaning up open file handles and saving the
         final values of the targets to their files.
 
@@ -1649,11 +1714,59 @@ class TestSpecification(object):
           the program to be used by any methods being run.
         """
         for t in self.targets:
-            t.code(lines, variables, "end", spacer)
+            t.code(lines, self.variables, "end", spacer)
 
         for i in self.inputs:
             i.code_finalize(lines, spacer)
 
+    def parse(self):
+        """Parses the child-tags and attributes of this test specification once
+        its parent testing group is finished parsing.
+        """
+        def group_list(collection, position, target):
+            """Appends all the elements in the collection that match the position
+            specification to the given target.
+            """
+            for item in collection:
+                if item.position == "before":
+                    target.append(item)
+
+        def group_dict(collection, position, target, ordering=None, tordering=None):
+            """Updates the 'target' dictionary to include all items in the 'collection'
+            that match the specified position.
+            """
+            if ordering is not None:
+                keys = ordering
+            else:
+                keys = collection
+                
+            for item in keys:
+                if collection[item].position == position:
+                    if tordering is not None:
+                        tordering.append(item)
+                    target[item] = collection[item]
+            
+        #We need to add all the pre-reqs and assignments from the parent group to
+        #this one since they were specified globally for *all* tests.
+        group_list(self.testgroup.methods, "before", self.methods)
+        group_list(self.testgroup.inputs, "before", self.inputs)
+        group_list(self.testgroup.targets, "before", self.targets)
+        group_dict(self.testgroup.outputs, "before", self.outputs)
+        group_dict(self.testgroup.variables, "before", self.variables,
+                   self.testgroup.variable_order, self._variable_order)
+                        
+        self._parse_attributes()
+        self._parse_children()
+
+        #Now handle the methods from the group that should be added *after* the local
+        #assignments and pre-reqs are done.
+        group_list(self.testgroup.methods, "after", self.methods)
+        group_list(self.testgroup.inputs, "after", self.inputs)
+        group_list(self.testgroup.targets, "after", self.targets)
+        group_dict(self.testgroup.outputs, "after", self.outputs)
+        group_dict(self.testgroup.variables, "after", self.variables,
+                   self.testgroup.variable_order, self._variable_order)
+            
     def _parse_children(self):
         """Gets all child tags from the <test> and parses them for relevant
         content to set targets, inputs and output attributes."""
@@ -1665,13 +1778,16 @@ class TestSpecification(object):
                 self.outputs[outvar.identifier] = outvar
             elif child.tag == "target":
                 self.targets.append(TestTarget(child, self))
-        
+            elif child.tag == "prereq" and "method" in child.attrib:
+                self.methods.append(TestPreReq(child, self))
+            elif child.tag == "assignment":
+                self.assignments.append(Assignment(child, self))
+            elif (child.tag == "global" and "name" in child.attrib):
+                TestingGroup.global_add(self.variables, self._variable_order,
+                                        child.attributes["name"].lower(), child)
+                
     def _parse_attributes(self):
         """Gets test-level attributes from the xml tag if they exist."""
-        if "identifier" in self.xml.attrib:
-            self.identifier = self.xml.attrib["identifier"]
-        else:
-            raise ValueError("'identifier' is a required attribute for <test> tags.")
         if "description" in self.xml.attrib:
             self.description = self.xml.attrib["description"]
         if "cases" in self.xml.attrib:
@@ -1707,6 +1823,42 @@ class TestSpecification(object):
         if "timed" in self.xml.attrib:
             self.timed = self.xml.attrib["timed"] == "true"
 
+class TestPreReq(object):
+    """Represents a subroutine or function that must run before the main
+    executable being unit-tested can run.
+    """
+    def __init__(self, tag, parent):
+        self.xml = tag
+        self.parent = parent
+        """The testing group or test specification instance that owns this tag."""
+        self.method = None
+        """The 'module.executable' identifier for the pre-req method to run."""
+        self.position = "before"
+        """For pre-reqs specified in a testing group, the user must decide whether
+        the global methods run before/after the local test specification methods.
+        """
+        self.paramlist = None
+        """Overrides the default behavior of the parameter list."""
+        self.chainto = None
+        """Specifies the ID of the test specification that should be used when
+        chaining the pre-reqs.
+        """
+
+        self._parse_xml()
+
+    def _parse_xml(self):
+        if "method" in self.xml.attrib:
+            self.method = self.xml.attrib["method"]
+        else:
+            raise ValueError("'method' is a required attribute of <prereq> tags.")
+        if "chainto" in self.xml.attrib:
+            self.chainto = self.xml.attrib["chainto"]
+        
+        if "position" in self.xml.attrib:
+            self.position = self.xml.attrib["position"]
+        if "paramlist" in self.xml.attrib:
+            self.paramlist = self.xml.attrib["paramlist"]    
+            
 class TestingGroup(object):
     """Represents a unit testing documentation group with information on
     how to automate a unit test for a specific executable.
@@ -1719,13 +1871,10 @@ class TestingGroup(object):
       variables.
     :attr children: a list of the DocElement instances who belong to this
       testing group.
-    :attr assignments: a dict of variable assignments for changing variable
-      values. The actual assignments are made as part of the executable chaining
-      to make sure that values get changed in the correct order. However, we
-      need some information about the assignment when declaring the variables;
-      so we need some duplication here. We merely store the XML <assignment>
-      tags as the values of the dict and the lowered variable name as key (i.e.
-      the name of variable being assigned.
+    :attr methods: a dict of variable assignments and prereq methods for changing 
+      variable values or executing pre-req subroutines. 
+      The actual assignments are made as part of the executable chaining
+      to make sure that values get changed in the correct order. 
     :attr finder: the MethodFinder instance that this group belongs to.
     """
     def __init__(self, group, element):
@@ -1740,10 +1889,30 @@ class TestingGroup(object):
         self.mappings = {}
         self.variables = {}
         self.children = []
+        self.methods = []
         self.assignments = {}
-
-        #The order in which the global declarations appear in the group.
-        self._variable_order = []
+        """A dict of test-group level variable names that have their values
+        changed by a test-group level assignment. Keys are lowered variable names
+        values are dicts of variable attributes.
+        """
+        self.inputs = []
+        """A list of input files that need to be copied to the test execution directories
+        for *all* the test specifications.
+        """
+        self.outputs = {}
+        """Dict of comparison outputs that should be available for *all* test specifications
+        in the unit test.
+        """
+        self.targets = []
+        """List of the variables that should have their values saved to file and compared
+        with model output for *all* the test specifications.
+        """
+        
+        self.finder = None
+        """The currently active MethodFinder instance being used by the MethodWriter
+        to create the executable driver for a specific testid."""
+        self.variable_order = []
+        """The order in which the global declarations appear in the group."""
         self._codes = {}
         self._find_children()
         self._parse_xml()
@@ -1761,6 +1930,11 @@ class TestingGroup(object):
         """Returns the name of the underlying DocGroup."""
         return self.group.name
 
+    def set_finder(self, finder):
+        """Sets the currently active MethodFinder instance being used by the MethodWriter
+        to create the executable driver for a specific testid."""
+        self.finder = finder
+    
     def _init_codes(self):
         """Adds a dictionary of function pointers for appending relevant
         code to the final executable for each test in the outcome."""
@@ -1786,7 +1960,7 @@ class TestingGroup(object):
           of the *.f90 program file.
         """
         if testid in self._codes and section in self._codes[testid]:
-            self._codes[testid][section](lines, self.variables, spacer)
+            self._codes[testid][section](lines, spacer)
 
     def _find_children(self):
         """Finds all the DocElement instances in the parent code element 
@@ -1805,18 +1979,40 @@ class TestingGroup(object):
             if child.doctype == "test":
                 test = TestSpecification(child.xml, self)
                 self.tests[test.identifier] = test
+            elif child.doctype == "prereq" and "method" in child.attributes:
+                self.methods.append(TestPreReq(child.xml, self))
             elif child.doctype == "assignment":
-                varname = child.xml.attrib["name"].lower()
-                self.assignments[varname] = child.xml
+                #This is a variable assignment. Sometimes variable values are changed
+                #between calls to functions. The order in which prereq/instance elements
+                #appear defines when these assignments take place. We will treat a var
+                #value assignment as a method to simplify the implementation.
+                self.methods.append(Assignment(child, self))
+                #If the variable gets its value changed multiple times, the first time
+                #should have allocation if applicable, otherwise it wouldn't work.
+                self.assignments[child.attributes["name"].lower()] = child.attributes
+            elif child.doctype == "input":
+                self.inputs.append(TestInput(child.xml))
+            elif child.doctype == "output":
+                outvar = TestOutput(child.xml)
+                self.outputs[outvar.identifier] = outvar
+            elif child.doctype == "target":
+                self.targets.append(TestTarget(child.xml, self))
 
         self._parse_mappings()
         self._parse_variables()
+
+        #Now that the testing group has all its children parsed, we can
+        #let the tests parse. This is because some of the global tags in the
+        #testing group will apply to every test.
+        for test in self.tests:
+            self.tests[test].parse()
 
     def _parse_variables(self):
         """Searches for <global> tags and adds them to the variables dict."""
         for child in self.children:
             if (child.doctype == "global" and "name" in child.attributes):
-                self._global_add(child.attributes["name"].lower(), child)
+                TestingGroup.global_add(self.variables, self.variable_order,
+                                       child.attributes["name"].lower(), child)
 
         if type(self.element).__name__ in ["Subroutine", "Function"]:
             self._get_param_globals()
@@ -1835,7 +2031,7 @@ class TestingGroup(object):
                 #is_type_target is the instance of the CustomType that owns it.
                 glob = self._global_from_param(name)
                 if glob is not None:
-                    self._global_add(name, glob)
+                    TestingGroup.global_add(self.variables, self.variable_order, name, glob)
             else:
                 #Check the docstrings for a regular="true" attribute.
                 for doc in param.docstring:
@@ -1843,7 +2039,7 @@ class TestingGroup(object):
                        "regular" in doc.attributes and doc.attributes["regular"] == "true":
                         glob = self._global_from_param(name)
                         if glob is not None:
-                            self._global_add(name, glob)
+                            TestingGroup.global_add(self.variables, self.variable_order, name, glob)
 
     def _global_from_param(self, name):
         """Creates a global DocElement from the specified executable's parameter "name"."""
@@ -1862,8 +2058,8 @@ class TestingGroup(object):
             #it during the initializing phase then we must add "allocatable" as a modifier
             #if it isn't already allocatable or a pointer.
             if name in self.assignments and param.D > 0:
-                allocate = ("allocate" in self.assignments[name].attrib and
-                            self.assignments[name].attrib["allocate"] != "false")
+                allocate = ("allocate" in self.assignments[name] and
+                            self.assignments[name]["allocate"] != "false")
                 if ("modifiers" in result.attributes and not
                     ("allocatable" in param.modifiers or
                      "pointer" in param.modifiers)):
@@ -1891,17 +2087,18 @@ class TestingGroup(object):
         if value is not None:
             result.attributes[name] = value
 
-    def _global_add(self, name, doc):
+    @staticmethod
+    def global_add(variables, order, name, doc):
         """Adds a global declaration for the specified DocElement if it isn't already
         represented in the list."""
-        if name not in self.variables:
-            self.variables[name] = GlobalDeclaration(doc)
-            self._variable_order.append(name)
+        if name not in variables:
+            variables[name] = GlobalDeclaration(doc)
+            order.append(name)
         else:
             #We need to make sure that it is unique compared to the existing
             #one. If it isn't, stop the execution. If it is, we don't need
             #to add it again.
-            existing = self.variables[name]
+            existing = variables[name]
             if not existing.ignore and not existing.compare(doc):
                 msg.err("variables in the calling namespace have the same name," + \
                         " but different types: \n{}{}".format(existing.element, doc))
@@ -1922,13 +2119,19 @@ class MethodFinder(object):
     :arg identifier: the "module.executable" that this method finder represents
     :arg parser: the code parser instance for inter-module access.
     :arg element: the DocElement that specified this method as a pre-req.
+    :arg testid: the identifier of the test specification that this method finder is
+      being constructed for.
     :arg fatal_if_missing: specified whether the framework chokes if it can't
       find a method that is referenced as a pre-req.
     :attr executable: the code element instance of the executable found from
       the module that the method belongs to.
     :attr main: when true, this instance is for the *main* method being unit tested.
+    :attr basic: when true, the Finder only initializes the executable attribute for
+      the given identifier, but doesn't recursively find pre-req and other dependency
+      methods.
     """
-    def __init__(self, identifier, parser, element, fatal_if_missing = True, main=False):
+    def __init__(self, identifier, parser, element, testid, fatal_if_missing = True,
+                 main=False, basic=False):
         self.identifiers = identifier.lower().split(".")
         self.name = identifier
         self.writekey = self.name
@@ -1936,6 +2139,7 @@ class MethodFinder(object):
         of multiple calls to the same pre-requisite methods."""
         self.methods = []
         self.element = element
+        self.testid = testid
         self.main = main
 
         self._parser = parser
@@ -1959,6 +2163,33 @@ class MethodFinder(object):
         else:
             self.repeats = False
 
+        if basic:
+            #This is important so that we can efficiently find the executables with this
+            #class but not have the overhead of the recursive find.
+            return
+
+        if self.group is None:
+            msg.warn("Executable {} has no testing group; aborting pre-req search".format(identifier))
+            return
+
+        #Get the reference to the specific test that this finder is running for.
+        self.test = None
+        """The TestSpecification instance for the unit test that this method finder is
+        operating under."""
+        if testid is not None:
+            if self.testid in self.group.tests:
+                self.test = self.group.tests[self.testid]
+            else:
+                raise ValueError("Unit test {} cannot be found in docstrings.".format(testid))
+        else:
+            #By default, if there isn't a testid specified, we can just use the
+            #first test in the testing group.
+            if len(self.group.tests) > 0:
+                self.testid = list(self.group.tests.keys())[0]
+                self.test = self.group.tests[self.testid]
+            else:
+                raise ValueError("Cannot auto-detect test identifier for {}.".format(identifier))
+
         #Recursively get all the pre-requisite for this method. However if the "terminate"
         #attribute is in the doc element, then don't. The main method being unit tested
         #is at the top of the recursive tree of MethodFinders and it is initialized with
@@ -1969,6 +2200,12 @@ class MethodFinder(object):
                 and self.attributes["terminate"] == "true"):
             self._get_prereqs()
 
+    @property
+    def terminate(self):
+        """Specifies whether any pre-reqs chained to this method should be executed or not.
+        """
+        return ("terminate" in self.attributes and self.attributes["terminate"] == "true")        
+            
     @property
     def parser(self):
         """Returns the CodeParser instance for inter-modular access."""
@@ -1982,41 +2219,52 @@ class MethodFinder(object):
             return self.group.variables
         else:
             return []
-
-    @property
-    def tags(self):
-        """Returns a list of the unit testing related child tags of the testing
-        group associated with the executable in this MethodFinder."""
-        if self.group is not None:
-            return self.group.children
-        else:
-            return []
         
     @property
     def attributes(self):
-        """Returns the dictionary of attributes from the underlying DocElement."""
+        """Returns the dictionary of attributes from the underlying xml tag."""
         if self.element is not None:
-            return self.element.attributes
+            if isinstance(self.element, DocElement):
+                return self.element.attributes
+            else:
+                return self.element.attrib
         else:
             return {}                  
-                
-    @staticmethod
-    def recurse_find_variable(name, finder):
-        """Finds the ValueElement instance for the variable of the specified name
-        if it exists. Found by searching the parameter list of all methods that get
-        called as part of the pre-req chain."""
-        result = None
 
-        if isinstance(finder, MethodFinder) and finder.executable is not None:
-            if name in finder.executable.parameters:
-                result = finder.executable.parameters[name]
-            else:
-                for nested in finder.methods:
-                    result = MethodFinder.recurse_find_variable(name, nested)
-                    if result is not None:
-                        break
-        return result                        
+    def add_prereq(self, identify, tag, chainto):
+        """Adds a MethodFinder instance to the current one for the specified 
+        'module.executable' identity.
 
+        :arg identify: a string of "modulename.executablename".
+        :arg tag: the DocElement instance that resulted in this prereq being added.
+        :arg chainto: the test identifier specified by the pre-req that should be used
+          for chaining.
+        """
+        #The only reason this method exists is to prevent an import loop problem
+        #It gets used by the AssignmentValue._code_embedded().
+        self.methods.append(MethodFinder(identify, self._parser, tag, chainto, self._fatal))
+
+    def _get_prereqs(self):
+        """Compiles a list of subroutines that need to run. Handles recursive calls."""
+        #Make sure we have tests to run off of; some of the routines that are dependencies
+        #won't necessarily have any docstrings.
+        for method in self.test.methods:
+            if isinstance(method, TestPreReq):
+                self.methods.append(MethodFinder(method.method, self._parser, method.xml,
+                                                 method.chainto, self._fatal))
+            elif isinstance(method, Assignment):
+                #This is a variable assignment. Sometimes variable values are changed
+                #between calls to functions. The order in which prereq/instance elements
+                #appear defines when these assignments take place. We will treat a var
+                #value assignment as a method to simplify the implementation.
+                self.methods.append(method)
+
+        #Now that we have the method tree setup; we need to check each of the Assignments
+        #to get their pre-reqs straightened out.
+        for m in self.methods:
+            if isinstance(m, Assignment):
+                m.check_prereqs(self)
+        
     def timed(self, testid):
         """Returns true if this method will produce code to time its execution."""
         if self.group is not None and self.main:
@@ -2059,6 +2307,7 @@ class MethodFinder(object):
         """Appends the code to call the executable that this method finder represents."""
         #If we are timing the executable, we want to get the time before and after the
         #execution of just this method and then add it to the elapsed time.
+        lines.append("")
         if self.timed(testid):
             lines.append("{}call cpu_time(fpy_start)".format(spacer))
 
@@ -2084,14 +2333,21 @@ class MethodFinder(object):
             #and substitute mappings where appropriate.
             calllist = []
             for param in self.executable.ordered_parameters:
+                #Because of ignorable parameters, if the parameter is optional, explicitly
+                #specify its name.
+                if "optional" in param.modifiers:
+                    optstr = "{}=".format(param.name)
+                else:
+                    optstr = ""
+                    
                 if param in self.group.mappings:
-                    calllist.append(self.group.mappings[param])
+                    calllist.append(optstr + self.group.mappings[param])
                 else:
                     if param.name in self.group.variables:
                         if not self.group.variables[param.name].ignore:
-                            calllist.append(param.name)
+                            calllist.append(optstr + param.name)
                     else:
-                        calllist.append(param.name)
+                        calllist.append(optstr + param.name)
 
             lines.append("{}{}{}({})".format(spacer, prefix, self.executable.name,
                                               self._present_params(calllist, spacing)))        
@@ -2147,38 +2403,6 @@ class MethodFinder(object):
                                      "the module: {}".format(self.identifiers[1]))
 
         return result
-
-    def add_prereq(self, identify, tag):
-        """Adds a MethodFinder instance to the current one for the specified 
-        'module.executable' identity.
-
-        :arg identify: a string of "modulename.executablename".
-        :arg tag: the DocElement instance that resulted in this prereq being added.
-        """
-        #The only reason this method exists is to prevent an import loop problem
-        #It gets used by the AssignmentValue._code_embedded().
-        self.methods.append(MethodFinder(identify, self._parser, tag, self._fatal))
-
-    def _get_prereqs(self):
-        """Compiles a list of subroutines that need to run. Handles recursive calls."""
-        #Make sure we have tests to run off of; some of the routines that are dependencies
-        #won't necessarily have any docstrings.
-        for tag in self.tags:
-            if tag.doctype == "prereq" and "method" in tag.attributes:
-                identify = tag.attributes["method"]
-                self.methods.append(MethodFinder(identify, self._parser, tag, self._fatal))
-            elif tag.doctype == "assignment":
-                #This is a variable assignment. Sometimes variable values are changed
-                #between calls to functions. The order in which prereq/instance elements
-                #appear defines when these assignments take place. We will treat a var
-                #value assignment as a method to simplify the implementation.
-                self.methods.append(Assignment(tag, self))
-
-        #Now that we have the method tree setup; we need to check each of the Assignments
-        #to get their pre-reqs straightened out.
-        for m in self.methods:
-            if isinstance(m, Assignment):
-                m.check_prereqs()
 
     @property
     def module(self):

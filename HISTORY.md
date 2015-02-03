@@ -1,6 +1,23 @@
 FORTPY: Revision History
 ======
 
+Revision 1.4.1
+------
+
+In previous versions of fortpy, the XML templates supported multiple test specifications with multiple `<test>` tags. However, the `<assignment>` and `<global>` tags were only interpreted if they were included in the testing `<group>` tag. This was a severe limitation. In cases where a subroutine has multiple, optional parameters that affect the behavior, the user should be able to test each case separately with multiple `<test>` tags. That was fine except that they couldn't alter the values of the variables separately for each `<test>`! That effectively made the ability to specify multiple `<test>` tags worthless because they couldn't be distinct in their assignments and variable declarations.
+
+The changes in this minor version remedy that problem. An additional attribute _position_ is now acknowledged for `<global>` and `<assignment>` tags. It determines how variable and assignment tags are inserted relative to the those specified in the `<test>` tags. Also, `<prereq>` tags now have a _chainto_ attribute that specifies which test in a testing group to use when chaining the pre-reqs. It also accepts the _position_ attribute. If no _chainto_ attribute is specified, fortpy chooses the first test in the group as decided by the `keys()` of the dictionary of tests.
+
+Next, the `<input>` and `<output>` tags only had meaning in the `<test>` tags, but not in the `<group>` tag. If some inputs/outputs are common to all the unit tests, the user should be able to specify them only once. To implement that, I also introduced the _position_ attribute to those tags so that group-level `<input>`, `<output>` and `<target>` tags can all be specified at either group/test level.
+
+- Fixed a bug in the dependency searching caused by updating a list while it was being enumerated over; that messed up the indices being examined so that all the modules didn't get visited for the recursive dependency chaining.
+
+Revision 1.3.13
+------
+
+- Set the default comparison across *all* templates for `float` types to include a finite precision check to 13 decimal places. This does not override the `tolerance` attributes that can be set by the user in the `<comparisons>` tag for custom templates.
+- Added some logic so that 1D data files could be either in row *or* column format and fortpy would detect that correctly and read in the 1D vector accordingly.
+
 Revision 1.3.12
 ------
 

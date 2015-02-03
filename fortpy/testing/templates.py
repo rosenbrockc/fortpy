@@ -597,8 +597,13 @@ class FieldComparisons(object):
             if line_comparer is not None:
                 ctrue = line_comparer.compare(list1[i], list2[i])
             else:
-                ctrue = list1[i] == list2[i]
-
+                if isinstance(list1[i], float):
+                    #Override the default behavior of finite precision comparisions for
+                    #float values to be the precision default in fortpy.
+                    ctrue = (list1[i]-list2[i] < 1e-13)
+                else:
+                    ctrue = list1[i] == list2[i]
+                    
             if not ctrue:
                 result.different.append((i, list1[i], list2[i]))
             else:

@@ -37,11 +37,12 @@ class ExecutableGenerator(object):
                 result.append(modk)
 
         #We also need to look up the dependencies of each of these modules
+        recursed = list(result)
         for i in range(len(result)):
             module = result[i]
-            self._process_module_needs(module, i, result)
+            self._process_module_needs(module, i, recursed)
 
-        return result
+        return recursed
 
     def _process_module_needs(self, module, i, result):
         """Adds the module and its dependencies to the result list."""
@@ -112,14 +113,14 @@ class ExecutableGenerator(object):
             self.identifier))
         lines.append("!!using FORTPY. Generated on {}.\n".format(datetime.now()))
         lines.append("!!{}</summary>\n".format(self.writer.tests[testid].description))
-        lines.append("PROGRAM UNITTEST_{}\n".format(self.writer.method.executable.name))
-        lines.append(self._get_uses())
+        lines.append("PROGRAM UNITTEST_{}\n".format(self.writer.finders[testid].executable.name))
+        lines.append(self._get_uses(testid))
 
         #Next add the variable declarations and initializations and the calls
         #to execute the pre-req methods and the one we are trying to test.
         lines.append(self.writer.lines(testid))
 
-        lines.append("\nEND PROGRAM UNITTEST_{}".format(self.writer.method.executable.name))
+        lines.append("\nEND PROGRAM UNITTEST_{}".format(self.writer.finders[testid].executable.name))
 
         with open(path.join(self.folder, "{}.f90".format(identifier)), 'w') as f:
             f.writelines(lines)
@@ -308,14 +309,14 @@ info:
 
 """.format(module, method)
 
-    def _get_uses(self):
+    def _get_uses(self, testid):
         """Gets a list of use statements to add to the program code."""
         #The writer can extract a dictionary of module dependencies for us.
         alluses = self.writer.uses()
         #Now we just need to generate the code statements.
         uselist = []
         for module in alluses:
-            if module == self.writer.method.module.name:
+            if module == self.writer.finders[testid].module.name:
                 uselist.append("use {}".format(module))
             else:
                 uselist.append("use {}, only: {}".format(module, ", ".join(alluses[module])))

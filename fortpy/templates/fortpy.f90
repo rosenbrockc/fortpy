@@ -101,19 +101,25 @@ contains
     integer, allocatable, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit, nlines, nvalues
+    integer :: ioerr, funit, nlines, nvalues, i
     character(150000) :: line
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
-    if (nlines /= 1) then
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
        write(*,*) "Cannot read a vector value from ", filename
        write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
        stop
     end if
     if (allocated(variable)) deallocate(variable)
-    allocate(variable(nvalues))
+    !Allocate according to whether the 1D vector is in the row or column
+    if (nlines .gt. 1) then
+       allocate(variable(nlines))
+    else
+       allocate(variable(nvalues))
+    end if
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    i = 1
     if (ioerr == 0) then
        do
           read(funit, "(A)", iostat=ioerr) line
@@ -121,7 +127,13 @@ contains
              cleaned = trim(adjustl(line))
              if (len(cleaned) .gt. 0) then
                 if (cleaned(1:1) /= commentchar) then
-                   read(line, *) variable
+                   !Handle the possibility of 1D column data.
+                   if (nlines .gt. 1) then
+                      read(line, *) variable(i)
+                      i = i+1
+                   else
+                      read(line, *) variable
+                   end if
                 end if
              end if
           else
@@ -172,19 +184,25 @@ contains
     integer, pointer, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit, nlines, nvalues
+    integer :: ioerr, funit, nlines, nvalues, i
     character(150000) :: line
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
-    if (nlines /= 1) then
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
        write(*,*) "Cannot read a vector value from ", filename
        write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
        stop
     end if
     if (associated(variable)) variable => null()
-    allocate(variable(nvalues))
+    !Allocate according to whether the 1D vector is in the row or column
+    if (nlines .gt. 1) then
+       allocate(variable(nlines))
+    else
+       allocate(variable(nvalues))
+    end if
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    i = 1
     if (ioerr == 0) then
        do
           read(funit, "(A)", iostat=ioerr) line
@@ -192,7 +210,13 @@ contains
              cleaned = trim(adjustl(line))
              if (len(cleaned) .gt. 0) then
                 if (cleaned(1:1) /= commentchar) then
-                   read(line, *) variable
+                   !Handle the possibility of 1D column data.
+                   if (nlines .gt. 1) then
+                      read(line, *) variable(i)
+                      i = i+1
+                   else
+                      read(line, *) variable
+                   end if
                 end if
              end if
           else
@@ -278,19 +302,25 @@ contains
     real(fdp), allocatable, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit, nlines, nvalues
+    integer :: ioerr, funit, nlines, nvalues, i
     character(150000) :: line
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
-    if (nlines /= 1) then
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
        write(*,*) "Cannot read a vector value from ", filename
        write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
        stop
     end if
     if (allocated(variable)) deallocate(variable)
-    allocate(variable(nvalues))
+    !Allocate according to whether the 1D vector is in the row or column
+    if (nlines .gt. 1) then
+       allocate(variable(nlines))
+    else
+       allocate(variable(nvalues))
+    end if
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    i = 1
     if (ioerr == 0) then
        do
           read(funit, "(A)", iostat=ioerr) line
@@ -298,7 +328,13 @@ contains
              cleaned = trim(adjustl(line))
              if (len(cleaned) .gt. 0) then
                 if (cleaned(1:1) /= commentchar) then
-                   read(line, *) variable
+                   !Handle the possibility of 1D column data.
+                   if (nlines .gt. 1) then
+                      read(line, *) variable(i)
+                      i = i+1
+                   else
+                      read(line, *) variable
+                   end if
                 end if
              end if
           else
@@ -349,19 +385,25 @@ contains
     real(fdp), pointer, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit, nlines, nvalues
+    integer :: ioerr, funit, nlines, nvalues, i
     character(150000) :: line
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
-    if (nlines /= 1) then
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
        write(*,*) "Cannot read a vector value from ", filename
        write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
        stop
     end if
     if (associated(variable)) variable => null()
-    allocate(variable(nvalues))
+    !Allocate according to whether the 1D vector is in the row or column
+    if (nlines .gt. 1) then
+       allocate(variable(nlines))
+    else
+       allocate(variable(nvalues))
+    end if
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    i = 1
     if (ioerr == 0) then
        do
           read(funit, "(A)", iostat=ioerr) line
@@ -369,7 +411,13 @@ contains
              cleaned = trim(adjustl(line))
              if (len(cleaned) .gt. 0) then
                 if (cleaned(1:1) /= commentchar) then
-                   read(line, *) variable
+                   !Handle the possibility of 1D column data.
+                   if (nlines .gt. 1) then
+                      read(line, *) variable(i)
+                      i = i+1
+                   else
+                      read(line, *) variable
+                   end if
                 end if
              end if
           else

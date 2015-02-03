@@ -656,7 +656,7 @@ class UnitTester(object):
         for i in testspec.inputs:
             i.copy(self._codefolder, testpath, case)
         #Also copy any assignment file dependencies.
-        testwriter.copy(self._codefolder, testpath, case)
+        testwriter.copy(self._codefolder, testpath, case, testspec.identifier)
         #Clean the testing folder to remove any target variable output files
         #from any earlier test runs.
         testspec.clean(testpath)
