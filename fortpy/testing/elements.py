@@ -1732,7 +1732,7 @@ class TestSpecification(object):
             specification to the given target.
             """
             for item in collection:
-                if item.position == "before":
+                if item.position == position:
                     target.append(item)
 
         def group_dict(collection, position, target, ordering=None, tordering=None):

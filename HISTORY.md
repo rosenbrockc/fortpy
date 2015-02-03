@@ -1,6 +1,12 @@
 FORTPY: Revision History
 ======
 
+Revision 1.4.4
+------
+
+- Added a script `parse.py` that gives easy access to parse arbitrary fortran `.f90` files with the option of overwriting the file cache for a specific module. Useful for debugging specific code to figure out why fortpy isn't doing what the user thinks it is being told to do. Usually the problem is with some stray syntax (e.g. `!!` that is special to fortpy) and can be remedied easily.
+- Debugged a hard-coded value for copying group-level tags to test specifications that was causing duplication.
+
 Revision 1.4.3
 ------
 

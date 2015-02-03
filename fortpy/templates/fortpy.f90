@@ -729,9 +729,13 @@ contains
     c = size(variable, 1)
     write(FMT, *) c
 
-    call file_open(filename, n, 'float')
-    write(fileunit, '('// adjustl(FMT) // 'f22.12)') variable
-    call file_close()
+    if (c .gt. 0) then
+       call file_open(filename, n, 'float')
+       write(fileunit, '('// adjustl(FMT) // 'f22.12)') variable
+       call file_close()
+    else
+       write(*,*) "Error writing 2D real matrix to file; no columns"
+    end if
   end subroutine pysave_real_1d
 
   subroutine pysave_real_2d(variable, filename, n)
