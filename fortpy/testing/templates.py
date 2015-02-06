@@ -360,7 +360,6 @@ class FileLine(object):
                 except ValueError:
                     msg.err("[{}] could not parse value '{}' of type '{}'.\n".format(
                         self.identifier, val, dtype))
-                    exit(1)
 
                 #If names were specified for the values, we need to populate the dict
                 #now

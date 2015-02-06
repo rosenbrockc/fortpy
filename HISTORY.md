@@ -1,6 +1,12 @@
 FORTPY: Revision History
 ======
 
+Revision 1.4.5
+------
+
+- Fixed a bug for `<global>` tags being parsed in a test specification context.
+- Fixed a bug for ignored variables; previously, only variables declared at the test group level would be ignored by the ignore directive. Now test-level variables are also acknowledged.
+
 Revision 1.4.4
 ------
 

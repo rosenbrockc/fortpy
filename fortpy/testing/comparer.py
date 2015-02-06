@@ -532,6 +532,10 @@ class FileComparer(object):
         else:
             svalues = FileRepresentation(slines, stemplate, sv, source)
 
+        #Since we re-use the comparer for multiple unit tests, we need to reset
+        #the currently active template.
+        self.template = None
+
         if not svalues.extracted:
             msg.err("ouput file does not have the same format as template.\n{}".format(source))
             return None

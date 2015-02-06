@@ -1788,7 +1788,7 @@ class TestSpecification(object):
                 self.methods.append(Assignment(child, self))
             elif (child.tag == "global" and "name" in child.attrib):
                 TestingGroup.global_add(self.variables, self._variable_order,
-                                        child.attributes["name"].lower(), child)
+                                        child.attrib["name"].lower(), child)
                 
     def _parse_attributes(self):
         """Gets test-level attributes from the xml tag if they exist."""
@@ -2348,10 +2348,14 @@ class MethodFinder(object):
                 if self.group is not None and param in self.group.mappings:
                     calllist.append(optstr + self.group.mappings[param])
                 else:
+                    var = None
                     if self.group is not None and param.name in self.group.variables:
-                        if not self.group.variables[param.name].ignore:
-                            calllist.append(optstr + param.name)
-                    else:
+                        var = self.group.variables[param.name]
+                    if var is None and self.test is not None and param.name in self.test.variables:
+                        var = self.test.variables[param.name]
+                    if var is not None and not var.ignore:
+                        calllist.append(optstr + param.name)
+                    elif var is None:
                         calllist.append(optstr + param.name)
 
             lines.append("{}{}{}({})".format(spacer, prefix, self.executable.name,
