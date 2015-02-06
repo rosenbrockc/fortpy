@@ -291,12 +291,12 @@ class TestResult(object):
             for result in case:
                 if isinstance(result, ValueCompareResult):
                     if result.equal:
-                        total += 1
+                        total += 1/len(case)
                 else:
                     if result is not None:
-                        total += result.percent_match
+                        total += result.percent_match/len(case)
 
-        return float(total) / (len(list(self.cases.keys())) + self.failure_count)
+        return float(total) / (len(self.cases) + self.failure_count)
             
     @property
     def common(self):
@@ -309,12 +309,12 @@ class TestResult(object):
             for result in case:
                 if isinstance(result, ValueCompareResult):
                     if result.equal:
-                        total += 1
+                        total += 1/len(case)
                 else:
                     if result is not None:
-                        total += result.common_match
+                        total += result.common_match/len(case)
 
-        return float(total) / (len(list(self.cases.keys())) + self.failure_count)
+        return float(total) / (len(self.cases) + self.failure_count)
 
     @property
     def failure_count(self):
@@ -500,7 +500,9 @@ class UnitTester(object):
             result = {}
             for composite_id in self.tgenerator.tests_to_run:
                 identifier, testid = composite_id.split("|")
-                result[composite_id] = self._run_single(identifier, testid)
+                oneresult = self._run_single(identifier, testid)
+                if oneresult is not None:
+                    result[composite_id] = oneresult
 
             return result
         else:
@@ -516,7 +518,9 @@ class UnitTester(object):
         if result.compiled:
             self._run_exec(identifier, testid, result)
 
-        return result
+        if self.tests(identifier)[testid].runchecks:
+            #Only return a test result if the checks were actually run.
+            return result
 
     def _run_compile(self, identifier, testid):
         """Compiles the executable that was created for the specified identifier,
@@ -579,6 +583,11 @@ class UnitTester(object):
     def _run_exec(self, identifier, testid, result):
         """Runs the executable for unit test for the specified identifier
         for each of the outcomes specified in the doctags."""
+        if not self.tests(identifier)[testid].execute:
+            #We don't want to carry on with this execution at all. User-specified
+            #override.
+            return
+
         #Get the home path of the executable. A sub-folder for tests
         #needs to be created. For tests that have input and output files
         #a home/tests/testid.case folder gets created and the source files
@@ -602,6 +611,9 @@ class UnitTester(object):
         self._run_folder(self.tests(identifier)[testid], tests, result, exepath,
                          self.writer(identifier))
 
+        if not self.tests(identifier)[testid].runchecks:
+            return
+        
         #Now that we have run all of the executables, we can analyze their
         #output to see if it matches.
         for case in result.cases:

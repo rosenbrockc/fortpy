@@ -1546,6 +1546,8 @@ class TestSpecification(object):
         self.runtime = None
         self.unit = None
         self.timed = False
+        self.execute = True
+        self.runchecks = True
 
         self.targets = []
         self.inputs = []
@@ -1794,6 +1796,13 @@ class TestSpecification(object):
         """Gets test-level attributes from the xml tag if they exist."""
         if "description" in self.xml.attrib:
             self.description = self.xml.attrib["description"]
+        if "runchecks" in self.xml.attrib:
+            self.runchecks = self.xml.attrib["runchecks"] == "true"
+        if "execute" in self.xml.attrib:
+            self.execute = self.xml.attrib["execute"] == "true"
+            if not self.execute:
+                #If we don't run the executable, we obviously can't check outputs!
+                self.runchecks = False
         if "cases" in self.xml.attrib:
             # For specifying the cases in a unit test, we should allow ranges like
             # "standard.cr[1-12]" so that the developer doesn't need to enter each
@@ -2220,7 +2229,10 @@ class MethodFinder(object):
     def variables(self):
         """Returns a list of all the global variables declared by the testing
         group of this method if they exist."""
-        if self.group is not None:
+        #We give preference to test specification variable lists.
+        if self.test is not None:
+            return self.test.variables
+        elif self.group is not None:
             return self.group.variables
         else:
             return []

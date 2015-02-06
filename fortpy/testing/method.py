@@ -381,7 +381,7 @@ class MethodWriter(object):
                 if module.name not in checked_modules:
                     mod_group = module.test_group
                     if mod_group is not None:
-                        self.globals[testid].update(module.test_group.variables)
+                        self.globals[testid].update(mod_group.variables)
                     checked_modules.append(module.name)
 
                 #Now, check the executables global statements and regular parameter declarations

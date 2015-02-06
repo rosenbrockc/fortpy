@@ -115,6 +115,7 @@ class ExecutableGenerator(object):
         lines.append("!!{}</summary>\n".format(self.writer.tests[testid].description))
         lines.append("PROGRAM UNITTEST_{}\n".format(self.writer.finders[testid].executable.name))
         lines.append(self._get_uses(testid))
+        lines.append("  implicit none\n")
 
         #Next add the variable declarations and initializations and the calls
         #to execute the pre-req methods and the one we are trying to test.

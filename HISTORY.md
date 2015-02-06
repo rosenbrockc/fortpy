@@ -1,6 +1,13 @@
 FORTPY: Revision History
 ======
 
+Revision 1.4.6
+------
+
+- Added support for the _runchecks_ and _execute_ attributes on `<test>` tags so that fortpy can be used to generate drivers without breaking the unit tests that *do* have model output.
+- Fixed a bug whereby `MethodFinder` instances were only returning the group-level variables for writing the executable, but not the test-specification variables, even though the test-spec variables are the most general ones.
+- Fixed a bug that had the model output check reports giving more than 100% success if multiple targets were being checked.
+
 Revision 1.4.5
 ------
 
