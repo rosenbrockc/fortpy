@@ -32,7 +32,13 @@ class CodeElement(object):
             self.modifiers = []
         else:
             self.clean_mods(self.modifiers)
-        
+
+    @property
+    def lname(self):
+        """Returns the lowered name of the code element.
+        """
+        return self.name.lower()
+            
     def overwrite_docs(self, doc):
         """Adds the specified DocElement to the docstring list. However, if an
         element with the same xml tag and pointsto value already exists, it
@@ -207,6 +213,12 @@ class ValueElement(CodeElement):
         """Returns the integer number of dimensions that this variable
         is declared as having."""
 
+        self._direction = None
+        self._ctypes_parameter = None
+        self._kind_module = None
+        """This is the instance of fortpy.elements.Module that has the definition
+        for the kind of this value element."""
+
     def __str__(self):
         return self.definition()
 
@@ -218,22 +230,102 @@ class ValueElement(CodeElement):
         else:
             return self.dtype
 
-    def definition(self, suffix = ""):
+    def _get_ctypes_name(self, index=None):
+        """Returns a formatted name for the ctypes Fortran wrapper module.
+
+        :arg index: the index of the array to return a name for. None for the new parameter,
+          otherwise the index for the integer variable name of that dimension.
+        """
+        if index is None:
+            if ("allocatable" not in self.modifiers and "pointer" not in self.modifiers
+                and self.dtype != "logical"):
+                #The fortan logical has type 4 by default, whereas c_bool only has 1
+                return self.name
+            else:
+                return "{}_c".format(self.name)
+        else:
+            return "{0}_{1:d}_c".format(self.name, index)
+        
+    def ctypes_parameter(self):
+        """Returns the parameter list for this ValueElement adjusted for interoperability
+        with the ctypes module.
+        """
+        if self._ctypes_parameter is None:
+            #Essentially, we just need to check if we are an array that doesn't have explicitly
+            #defined bounds. Assumed-shape arrays have to be 'pointer' or 'allocatable'. However,
+            #the deffered/assumed shape arrays always use ':' as the array dimension.
+            if self.dimension is not None and ":" in self.dimension:
+                result = [self._get_ctypes_name()]
+                result.extend([self._get_ctypes_name(i+1) for i in range(self.D)])
+                if self.direction == "(inout)" and ("allocatable" in self.modifiers or
+                                                    "pointer" in self.modifiers):
+                    result.append("{}_o".format(self.name))
+                self._ctypes_parameter = result
+            elif self.dtype == "logical":
+                self._ctypes_parameter = [self._get_ctypes_name()]
+            elif hasattr(self, "parameters"):
+                #This is the handler for the function return types that are simple
+                self._ctypes_parameter = [self.name + "_f"]
+            else:
+                #Nothing special, just return the standard name.
+                self._ctypes_parameter = [self.name]
+
+        return self._ctypes_parameter
+        
+    @property
+    def direction(self):
+        """Returns the direction of the variable if it is a parameter. Possible values
+        are ["": no intent, "(in)", "(out)", "(inout)"].
+        """
+        if self._direction is None:
+            if hasattr(self, "parameters"):
+                #This is actually a function that inherited from ValueElement, it is always
+                #intent(out) for our purposes.
+                self._direction = "(out)"
+            else:
+                intent = [m for m in self.modifiers if "intent" in m]
+                if len(intent) > 0:
+                    self._direction = intent[0].replace("intent", "").strip()
+                else:
+                    self._direction = ""
+
+        return self._direction
+
+    def definition(self, suffix = "", local=False, ctype=None, optionals=True,
+                   customdim=None, modifiers=None):
         """Returns the fortran code string that would define this value element.
 
         :arg suffix: an optional suffix to append to the name of the variable.
           Useful for re-using definitions with new names.
+        :arg local: when True, the parameter definition is re-cast as a local
+          variable definition that has the "intent" and "optional" modifiers removed.
+        :arg ctype: if a ctype should be used as the data type of the variable
+          instead of the original type, specify that string here.
+        :arg optionals: removes the "optional" modifier from the definition before
+          generating it.
+        :arg customdim: if the dimension string needs to be changed, specify the
+          new one here.
+        :arg modifiers: specify an additional list of modifiers to add to the
+          variable definition.
         """
         kind = "({})".format(self.kind) if self.kind is not None else ""   
-        cleanmods = [m for m in self.modifiers if m != "" and m != " "]
+        cleanmods = [m for m in self.modifiers if m != "" and m != " "
+                     and not (local and ("intent" in m or m == "optional"))
+                     and not (not optionals and m == "optional")]
+        if modifiers is not None:
+            cleanmods.extend(modifiers)
         if len(cleanmods) > 0:
             mods = ", " + ", ".join(cleanmods) + " " 
         else:
             mods = " "
-        dimension = "({})".format(self.dimension) if self.dimension is not None else ""
+        if customdim is not None:
+            dimension = "({})".format(customdim)
+        else:
+            dimension = "({})".format(self.dimension) if self.dimension is not None else ""
         default = " = {}".format(self.default) if self.default is not None else ""
         name = "{}{}".format(self.name, suffix)
-        return "{}{}{}:: {}{}{}".format(self.dtype, kind, mods, name, dimension, default)        
+        stype = self.dtype if ctype is None else ctype
+        return "{}{}{}:: {}{}{}".format(stype, kind, mods, name, dimension, default)
 
     def _clean_args(self, arg):
         """Removes any leading and trailing () from arguments."""
@@ -242,6 +334,148 @@ class ValueElement(CodeElement):
         else:
             return None
 
+    @property
+    def py_initval(self):
+        """Returns the python value that would initialize a python variable representing
+        this parameter in the standard way.
+        """
+        valdict = {
+            "real": "0.0",
+            "integer": "0",
+            "complex": "0+0j",
+            "character": "''",
+            "logical": "False"
+        }
+        if self.dtype in valdict:
+            return valdict[self.dtype]
+        else:
+            return ""
+        
+    @property
+    def argtypes(self):
+        """Returns the ctypes argtypes for use with the method.argtypes assignment for
+        an executable loaded from a shared library.
+        """
+        if self.dimension is not None:
+            result = []
+            if "in" in self.direction:
+                #The only complication here is that the 'known' dimensionality could actually
+                #be a function like "size" that needs information about other variables.
+                #If we choose to ignore known shapes, we lose the error checking for the passed
+                #in variables from the python side.
+                if self.direction == "(inout)" and ":" not in self.dimension:
+                    wstr = ", writeable"
+                else:
+                    wstr = ""
+
+                if ":" in self.dimension or "size" in self.dimension:
+                    template = 'ndpointer(dtype={}, ndim={}, flags="F{}")'
+                    result.append(template.format(self.pytype, self.D, wstr))
+                else:
+                    template = 'ndpointer(dtype={}, ndim={}, shape=({}), flags="F{}")'
+                    sdim = self.dimension + ("" if self.D > 1 else ",")
+                    result.append(template.format(self.pytype, self.D, sdim, wstr))
+            elif self.direction == "(out)":
+                result.append("c_void_p")
+
+            if self.D > 0 and ":" in self.dimension:
+                result.extend(["c_int_p" for i in range(self.D)])
+            if (self.direction == "(inout)" and ":" in self.dimension and
+                ("allocatable" in self.modifiers or "pointer" in self.modifiers)):
+                result.append("c_void_p")
+            return result
+        else:
+            ctype = self.ctype
+            if ctype is not None:
+                return ["{}_p".format(ctype.lower())]
+        
+    @property
+    def pytype(self):
+        """Returns the python type of the underlying parameter or variable.
+        """
+        lookup = {
+            "logical": "bool",
+            "real": "float",
+            "integer": "int",
+            "complex": "complex",
+            "character": "str"
+        }
+        if self.dtype in lookup:
+            return lookup[self.dtype]
+        else:
+            return None
+        
+    @property
+    def ctype(self):
+        """Returns the name of the c_type from iso_c_binding to use when declaring
+        the output parameter for interaction with python ctypes.
+        """
+        if self.dtype == "logical":
+            return "C_BOOL"
+        elif self.dtype == "complex":
+            #We don't actually know what the precision of the complex numbers is because
+            #it is defined by the developer when they construct the number with CMPLX()
+            #We just return double to be safe; it is a widening conversion, so there
+            #shouldn't be any issues.
+            return "C_DOUBLE_COMPLEX"
+        elif self.dtype == "character":
+            return "C_CHAR"
+        elif self.dtype in ["integer", "real"]:
+            if self.kind is None:
+                if self.dtype == "integer":
+                    return "C_INT"
+                else:
+                    return "C_FLOAT"
+                
+            if self._kind_module is None and self.kind is not None:
+                self.dependency()
+            if self._kind_module is None and self.kind is not None:
+                raise ValueError("Can't find the c-type for {}".format(self.definition()))
+            elif self._kind_module is not None:
+                #We look up the parameter in the kind module to find out its
+                #precision etc.
+                import re
+                default = self._kind_module.members[self.kind].default
+                vals = default.split("(")[1].replace(")", "")
+                ints = map(int, re.split(",\s*", vals))
+                if self.dtype == "integer" and len(ints) == 1:
+                    if ints[0] <= 15:
+                        return "C_SHORT"
+                    elif ints[0] <= 31:
+                        return "C_INT"
+                    elif ints[0] <= 63:
+                        return "C_LONG"
+                elif self.dtype == "real" and len(ints) == 2:
+                    if ints[0] <= 24 and ints[1] < 127:
+                        return "C_FLOAT"
+                    elif ints[0] <= 53 and ints[1] < 1023:
+                        return "C_DOUBLE"
+                    
+    def dependency(self):
+        """Returns the module name from the code parser that this parameter/variable
+        needs to compile successfully.
+        """
+        from re import match
+        if self._kind_module is not None:
+            #We have already done this search at some point.
+            return self._kind_module.name
+        
+        if (self.kind is not None and "len" not in self.kind.lower()
+            and not match("\d", self.kind[0])):
+            #Find the module that declares this kind as:
+            # 1) derived type
+            # 2) parameter/member
+            #The good news is that in order for the module being unit tested to compile,
+            #it must have a 'use' statement for the derived type. We can just search from
+            #that module with a tree find. Also, at the end of the day, it will have to
+            #be declared as public, in order to be used in other modules.
+            found, foundmod = self.module.parent.tree_find(self.kind.lower(),
+                                                           self.module,
+                                                           "publics")
+            self._kind_module = foundmod #At worst this will be None again
+            if found is not None:
+                return foundmod.name
+        
     @property
     def is_custom(self):
         """Returns a value indicating whether this value element is of a derived type."""
@@ -371,6 +605,28 @@ class Executable(ValueElement, Decoratable):
         #Lazy assignment for this variable; see the property with the similar name.
         self._is_type_target = None
 
+    def search_dependencies(self):
+        """Returns a list of modules that this executable needs in order to run
+        properly. This includes special kind declarations for precision or derived
+        types, but not dependency executable calls.
+        """
+        #It is understood that this executable's module is obviously required. Just
+        #add any additional modules from the parameters.
+        result = [p.dependency() for p in self.ordered_parameters]
+        result.extend([v.dependency() for k, v in self.members.items()])
+        for ekey, anexec in self.executables.items():
+            result.extend(anexec.search_dependencies())
+        return [m for m in result if m is not None and m != self.module.name]
+        
+    @property
+    def primitive(self):
+        """Returns True if this executable only has parameters with standard types
+        (i.e. no user-derived types in the parameter list).
+        """
+        #Just look through the types of each parameter to see if any have
+        #'type' or 'class'.
+        return not any([p.is_custom for p in self.ordered_parameters])
+        
     def __getstate__(self):
         """Cleans up the object so that it can be pickled without any pointer
         issues.
@@ -534,7 +790,7 @@ class Executable(ValueElement, Decoratable):
     def parameters(self):
         """Returns the dictionary of parameters in this exectuable."""
         return self._parameters
-
+    
     def get_parameter(self, index):
         """Returns the ValueElement corresponding to the parameter
         at the specified index."""
@@ -578,13 +834,13 @@ class Executable(ValueElement, Decoratable):
             self.dependencies[value.name.lower()].append(value)
         else:
             self.dependencies[value.name.lower()] = [ value ]
-
+            
 class Function(Executable):
     """Represents a function in a program or module."""    
     def __init__(self, name, modifiers, dtype, kind, parent):
         super(Function, self).__init__(name, modifiers, dtype, kind, None, None, parent)
         self.update_dtype()
-
+        
     def __str__(self):
         params = self.parameters_as_string()
         
@@ -653,7 +909,7 @@ class Subroutine(Executable):
     """Represents a function in a program or module."""   
     def __init__(self, name, modifiers, parent):
         super(Subroutine, self).__init__(name, modifiers, None, None, None, None, parent)
-
+    
     def __str__(self):
         params = self.parameters_as_string()
         mods = ", ".join(self.modifiers)
@@ -1018,6 +1274,44 @@ class Module(CodeElement, Decoratable):
         #Lazy calculation of the adjusted compilation file path.
         self._compile_path = None
 
+    def search_dependencies(self):
+        """Returns a list of other modules that this module and its members and executables
+        depend on in order to run correctly. This differs from the self.dependencies attribute
+        that just hase explicit module names from the 'use' clauses.
+        """
+        result = [self.module.name]
+        #First we look at the explicit use references from this module and all
+        #its dependencies until the chain terminates.
+        stack = self.needs
+        while len(stack) > 0:
+            module = stack.pop()
+            if module in result:
+                continue
+            
+            self.parent.load_dependency(module, True, True, False)
+            if module in self.parent.modules:
+                for dep in self.parent.modules[module].needs:
+                    modname = dep.split(".")[0]
+                    if modname not in result:
+                        result.append(modname)
+                    if modname not in stack:
+                        stack.append(modname)
+
+        #Add any incidentals from the automatic construction of code. These can be from
+        #executables that use special precision types without importing them or from
+        #derived types. Same applies to the local members of this module.
+        for ekey, anexec in self.executables.items():
+            for dep in anexec.search_dependencies():
+                if dep is not None and dep not in result:
+                    result.append(dep)
+
+        for member in self.members.values():
+            dep = member.dependency()
+            if dep is not None and dep not in result:
+                result.append(dep)
+                        
+        return result
+        
     @property
     def compile_path(self):
         """Returns the file path to this module taking the pre-processing into account.

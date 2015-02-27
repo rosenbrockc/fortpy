@@ -1,6 +1,28 @@
 FORTPY: Revision History
 ======
 
+Revision 1.5.0
+-----
+
+This minor version increment presents an additional interoperability tool call `ftypes` to the fortpy suite. It automatically:
+- generates wrapper subroutines for fortran code including for output parameters that are `pointer` or `allocatable`.
+- generates library archives `*.a` for entire code directories containing modules that are dependencies for those being wrapped.
+- compiles a shared library for the wrapper modules.
+- generates python modules with ctypes to interact with the shared libraries.
+- cleans up the allocated fortran arrays using `__del__` via another ctypes call to the shared library's `ftypes_dealloc` module that has handlers for freeing the `allocatable` and `pointer` variables.
+
+The interface for using these features is a new `scripts/ftypes.py` that ships with fortpy and is installed to the `bin` during setup. It allows modules for an entire library to be created all at once and automatically handles the dependency modules by compiling `*.a` libraries from all included code directories in the fortpy `config.xml` as needed.
+
+There are a few cases that `ftypes` will not be able to handle:
+- user-derived types are not currently handled, but will be sometime in the future.
+- if any of the parameters in a subroutine or function don't have `intent` specified, no wrappers will be created for them.
+
+Revision 1.4.7
+------
+
+- Fixed a bug where test level `<global>` tags were being overridden by the `regular="true"` parameter tag declarations.
+- Related: the _ignore_ attribute of the `<global>` tags was being checked against the *group's* variables first and then skipping a test-level specification when the tests should have priority.
+
 Revision 1.4.6
 ------
 

@@ -321,7 +321,7 @@ class CodeParser(object):
                 #The default naming doesn't match for this module
                 #we will load all modules until we find the right
                 #one
-                self._load_greedy(key)
+                self._load_greedy(key, dependencies, recursive)
             elif key in self.mappings and self.mappings[key] in self._pathfiles:
                 #See if they have a mapping specified to a code file for this module name.
                 if self.verbose:
@@ -366,7 +366,7 @@ class CodeParser(object):
 
         #Filter them to find the fortran code files
         for fname in files:
-            if os.path.splitext(fname)[1].lower() == ".f90":
+            if os.path.splitext(fname)[1].lower() == ".f90" and fname[0:2] != ".#":
                 self._pathfiles[fname.lower()] = os.path.join(path, fname)
                 if result is not None:
                     result[fname.lower()] = os.path.join(path, fname)

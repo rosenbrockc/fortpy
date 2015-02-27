@@ -12,7 +12,8 @@ LDFLAGS =
 
 # Debug flag
 ifeq ($(DEBUG),true)
-    FFLAGS  =  -g -fbacktrace -fbounds-check -ffree-line-length-none -ffpe-trap=invalid,zero,overflow -ftrapv
+    FFLAGS  =  -g -fbacktrace -fbounds-check -ffree-line-length-none -ftrapv
+#    FFLAGS += -Wall -Wextra -Wconversion -std=f2003
 #   FFLAGS  =  -g -fbacktrace -fbounds-check -Wall -ffree-line-length-none 
 #   FFLAGS  =  -g -ffree-line-length-none 
    LDFLAGS = 

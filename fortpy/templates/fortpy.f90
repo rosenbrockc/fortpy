@@ -117,7 +117,7 @@ contains
     else
        allocate(variable(nvalues))
     end if
-
+    variable = 0
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     i = 1
     if (ioerr == 0) then
@@ -157,7 +157,7 @@ contains
     if (allocated(variable)) deallocate(variable)
     allocate(variable(nlines, nvalues))
     i=1
-
+    variable = 0
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
        do
@@ -200,7 +200,7 @@ contains
     else
        allocate(variable(nvalues))
     end if
-
+    variable = 0
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     i = 1
     if (ioerr == 0) then
@@ -240,7 +240,7 @@ contains
     if (associated(variable)) variable => null()
     allocate(variable(nlines, nvalues))
     i=1
-
+    variable = 0
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
        do
@@ -318,7 +318,7 @@ contains
     else
        allocate(variable(nvalues))
     end if
-
+    variable = 0
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     i = 1
     if (ioerr == 0) then
@@ -358,7 +358,7 @@ contains
     if (allocated(variable)) deallocate(variable)
     allocate(variable(nlines, nvalues))
     i=1
-
+    variable = 0
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
        do
@@ -401,7 +401,7 @@ contains
     else
        allocate(variable(nvalues))
     end if
-
+    variable = 0
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     i = 1
     if (ioerr == 0) then
@@ -441,7 +441,7 @@ contains
     if (associated(variable)) variable => null()
     allocate(variable(nlines, nvalues))
     i=1
-
+    variable = 0
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
        do
@@ -677,7 +677,7 @@ contains
     integer(fli), intent(in) :: variable(:)
     integer, intent(in) :: n
     character(n), intent(in) :: filename
-    integer :: c, i
+    integer :: c
     character(20) :: FMT
 
     c = size(variable, 1)
@@ -723,7 +723,7 @@ contains
     real(fdp), intent(in) :: variable(:)
     integer, intent(in) :: n
     character(n), intent(in) :: filename
-    integer :: c, i
+    integer :: c
     character(20) :: FMT
 
     c = size(variable, 1)
@@ -807,8 +807,7 @@ contains
     integer, intent(in) :: length
     character(length), intent(in) :: line
     character(2) :: whitespace
-    integer           :: success, i, indx, prev = 1, beginning = 1
-    real              :: value
+    integer           :: i, indx, prev = 1
 
     !Initialize the whitespace array. We will cycle through all the characters
     !in the specified line looking for whitespace. Each time we find it, if the

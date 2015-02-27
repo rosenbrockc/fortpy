@@ -1,6 +1,7 @@
 from .. import msg
 from fortpy.testing.templates import FileLine
 from fortpy.docelements import DocElement
+from fortpy.printing.formatting import present_params
 from os import path, remove
 from shutil import copyfile
 import re
@@ -964,7 +965,13 @@ class Assignment(object):
         """Returns the GlobalDeclaration instance for the current variable, which may have
         different parameters and modifiers than the actual code element.
         """
-        vars = self.group.variables
+        #We need to give preference to the test specification if it is available.
+        vars = None
+        if self.group.finder is not None and self.group.finder.test is not None:
+            vars = self.group.finder.test.variables
+        if vars is None:
+            vars = self.group.variables
+            
         if self.name.lower() in vars:
             return vars[self.name.lower()]
         else:
@@ -982,22 +989,6 @@ class Assignment(object):
                 self._variable = self.globaldecl
 
         return self._variable
-
-    # def _recurse_find_variable(name, finder):
-    #     """Finds the ValueElement instance for the variable of the specified name
-    #     if it exists. Found by searching the parameter list of all methods that get
-    #     called as part of the pre-req chain."""
-    #     result = None
-
-    #     if isinstance(finder, MethodFinder) and finder.executable is not None:
-    #         if name in finder.executable.parameters:
-    #             result = finder.executable.parameters[name]
-    #         else:
-    #             for nested in finder.methods:
-    #                 result = MethodFinder.recurse_find_variable(name, nested)
-    #                 if result is not None:
-    #                     break
-    #     return result                        
     
     @property
     def attributes(self):
@@ -2107,6 +2098,12 @@ class TestingGroup(object):
         if name not in variables:
             variables[name] = GlobalDeclaration(doc)
             order.append(name)
+        elif (hasattr(variables[name].element, "doctype") and
+              variables[name].element.doctype == "AUTOPARAM"):
+            #We can override the existing variable declaration because it was from a
+            #parent test group and a global tag takes precedence.
+            variables[name] = GlobalDeclaration(doc)
+            order.append(name)            
         else:
             #We need to make sure that it is unique compared to the existing
             #one. If it isn't, stop the execution. If it is, we don't need
@@ -2343,7 +2340,7 @@ class MethodFinder(object):
             #The developer has decided on an alternate call signature from
             #the one that gets auto-generated.
             specified = re.split(",\s*", self.attributes["paramlist"])
-            cleaned = self._present_params(specified, spacing)
+            cleaned = present_params(specified, spacing, 90)
             lines.append("{}{}{}({})".format(spacer, prefix, self.executable.name, cleaned))
         else:
             #We can construct the actual list of parameters to use in the call
@@ -2361,44 +2358,22 @@ class MethodFinder(object):
                     calllist.append(optstr + self.group.mappings[param])
                 else:
                     var = None
-                    if self.group is not None and param.name in self.group.variables:
-                        var = self.group.variables[param.name]
-                    if var is None and self.test is not None and param.name in self.test.variables:
+                    #The test specification takes precedence over the testing group for variables.
+                    if self.test is not None and param.name in self.test.variables:
                         var = self.test.variables[param.name]
+                    if var is None and self.group is not None and param.name in self.group.variables:
+                        var = self.group.variables[param.name]
                     if var is not None and not var.ignore:
                         calllist.append(optstr + param.name)
                     elif var is None:
                         calllist.append(optstr + param.name)
 
             lines.append("{}{}{}({})".format(spacer, prefix, self.executable.name,
-                                              self._present_params(calllist, spacing)))        
+                                              present_params(calllist, spacing, 90)))        
 
         if self.timed(testid):
             lines.append("{}call cpu_time(fpy_end)".format(spacer))
             lines.append("{}fpy_elapsed = fpy_elapsed + fpy_end - fpy_start".format(spacer))
-
-    def _present_params(self, paramlist, spacing = 0):
-        """Creates the (paramlist) for a method call formatted nicely for calls
-        with lots of parameters."""
-        #The +2 is spacing is for the tab indent at the start of the line.
-        #The +3 is for indent and the extra parenthesis at the start of the call.
-        line = []
-        length = 0
-        result = []
-        for param in paramlist:
-            extra = len(list(param))
-            if length + extra + 2 + spacing > 90:
-                result.append(", ".join(line) + ", &")
-                line = [ param ]
-                length = extra + 2
-            else:
-                line.append(param)
-                length += extra + 2
-
-        #Add on the remaining bits of the line
-        result.append(", ".join(line))
-
-        return "\n{}".format(" ".join([ "" for i in range(spacing + 3)])).join(result)
                 
     def _find_executable(self):
         """Finds the executable code element from the code parser instance."""

@@ -25,12 +25,14 @@ def parse():
                 print c.modules[moduledat]
             else:
                 print moduledat
+            
+        # for progdat in c._programfiles[fname]:
+        #     if args["verbose"]:
+        #         print c.programs[progdat]
+        #     else:
+        #         print progdat
 
-        for progdat in c._programfiles[fname]:
-            if args["verbose"]:
-                print c.programs[progdat]
-            else:
-                print progdat
+    return c
 
 #Create a parser so that the script can receive arguments
 parser = argparse.ArgumentParser(description="Fortpy File Parsing Unit Testing Tool")
@@ -55,4 +57,4 @@ from fortpy.code import CodeParser
 from fortpy import settings
 from fortpy import msg
 
-parse()
+cparser = parse()

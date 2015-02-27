@@ -1,0 +1,93 @@
+EXENAME		= celib.x
+SHELL		= /bin/bash
+UNAME		= $(shell uname)
+HOSTNAME	= $(shell hostname)
+LOG		= compile.log
+
+ifeq ($(F90),ifort)
+  include /Users/trunks/codes/fortpy-dist/fortpy/templates/Makefile.ifort
+else
+ifeq ($(F90),gfortran)
+  include /Users/trunks/codes/fortpy-dist/fortpy/templates/Makefile.gfortran
+else
+  include Makefile.error
+endif
+endif
+.SILENT:
+
+LIBMODULESF90	= \
+		num_types.f90 \
+		numerical_utilities.f90 \
+		vector_matrix_utilities.f90 \
+		symmetry_module.f90
+MAINF90		= celib.f90
+SRCF90		= $(LIBMODULESF90) $(MAINF90)
+OBJSF90		= $(SRCF90:.f90=.o)
+SLIBF90		= $(LIBMODULESF90:.f90=.o)
+
+LIBS		= \
+		~/codes/qhlib/libqhull.a \
+		~/codes/uncle/trunk/timing.o \
+
+
+# Error handling
+NEWFILE		= \#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#
+ERR		= ******************************* ERROR *******************************
+SHOW_LOG	= ( perl -pi -e 's/ [Ee]rror \#/\n\n\n$(ERR)\n*** error \#/' $(LOG); perl -pi -e 's/^\# 1 "/\n\n$(NEWFILE)\n\n\n/' $(LOG); grep -n -A3 -E "$(ERR)|$(NEWFILE)" $(LOG) )
+
+
+all:	info celib.a
+
+info: 
+	echo -e "\nCompile time:" > $(LOG)
+	date >> $(LOG)
+	echo "------------------------------------------------------"| tee -a $(LOG)
+	echo "                     FORTPY"                           | tee -a $(LOG)
+	echo "               >>> version 1.4 <<<                    "| tee -a $(LOG)         
+	echo "------------------------------------------------------"| tee -a $(LOG)
+	echo -e "Compiling on system  : $(UNAME)"                    | tee -a $(LOG)
+	echo -e "             machine : $(HOSTNAME)"                 | tee -a $(LOG)
+	echo "Compiling for module : ftypes"                            | tee -a $(LOG)         
+	echo "              method : all_libs"                            | tee -a $(LOG)         
+	echo "------------------------------------------------------"| tee -a $(LOG)
+	echo -e "DEBUG mode\t:\t$(DEBUG)"                          | tee -a $(LOG)
+	echo -e "GPROF mode\t:\t$(GPROF)"                          | tee -a $(LOG)
+	echo "------------------------------------------------------"| tee -a $(LOG)
+	echo "F90    : $(F90)"                                       | tee -a $(LOG)
+	echo "FFLAGS : $(FFLAGS)"                                    | tee -a $(LOG)
+	echo "LDFLAGS: $(LDFLAGS)"                                   | tee -a $(LOG)
+	echo "MKLpath:$(MKL)"                                        | tee -a $(LOG)
+	echo "------------------------------------------------------"| tee -a $(LOG)
+	echo ""                                                      | tee -a $(LOG)
+
+
+
+$(EXENAME): $(OBJSF90)
+	-rm $(EXENAME) 2> /dev/null
+	echo -n "Linking... "
+	-$(F90) $(LDFLAGS) -o $(EXENAME) $(OBJSF90) $(LIBS) >> $(LOG) 2>> $(LOG)
+	echo "done."
+	if test -e $(EXENAME); then echo "Produced executable: $(EXENAME)"; else $(SHOW_LOG); echo "Error."; fi
+
+$(OBJSF90): %.o: %.f90
+	echo -n "Compiling: $^... "
+	-$(F90) -c $(FFLAGS) $^ >> $(LOG) 2>> $(LOG)
+	echo "done."
+
+celib.so: $(SLIBF90)
+	-rm celib.so 2> /dev/null
+	echo -n "Creating shared library..."
+	-$(F90) -shared -fPIC $(FFLAGS) -o celib.so $(LIBS) $(SLIBF90) >> $(LOG) 2>> $(LOG)
+	echo "done."
+
+celib.a: $(SLIBF90)
+	echo -n "Creating linked library..."
+	ar ru $@ $?
+	ranlib $@
+	echo "done."
+
+clean:
+	-rm *.o *.mod *.i90 $(EXENAME) celib.so
+remake:
+	-rm *.o *.mod *.i90 $(EXENAME) celib.so
+	make -f 'Makefile.ftypes'
