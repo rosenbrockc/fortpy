@@ -5,7 +5,7 @@ also provides a method to find the static type for a given symbol name.
 """
 import weakref
 from numpy import require, array, asanyarray, dtype as _dtype
-from numpy.ctypeslib import ndpointer
+from numpy.ctypeslib import ndpointer, as_array as farray
 from ctypes import (c_int, c_double, POINTER, c_bool, c_float,
                     c_short, c_long, byref, c_void_p, addressof)
 c_int_p = POINTER(c_int)
@@ -22,16 +22,11 @@ compilers = {}
 """Dict of compilers found for each shared library. Indexed by lower-case path
 to the shared library. Value is either 'gfortran' or 'ifort'.
 """
-def prep_pointer(pointer_obj, shape):
-    contents = pointer_obj.contents
-    dtype = _dtype(type(contents))
-
-    inter = {'version': 3,
-             'typestr': dtype.str,
-             'data': (addressof(contents), False),
-             'shape': shape}
-
-    pointer_obj.__array_interface__ = inter
+fresults = {}
+"""Dict of FtypeResult instances indexed by the 'module.executable' key of the
+wrapper subroutine that generated the output. Used to manage shared memory
+being overwritten from repeated calls to the same executables.
+"""
 
 def as_array(pointer, shape):
     """Returns a contiguous (c-ordered) array for the specified pointer
@@ -39,8 +34,7 @@ def as_array(pointer, shape):
 
     :arg shape: a tuple of the integer size of each dimension.
     """
-    prep_pointer(pointer, shape)
-    return array(pointer, copy=False).T
+    return farray(pointer, shape).T
 
 def static_symbol(module, method, lib, bindc=False):
     """Returns the symbol for the specified *fortran* module and subroutine/function
@@ -115,19 +109,27 @@ class Ftype(object):
         self.pointer = pointer
         self.indices = indices
         self.libpath = libpath
+        self.deallocated = False
+        """Specifies whether this c-pointer has already deallocated the Fortran
+        memory that it is referencing."""
+ 
+    def clean(self):
+        """Deallocates the fortran-managed memory that this ctype references.
+        """
+        if not self.deallocated:
+            #Release/deallocate the pointer in fortran.
+            method = self._deallocator()
+            if method is not None:
+                dealloc = static_symbol("ftypes_dealloc", method, self.libpath, True)
+                if dealloc is None:
+                    return
+                arrtype = ndpointer(dtype=int, ndim=1, shape=(len(self.indices),), flags="F")
+                dealloc.argtypes = [c_void_p, c_int_p, arrtype]
+                nindices = require(array([i.value for i in self.indices]), int, "F")
+                dealloc(byref(self.pointer), c_int(len(self.indices)), nindices)
 
-    def __del__(self):
-        #Release/deallocate the pointer in fortran.
-        method = self._deallocator()
-        if method is not None:
-            dealloc = static_symbol("ftypes_dealloc", method, self.libpath, True)
-            if dealloc is None:
-                return
-            arrtype = ndpointer(dtype=int, ndim=1, shape=(len(self.indices),), flags="F")
-            dealloc.argtypes = [c_void_p, c_int_p, arrtype]
-            nindices = require(array([i.value for i in self.indices]), int, "F")
-            dealloc(byref(self.pointer), c_int(len(self.indices)), nindices)
-
+        self.deallocated = True                
+            
     def _deallocator(self):
         """Returns the name of the subroutine in ftypes_dealloc.f90 that can
         deallocate the array for this Ftype's pointer.
@@ -154,7 +156,7 @@ class FtypesResult(object):
     """Represents the result from executing a fortran subroutine or function
     using the ctypes interface.
     """
-    def __init__(self, name, utype):
+    def __init__(self, module, name, utype):
         """
         :arg name: the name of the subroutine/function in the *original* code.
         :arg utype: the underlying type of the executable. Either 'subroutine'
@@ -162,14 +164,43 @@ class FtypesResult(object):
         :arg result: a dictionary of the parameter values that were of intent
           "out" or "inout" and their values on exit.
         """
-        self.name = name
+        self.identifier = "{}.{}".format(module, name).lower()
         self.utype = utype
         self.result = {}
         self._finalizers = {}
         """A dictionary of Ftype instances with c-pointer information for finalizing
         the fortran arrays.
         """
+        
+        def on_die(kref):
+            for key in list(self._finalizers.keys()):
+                self._finalizers[key].clean()            
+        self._del_ref = weakref.ref(self, on_die)
+        
+        if self.identifier in fresults:
+            #Cleanup the previous result obtained from this method (this involves
+            #reallocating and copying the values to a new array). Change the active
+            #result (i.e. with active pointers to fortran-managed memory) to
+            #be this new one.
+            fresults[self.identifier].cleanup()
+        fresults[self.identifier] = self
 
+    def cleanup(self):
+        """Cleans up this result so that all its pointers reference memory controlled
+        *outside* of the shared library loaded with ctypes.
+        """
+        #First we *copy* the arrays that we currently have pointers to. This is not
+        #the optimal solution; however, because of limitations in ctypes, we don't
+        #know anything better at the moment.
+        for key in self.result:
+            self.result[key] = self.result[key].copy()
+
+        #Now deallocate the pointers managed by Fortran in the shared library so that
+        #any subsequent calls to the executable that generated this result creates
+        #new instances in memory.
+        for key in list(self._finalizers.keys()):
+            self._finalizers[key].clean()
+        
     def add(self, varname, result, pointer=None):
         """Adds the specified python-typed result and an optional Ftype pointer
         to use when cleaning up this object.

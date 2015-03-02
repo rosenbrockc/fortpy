@@ -36,7 +36,7 @@ def make_primitive(avecs, atomtype, atom_pos, lattcoords, eps_):
            byref(atom_pos_0), byref(atom_pos_1), byref(atom_pos_o), byref(lattcoords_c), 
            byref(eps__c), byref(removed__o), byref(removed__0))
 
-    result = FtypesResult("make_primitive", "Subroutine")
+    result = FtypesResult("symmetry_module", "make_primitive", "Subroutine")
     result.add("avecs", avecs_a)
     atomtype_ft = Ftype(atomtype_o, [atomtype_0], libpath)
     result.add("atomtype", as_array(atomtype_o, (atomtype_0.value,)), atomtype_ft)
@@ -72,7 +72,7 @@ def does_mapping_exist(v, this_type, atom_pos, atomtype, eps):
     method(v_a, byref(this_type_c), atom_pos_a, byref(atom_pos_0), byref(atom_pos_1), 
            atomtype_a, byref(atomtype_0), byref(mapped_c), byref(eps_c))
 
-    result = FtypesResult("does_mapping_exist", "Subroutine")
+    result = FtypesResult("symmetry_module", "does_mapping_exist", "Subroutine")
     result.add("mapped", mapped_c.value)
 
     return result
@@ -92,7 +92,7 @@ def bring_into_cell(v, cart_to_latt, latt_to_cart, eps):
     eps_c = c_double(eps)
     method(v_a, cart_to_latt_a, latt_to_cart_a, byref(eps_c))
 
-    result = FtypesResult("bring_into_cell", "Subroutine")
+    result = FtypesResult("symmetry_module", "bring_into_cell", "Subroutine")
     result.add("v", v_a)
 
     return result
@@ -130,7 +130,7 @@ def get_spacegroup(avecs, atomtype, input_pos, lattcoords, eps_):
            byref(sg_op_2), byref(sg_fract_o), byref(sg_fract_0), byref(sg_fract_1), 
            byref(lattcoords_c), byref(eps__c))
 
-    result = FtypesResult("get_spacegroup", "Subroutine")
+    result = FtypesResult("symmetry_module", "get_spacegroup", "Subroutine")
     result.add("atomtype", atomtype_a)
     if not all([sg_op_0.value==0, sg_op_1.value==0, sg_op_2.value==0]):
         sg_op_ft = Ftype(sg_op_o, [sg_op_0, sg_op_1, sg_op_2], libpath)

@@ -1,6 +1,11 @@
 FORTPY: Revision History
 ======
 
+Revision 1.5.1
+------
+
+- Fixed issue #31 related to value overwriting of shared memory between subsequent calls to the same method loaded from a shared library.
+
 Revision 1.5.0
 -----
 

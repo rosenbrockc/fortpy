@@ -389,8 +389,8 @@ class WrapperModule(object):
         lines.append("{}method({})\n".format(tab, methparams))
 
         #Now we clean up the output variables to turn them into numpy arrays etc.
-        constructor = '{}result = FtypesResult("{}", "{}")'
-        lines.append(constructor.format(tab, execname, type(executable).__name__))
+        constructor = '{}result = FtypesResult("{}", "{}", "{}")'
+        lines.append(constructor.format(tab, self.module.name, execname, type(executable).__name__))
         count = _py_code_clean(lines, tab, executable)
         
         if count > 0:
