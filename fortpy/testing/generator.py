@@ -34,7 +34,6 @@ class TestGenerator(object):
     def __init__(self, parser, libraryroot, fortpy_templates, tester, rerun=None):
         self.parser = parser
         self.tester = tester
-        self.libraryroot = libraryroot
         self.xgenerator = ExecutableGenerator(parser, libraryroot, self)
         if rerun is not None:
             self.rerun = rerun.lower()
@@ -43,14 +42,22 @@ class TestGenerator(object):
 
         self.dependfiles = [ "fortpy.f90", "Makefile.ifort", "Makefile.gfortran" ]
         self.xtests = {}
+        """Dictionary of the dictionary of test specifications indexed by test identifier.
+        """
         self.xwriters = {}
+        """Dictionary of the MethodWriter instances for each test run, indexed by
+        test identifier.
+        """
+        self.archive = None
+        """A dictionary of the unit tests' code files and when they were last compiled
+        for unit testing. Used to determine if the underlying code has changed since the
+        test was last run.
+        """
         self._fortpy = fortpy_templates
 
         #Stores the identifiers of unit tests whose files changed so they
         #need to be recompiled and executed.
         self._changed = []
-        #Load the file dates for previous tests into self.archive
-        self._xml_get()
 
     @property
     def tests_to_run(self):
@@ -111,7 +118,9 @@ class TestGenerator(object):
         #this executable needs to run is copied to a staging folder
         #where it can be compiled.
         identifier = "{}.{}".format(module.name, executable.name)
-        self.xgenerator.reset(identifier, self.libraryroot, self.rerun)
+        from os import path
+        newstage = self.xgenerator.reset(identifier, path.dirname(module.filepath), self.rerun)
+        self._xml_get(identifier, newstage)
         needs = self.xgenerator.needs()
 
         #Now we need to check whether the files it depends on have changed
@@ -169,8 +178,8 @@ class TestGenerator(object):
         #or testid.x files from the directories to force a re-write.
         if not different:
             for testid in self.xgenerator.writer.tests:
-                codefile = os.path.join(self.libraryroot, identifier, "{}.f90".format(testid))
-                xfile = os.path.join(self.libraryroot, identifier, "{}.x".format(testid))
+                codefile = os.path.join(self.xgenerator.folder, "{}.f90".format(testid))
+                xfile = os.path.join(self.xgenerator.folder, "{}.x".format(testid))
                 if not os.path.exists(codefile) or not os.path.exists(xfile):
                     different = True
                     break
@@ -195,14 +204,18 @@ class TestGenerator(object):
             #Also, save the archive in case something goes wrong in the next
             #Executable writing.
             self.archive[identifier] = files
-            self._xml_save()
+            self._xml_save(identifier)
         else:            
             msg.gen("UNITTEST: ignored '{}' because code hasn't changed.".format(executable.name))
 
-    def _xml_get(self):
-        """Returns an XML tree for the documont that tracks dates for code
+    def _xml_get(self, identifier, reset=False):
+        """Returns an XML tree for the document that tracks dates for code
         files and unit tests."""
-        target = os.path.join(self.libraryroot, "archive.xml")
+        if self.archive is not None and not reset:
+            #We only load this once per reset of the test generator's executable generator.
+            return
+        
+        target = os.path.join(self.xgenerator.folders[identifier], "archive.xml")
         self.archive = {}
 
         if os.path.exists(target):
@@ -214,7 +227,7 @@ class TestGenerator(object):
                     files[f.attrib["path"]] = dateutil.parser.parse(f.attrib["modified"])
                 self.archive[test.attrib["name"]] = files
 
-    def _xml_save(self):
+    def _xml_save(self, identifier):
         """Saves the archive dictionary to XML."""
         root = ET.Element("archive")
         for testk in self.archive:
@@ -224,7 +237,7 @@ class TestGenerator(object):
                 fileel = ET.SubElement(subel, "file", attrib={ "path": f, "modified": single.isoformat() })
 
         tree = ET.ElementTree(root)
-        xmlpath = os.path.expanduser(os.path.join(self.libraryroot, "archive.xml"))
+        xmlpath = os.path.expanduser(os.path.join(self.xgenerator.folders[identifier], "archive.xml"))
         tree.write(xmlpath)
 
 def modification_date(filename):

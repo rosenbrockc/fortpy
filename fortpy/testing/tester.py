@@ -333,15 +333,13 @@ class UnitTester(object):
 
     :arg libraryroot: the path to folder in which to stage the tests.
     """
-    def __init__(self, libraryroot, verbose = False, compare_templates = None, 
+    def __init__(self, libraryroot=None, verbose=False, compare_templates=None,
                  fortpy_templates=None, rerun=None , compiler="gfortran",
                  debug=False, profile=False):
-        self.libraryroot = path.abspath(libraryroot)
         self.parser = CodeParser()
         self.parser.verbose = verbose
         self._set_fortpy_dir(fortpy_templates)
-        self.tgenerator = TestGenerator(self.parser, self.libraryroot, 
-                                        self.fortpy_templates, self, rerun)
+        self.tgenerator = TestGenerator(self.parser, libraryroot, self.fortpy_templates, self, rerun)
         self.compiler = compiler
         self.debug = debug == True
         self._compiler_exists()
@@ -354,7 +352,7 @@ class UnitTester(object):
         self._compare_templates = compare_templates
         self._templatev = {}
         """Holds the version number of the fortpy.f90 file."""
-
+        
     def template_version(self, filename):
         """Returns the version number of the latest fortpy.f90 file."""
         if filename not in self._templatev:
@@ -401,8 +399,13 @@ class UnitTester(object):
         method/assignment dependencies."""
         if identifier in self.tgenerator.xwriters:
             return self.tgenerator.xwriters[identifier]
-        else:
-            return None
+        
+    def libraryroot(self, identifier):
+        """Returns the absolute path to the staging directory for the unit tests with
+        the specified testid.
+        """
+        if identifier in self.tgenerator.xgenerator.folders:
+            return self.tgenerator.xgenerator.folders[identifier]
 
     def _profiler_exists(self, profile):
         """Tests whether we have gprof available to do the profiling of the methods
@@ -527,7 +530,7 @@ class UnitTester(object):
         returns True if the compile was successful."""
         #Find the target folder that has the executables etc then run
         #make and check the exit code.
-        target = path.join(self.libraryroot, identifier)
+        target = path.join(self.libraryroot(identifier), identifier)
         msg.blank(2)
 
         options = ""
@@ -594,7 +597,7 @@ class UnitTester(object):
         #get copied.
 
         #Create the folder for staging the tests.
-        tests = path.join(self.libraryroot, identifier, "tests")
+        tests = path.join(self.libraryroot(identifier), identifier, "tests")
         if not path.exists(tests):
             mkdir(tests)
         
@@ -604,7 +607,7 @@ class UnitTester(object):
         method = module.executables[kmethod]
 
         #Get the absolute path to the executable that we created
-        exepath = path.join(self.libraryroot, identifier, "{}.x".format(testid))
+        exepath = path.join(self.libraryroot(identifier), identifier, "{}.x".format(testid))
 
         #Since we have already split out all the tests that need to be run and 
         #we have a 'testid' for the current test to run, just run that test.

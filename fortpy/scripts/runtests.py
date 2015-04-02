@@ -42,7 +42,7 @@ parser = argparse.ArgumentParser(description="Fortpy Automated Unit Testing Tool
 
 #Add arguments to decide which of the systems and penalties to process.
 parser.add_argument("codedir", help="Specify the path to the directory of code files to run tests for.")
-parser.add_argument("-stagedir", help="Sets the directory in which to stage the unit tests.", required=True)
+parser.add_argument("-stagedir", help="Sets the directory in which to stage the unit tests.")
 parser.add_argument("-templates", help="Specify the path to the folder that houses the XML templates.")
 parser.add_argument("-outfile", help="Specify a path to save the comparison reports to.")
 parser.add_argument("-verbose", help="Sets whether the comparison output is verbose.", action="store_true")

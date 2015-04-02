@@ -1,6 +1,11 @@
 FORTPY: Revision History
 ======
 
+Revision 1.5.2
+------
+
+- Added support for a previously advertised feature that wasn't implemented yet. Paths to _folder_ attributes in `<input>`, `<output>`, and the _staging_ attribute for `<group>` tags now support relative paths (relative to the code folder). This allows different executables to define unique staging folders at the testing group level. It also allows the `runtests.py` script to run with a single parameter, the positional parameter specifying the code directory to run.
+
 Revision 1.5.1
 ------
 

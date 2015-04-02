@@ -48,11 +48,14 @@ class MethodWriter(object):
         #version of the method finder.
         finder = MethodFinder(self.mainid, parser, None, None, basic=True)
         if finder.group is not None:
+            self.group = finder.group
+            """The TestingGroup instance for the executable being unit tested."""
             self.tests = finder.group.tests
             """Returns a dictionary of the tests available to the method writer
             from the underlying XML documentation.
             """
         else:
+            self.group = None
             self.tests = {}
         
         for testid in self.tests:

@@ -311,7 +311,9 @@ class AssignmentValue(object):
         """
         #We only want to do the copy if we are assigning a value from a file.
         if self.folder is not None:
-            source = path.join(coderoot, self.folder[2:], self.filename.format(case))
+            from fortpy.tramp import coderelpath
+            relpath = coderelpath(coderoot, self.folder)
+            source = path.join(relpath, self.filename.format(case))
             #For the cases where multiple files specify the values for different
             #parts of an array, the <value> file specification will have a wildcard
             #at the position where the array index id will go. We just copy *all* the
@@ -1274,7 +1276,9 @@ class TestInput(object):
         :arg case: if a specific case of the same test is being performed, the
           case identifier to use for string formatting.
         """
-        source = path.join(coderoot, self.folder[2:], self.filename.format(case))
+        from fortpy.tramp import coderelpath
+        relpath = coderelpath(coderoot, self.folder)
+        source = path.join(relpath, self.filename.format(case))
         if self.rename is not None:
             target = path.join(testroot, self.rename)
         else:
@@ -1348,11 +1352,14 @@ class TestOutput(object):
           case identifier to use for string formatting.
         """
         #The caseid is the "testid.case". We only want the 'case' part of it
+        from fortpy.tramp import coderelpath
+        relpath = coderelpath(coderoot, self.folder)
+
         if caseid != "":
             case = caseid.split(".")[-1]
-            return path.join(coderoot, self.folder[2:], self.filename.format(case))
+            return path.join(relpath, self.filename.format(case))
         else:
-            return path.join(coderoot, self.folder[2:], self.filename)
+            return path.join(relpath, self.filename)
 
     def _parse_attributes(self):
         """Extracts output comparsion related attributes from the xml tag."""
@@ -1911,6 +1918,8 @@ class TestingGroup(object):
         """List of the variables that should have their values saved to file and compared
         with model output for *all* the test specifications.
         """
+        self.staging = None
+        """The path of the staging directory relative to the code directory."""
         
         self.finder = None
         """The currently active MethodFinder instance being used by the MethodWriter
@@ -1979,6 +1988,10 @@ class TestingGroup(object):
         """Parses the XML structure into the relevant dictionaries and
         properties for the testing group.
         """
+        #Try to determine the staging directory from the group definition.
+        if self.staging is None and "staging" in self.group.xml.attrib:
+            self.staging = self.group.xml.attrib["staging"]
+
         for child in self.children:            
             if child.doctype == "test":
                 test = TestSpecification(child.xml, self)

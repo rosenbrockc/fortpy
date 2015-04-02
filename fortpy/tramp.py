@@ -5,6 +5,15 @@ import hashlib
 from stat import S_ISDIR
 import errno
 
+def coderelpath(coderoot, relpath):
+    """Returns the absolute path of the 'relpath' relative to the specified code directory."""
+    from os import chdir, getcwd, path
+    cd = getcwd()
+    chdir(coderoot)
+    result = path.abspath(relpath)
+    chdir(cd)
+    return result
+
 paramiko = None
 
 class FileSupport(object):
@@ -47,7 +56,7 @@ class FileSupport(object):
         """Returns true if the specified filepath is a tramp path for
         accessing a file over SSH."""
         return filepath[:4] == "/ssh"
-
+    
     def abspath(self, path):
         """Returns the absolute path to the specified relative or user-relative
         path. For ssh paths, just return the full ssh path."""
