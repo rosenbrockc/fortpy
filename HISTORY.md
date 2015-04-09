@@ -1,6 +1,12 @@
 FORTPY: Revision History
 ======
 
+Revision 1.5.3
+------
+
+- Fixed a bug in the executable parser. Executables without any parameters were being ignored.
+- Fixed a bug in the unit tester from the fix in Revision 1.5.2 for relative paths in the _staging_ attribute.
+
 Revision 1.5.2
 ------
 
