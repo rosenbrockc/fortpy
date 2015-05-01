@@ -24,14 +24,14 @@ class ExecutableParser(object):
         self._RX_EXEC = r"\n[ \t]*((?P<type>character|real|type|logical|integer)?" + \
                         r"(?P<kind>\([a-z0-9_]+\))?)?((?P<modifiers>[\w, \t]+?))?[ \t]*" + \
                         r"(?P<codetype>subroutine|function)\s+(?P<name>[^(]+)" + \
-                        r"\s*\((?P<parameters>[^)]+)\)(?P<contents>.+?)end\s*(?P=codetype)\s+(?P=name)"
+                        r"\s*\((?P<parameters>[^)]*)\)(?P<contents>.+?)end\s*(?P=codetype)\s+(?P=name)"
         self.RE_EXEC = re.compile(self._RX_EXEC, re.DOTALL | re.I)
         #Regex for the signature is almost identical to the full executable, but it doesn't
         #look for any contents after the parameter list.
         self._RX_SIG =  r"((?P<type>character|real|type|logical|integer)?" + \
                         r"(?P<kind>\([a-z0-9_]+\))?)?(,?(?P<modifiers>[^\n]+?))?\s*" + \
                         r"(?P<codetype>subroutine|function)\s+(?P<name>[^(]+)" + \
-                        r"\s*\((?P<parameters>[^)]+)\)"
+                        r"\s*\((?P<parameters>[^)]*)\)"
         self.RE_SIG = re.compile(self._RX_SIG, re.I)
 
         #The contents of the executable already have any & line continuations

@@ -95,7 +95,7 @@ class ExecutableGenerator(object):
         self.writer = MethodWriter(identifier, self.parser, self.testgen)
         self.identifier = identifier
         if self.libraryroot is not None:
-            self.folders[identifier] = path.expanduser(path.join(self.libraryroot, identifier))
+            self.folders[identifier] = path.abspath(self.libraryroot)
         elif self.writer.group is not None and self.writer.group.staging is not None:
             #Determine the absolute path using the relative path specified in the group
             #staging directory attribute.

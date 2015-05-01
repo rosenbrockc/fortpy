@@ -1,8 +1,6 @@
-FORTPY
-======
+# FORTPY
 
-Python Emacs Intellisense and Unit Testing Support for Fortran
-------
+## Python Emacs Intellisense and Unit Testing Support for Fortran
 
 Fortpy is a python based parsing, unit testing and auto-complete framework for supporting Fortran 2003 including object oriented constructs. Auto-completion integration currently only available for emacs. Here are some of the features:
 
@@ -27,8 +25,7 @@ In most real-usage scenarios, the out-of-the-box support for multiple libraries 
 
 NOTE: Environment variables for emacs are set when it first starts; adding a config.xml file will not affect the emacs isense support until you restart emacs.
 
-Screenshots
-------
+## Screenshots
 
 Here are some of the things you can do once Fortpy is integrated with Emacs using fortpy.el:
 
@@ -44,8 +41,7 @@ Completion suggestions for both methods and variables embedded in user-defined t
 
 Documentation strings for methods embedded in user-defined types.
  
-Features
-------
+## Features
 
 ### Auto-complete Support
 - Integration with emacs using virtualenv, epc and auto-complete.

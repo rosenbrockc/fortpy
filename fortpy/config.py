@@ -46,6 +46,13 @@ class _config(types.ModuleType):
         return self.property_get("includes", [])
 
     @property
+    def compilers(self):
+        """Returns the path to the 'compilers.xml' file specifying which compilers
+        are available on the local system.
+        """
+        return self.property_get("compilers")
+    
+    @property
     def server(self):
         """Returns the information required to connect to a server via SSH for
         tramp editing support."""
@@ -96,6 +103,8 @@ class _config(types.ModuleType):
                     self._load_isense(child)
                 elif child.tag == "libraries":
                     self._load_includes(child)
+                elif child.tag == "compilers":
+                    self._vardict["compilers"] = child.text
       
     def _load_isense(self, tag):
         """Loads isense configuration as a dict of dicts into vardict."""

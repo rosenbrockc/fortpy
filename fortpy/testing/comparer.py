@@ -410,7 +410,7 @@ def _get_keyed_dict(template, body):
         if isinstance(template.key, list):
             keyval = _get_key_value_list(template, block)
         else:
-            keyval = _get_key_value_single(template, block)
+            keyval = _get_key_value_single(template.key, block)
         if keyval is not None:
             result[keyval] = block
     return result
@@ -460,20 +460,28 @@ def _get_key_value_single(key, bodyblock):
 class FileComparer(object):
     """Class for comparing different versions of output files.
 
-    :arg fortpy_templates: the path to the templates folder that shipped with
-      the fortpy package.
     :arg template_folder: the path to the folder that contains the
     XML templates for comparing files across versions.
     """
-    def __init__(self, fortpy_templates, template_folder = ""):
-        self.fortpy_templates = fortpy_templates
+    def __init__(self, fortpy_templates=None, template_folder=None):
+        self.fortpy_templates = None
+        """The pull path to the directory that holds the templates shipping with fortpy.
+        """
+        from fortpy.utility import set_fortpy_templates
+        set_fortpy_templates(self, fortpy_templates)
         self.templates = {}
-        self.folder = template_folder
-        #This is the main template used for all the versions of the files that
-        #will be compared.
+        """Dict of FileTemplate instances with the XML file name as key. 
+        """
+        from os import path
+        self.folder = path.abspath(path.expanduser(template_folder))
+        """The path to the folder that houses the XML template to use in comparing.
+        """
         self.template = None
-    
-    def compare(self, source, target, template, mode):
+        """This is the main template used for all the versions of the files that
+        will be compared.
+        """
+        
+    def compare(self, source, target, template=None, mode="default"):
         """Compares the two files using an XML template if one exists.
 
         :arg source: the path to the first file to compare.
@@ -491,16 +499,17 @@ class FileComparer(object):
         if svalues is not None and tvalues is not None:
             return compare_representations(svalues, tvalues, mode)
 
-    def get_representation(self, path, template):
+    def get_representation(self, path, template=None):
         """Creates a file representation for the specified file path.
 
         :arg path: the full path to file to get a templated representation of.
-        :arg template: the name of the template XML file to use.
+        :arg template: the name of the template XML file to use. If unspecified,
+          the <fortpy> tag in the file should specify it.
         """
         source = os.path.expanduser(path)
         if not os.path.exists(source):
             msg.err("can't create representation for {}.".format(source) + 
-                    " File does not exist.\n")            
+                    " File does not exist.")            
             return None
 
         with open(source) as f:
@@ -592,14 +601,14 @@ class FileComparer(object):
         #the output file
         if fortpyxml is not None and "template" in fortpyxml.attrib:
             template = fortpyxml.attrib["template"]
-            if template[0] == "." and self.folder != "":
-                xmlname = template[1::]
-                xmlpath = os.path.join(self.folder, xmlname)
-            else:
-                #This good be one of fortpy's built-in templates
+            from fortpy.utility import get_dir_relpath
+            xmlpath = get_dir_relpath(self.folder, template)
+            xmlname = os.path.split(xmlpath)[1]
+            if not os.path.isfile(xmlpath):
+                #This could be one of fortpy's built-in templates
                 xmlname = template
-                xmlpath = os.path.join("~/fortpy/templates/", xmlname)
-        elif filepath != "":
+                xmlpath = os.path.join(self.fortpy_templates, xmlname)
+        elif filepath != "" and filepath is not None:
             #The xml template file will have the same name as the files do
             #but an EXTRA extension of .xml - J.1.out -> J.1.out.xml
             #Look if we have one in the templates folder.
@@ -615,7 +624,9 @@ class FileComparer(object):
             return self.templates[xmlname]
 
         if os.path.exists(xmlpath):
+            msg.info("Using {} as the XML file template for comparison.".format(xmlpath), 2)
             self.templates[xmlname] = FileTemplate(xmlpath)    
             return self.templates[xmlname]
         else:
+            msg.warn("Could not find the XML file template for {}.".format(filepath), 2)
             return None

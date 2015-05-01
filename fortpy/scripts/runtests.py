@@ -17,25 +17,38 @@ def print_result(testkey, percent, time, common):
     text = "RESULT: {0} \n\t{1:.2%} success ({3:.2%} common) in {2} ms\n"
     cprint(text.format(printkey, percent, time, common), color)
 
-def initialize():    
+def initialize():
+    from fortpy.msg import set_quiet
+    set_quiet(args["quiet"])
+    
     t = UnitTester(args["stagedir"], args["verbose"], args["templates"], args["fortpy"],
                    args["rerun"], debug=(not args["nodebug"]), profile=args["profile"])
 
-    if args["compiler"]:
-        t.compiler = args["compiler"]
-        
+    complist = []
+    if args["compiler"] and args["compiler"] != "*":
+        complist.append(args["compiler"])
+    elif args["compiler"] == "*":
+        from fortpy.testing.compilers import compilers
+        for c in compilers:
+            complist.append(c)
+    else:
+        complist.append("gfortran")
+
+    #We only have to write the testing folder once; it gets copied for all
+    #the remaining tests that need to be run for different compilers.
     t.writeall(args["codedir"])
-    result = t.runall()
-    print("")
 
-    for idk in result:
-        totaltime = result[idk].totaltime
-        if totaltime is not None:
-            timestr = "{0:.4f}".format(totaltime*1000)
-        else:
-            timestr = "<untimed>"
-        print_result(idk, result[idk].percent, timestr, result[idk].common)
+    for c in complist:
+        result = t.runall(c)
+        print("")
 
+        for idk in result:
+            totaltime = result[idk].totaltime
+            if totaltime is not None:
+                timestr = "{0:.4f}".format(totaltime*1000)
+            else:
+                timestr = "<untimed>"
+            print_result(idk, result[idk].percent, timestr, result[idk].common)
 
 #Create a parser so that the script can receive arguments
 parser = argparse.ArgumentParser(description="Fortpy Automated Unit Testing Tool")
@@ -60,6 +73,8 @@ parser.add_argument("-nodebug",
                           "always compile with DEBUG on to check bounds and overflow errors etc."), 
                     action="store_true")
 parser.add_argument("-profile", help="Compile and link with profiling enabled. Analyze profile.",
+                    action="store_true")
+parser.add_argument("-quiet", help="Run in quiet mode; only essential output appears on stdout.",
                     action="store_true")
 #Parse the args from the commandline that ran the script, call initialize
 args = vars(parser.parse_args())

@@ -112,7 +112,8 @@ class TestGenerator(object):
         """Generates the fortran program for the specified executable code
         element."""
         #Each test written needs separated from the others
-        msg.blank()
+        msg.std("{}".format(type(executable).__name__.lower()) + 
+                " {}".format(executable.name))
 
         #The way this works is that the latest copy of each module that
         #this executable needs to run is copied to a staging folder
@@ -157,7 +158,7 @@ class TestGenerator(object):
             if needed.filepath not in previous or \
                (needed.filepath in previous and previous[needed.filepath] < moddate) or \
                not os.path.exists(target):
-                msg.info("COPY {}".format(needed.compile_path))
+                msg.info("   COPY {}".format(needed.compile_path))
                 copy(needed.compile_path, self.xgenerator.folder)
                 different = True
             files[needed.filepath] = moddate
@@ -170,7 +171,7 @@ class TestGenerator(object):
             tversion = self.tester.template_version(dfile)
             if not os.path.exists(target) or dversion != tversion:
                 source = os.path.join(self._fortpy, dfile)
-                msg.info("COPY: {}".format(source))
+                msg.info("   COPY: {}".format(source))
                 copy(source, self.xgenerator.folder)
                 different = True
 
@@ -187,8 +188,8 @@ class TestGenerator(object):
         #All the code files needed for compilation are now in the directory.
         #Create the executable file and the makefile for compilation
         if different:
-            msg.okay("UNITTEST: writing executable(s) for {}".format(type(executable).__name__) + 
-                     " {}".format(executable.name))
+            if len(self.xgenerator.writer.tests) > 1:
+                msg.okay("   CASES:")
             #It is possible that multiple tests were defined for the executable
             #being unit tested. We need to write a *.f90 PROGRAM file for each
             #test scenario *and* a separate makefile for the executable.
@@ -198,7 +199,8 @@ class TestGenerator(object):
                 self._changed.append("{}|{}".format(identifier, testid))
                 self.xtests[identifier] = self.xgenerator.writer.tests
                 self.xwriters[identifier] = self.xgenerator.writer
-                msg.info("\tWROTE TEST: {}\n".format(testid))
+                spacer = "  " if len(self.xgenerator.writer.tests) > 1 else ""
+                msg.info("   {}Wrote Test: {}".format(spacer, testid))
 
             #Overwrite the file date values for this executable in the archive
             #Also, save the archive in case something goes wrong in the next
@@ -206,7 +208,7 @@ class TestGenerator(object):
             self.archive[identifier] = files
             self._xml_save(identifier)
         else:            
-            msg.gen("UNITTEST: ignored '{}' because code hasn't changed.".format(executable.name))
+            msg.gen("   IGNORED: code hasn't changed.".format(executable.name))
 
     def _xml_get(self, identifier, reset=False):
         """Returns an XML tree for the document that tracks dates for code

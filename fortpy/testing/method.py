@@ -76,7 +76,7 @@ class MethodWriter(object):
         self.method = self.finders[testid]
         self.method.group.set_finder(self.method)
 
-    def copy(self, coderoot, testroot, case, testid):
+    def copy(self, coderoot, testroot, case, testid, compiler):
         """Performs the copy operation on any assignments that derive their values
         from files.
 
@@ -84,11 +84,13 @@ class MethodWriter(object):
         :arg testroot: the full path to the folder that the parent test is being
           performed in.
         :arg case: if a specific case of the same test is being performed, the
-          case identifier to use for string formatting."""
+          case identifier to use for string formatting.
+        :arg compiler: the name of the compiler being used for the unit tests.
+        """
         for methodk in self.ordered[testid]:
             method = self.method_dicts[testid][methodk]
             if isinstance(method, Assignment):
-                method.copy(coderoot, testroot, case)
+                method.copy(coderoot, testroot, case, compiler)
         
     def lines(self, testid):
         """Writes all the lines needed to declare and initialize variables and

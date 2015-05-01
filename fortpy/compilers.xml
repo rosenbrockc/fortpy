@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<compilers>
+  <compiler path="/usr/local/bin/gfortran" key="g49" name="gfortran49"
+	    default="true" />
+</compilers>
