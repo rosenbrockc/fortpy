@@ -1,6 +1,16 @@
 FORTPY: Revision History
 ======
 
+Revision 1.5.4
+------
+
+- Fixed a bug in the handling of explicitly-specified staging directories with `runtests.py`. The paths were being mapped using `path.expanduser` instead of `path.abspath`.
+- Fixed issue #27
+- Fixed issue #33
+- Fixed issue #32
+- Fixed additional issues with file comparison related to template sources, explicit templates in the `<fortpy>` tags of input/output files and one small issue with single valued body comparison keys.
+- Added integer verbosity level to `compare.py`.
+
 Revision 1.5.3
 ------
 

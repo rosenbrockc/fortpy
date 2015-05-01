@@ -247,6 +247,9 @@ class TestResult(object):
         self.paths = {}
         self.outcomes = {}
         self.compiled = None
+        self.target = None
+        """The full path to the directory containing the compiled executable
+        to run."""
 
         self.warnings = []
         self.failures = {}
@@ -334,15 +337,22 @@ class UnitTester(object):
     :arg libraryroot: the path to folder in which to stage the tests.
     """
     def __init__(self, libraryroot=None, verbose=False, compare_templates=None,
-                 fortpy_templates=None, rerun=None , compiler="gfortran",
-                 debug=False, profile=False):
+                 fortpy_templates=None, rerun=None , compiler=None,
+                 debug=False, profile=False, quiet=False):
         self.parser = CodeParser()
         self.parser.verbose = verbose
-        self._set_fortpy_dir(fortpy_templates)
+        from fortpy.utility import set_fortpy_templates
+        set_fortpy_templates(self, fortpy_templates)
         self.tgenerator = TestGenerator(self.parser, libraryroot, self.fortpy_templates, self, rerun)
-        self.compiler = compiler
+        self.compiler = None
+        """The full path to the compiler to use for the unit tests.
+        """
+        self.quiet = quiet
+        """Specifies whether the tester should run in quiet mode, which only prints
+        essential information for the unit tests to stdout.
+        """
         self.debug = debug == True
-        self._compiler_exists()
+        self.set_compiler(compiler)
         self.profile = self._profiler_exists(profile)
         
         #A flag to track whether the generator has already written
@@ -422,11 +432,27 @@ class UnitTester(object):
                 return True
         else:
             return False
-        
+
+    def set_compiler(self, compiler):
+        """Sets the compiler to use for the unit testing of this code parser.
+        """
+        if compiler is not None:
+            self.compiler = compiler
+            self._compiler_exists()
+
     def _compiler_exists(self):
         """Tests whether the specified compiler is available on the machine. If
         it isn't give an error and exit."""
-        if self.which(self.compiler) is None:
+        from fortpy.testing.compilers import compilers
+        if self.compiler in compilers:
+            #Overwrite the *name* of the compiler with its full path; since
+            #fortpy assumes that self.compiler is the name of a valid executable
+            #this will still work correctly.
+            compiler = compilers[self.compiler].path
+        else:
+            compiler = self.compiler
+
+        if self.which(compiler) is None:
             msg.err("compiler {} not found. Exiting.".format(self.compiler))
             exit(1)
         
@@ -449,22 +475,6 @@ class UnitTester(object):
                     return exe_file
 
         return None
-
-    def get_fortpy_templates_dir(self):
-        """Gets the templates directory from the fortpy package."""
-        fortdir = path.dirname(fortpy.__file__)
-        return path.join(fortdir, "templates")
-
-    def _set_fortpy_dir(self, fortpy_templates=None):
-        """Sets the directory path for the fortpy templates. If no directory
-        is specified, use the default one that shipped with the package.
-        """
-        #If they didn't specify a custom templates directory, use the default
-        #one that shipped with the package.
-        if fortpy_templates is not None:
-            self.fortpy_templates = path.abspath(fortpy_templates)
-        else:
-            self.fortpy_templates = self.get_fortpy_templates_dir()
 
     def writeall(self, codefolder):
         """Writes all the unit test executables that are new or modified
@@ -492,12 +502,18 @@ class UnitTester(object):
         self.tgenerator.write(self._codefolder)
         self._written = True
 
-    def runall(self):
+    def runall(self, compiler=None):
         """Compiles and runs each new or modified unit test executable.
-        After the run is complete, the outcomes are checked for consistency."""
+        After the run is complete, the outcomes are checked for consistency.
+
+        :arg compiler: the name of the compiler in 'compilers.xml' to use.
+        """
+        #We will likely need a file comparer for the outcomes testing
+        self.comparer = FileComparer(self.fortpy_templates, self.compare_templates)
+
         if self._written:
-            #We will likely need a file comparer for the outcomes testing
-            self.comparer = FileComparer(self.fortpy_templates, self.compare_templates)
+            self.set_compiler(compiler)
+                
             #Run them each individually and return a dictionary of all the
             #test results
             result = {}
@@ -517,7 +533,7 @@ class UnitTester(object):
         #Just initialize a result object and populate its properties
         #using the various _run_* methods.
         result = TestResult(identifier, testid)
-        result.compiled = self._run_compile(identifier, testid)
+        result.compiled, result.target = self._run_compile(identifier, testid)
         if result.compiled:
             self._run_exec(identifier, testid, result)
 
@@ -528,21 +544,42 @@ class UnitTester(object):
     def _run_compile(self, identifier, testid):
         """Compiles the executable that was created for the specified identifier,
         returns True if the compile was successful."""
+        #Because we often run the tests for multiple compiler versions, we need
+        #a copy of the execution directory that was setup for the testing.
+        from fortpy.testing.compilers import replace, executor, family
+        from fortpy.utility import copytree
+        from os import path
+        source = path.join(self.libraryroot(identifier), identifier)        
+        target = replace(source + ".[c]", self.compiler)
+        copytree(source, target)
+        
         #Find the target folder that has the executables etc then run
         #make and check the exit code.
-        target = path.join(self.libraryroot(identifier), identifier)
-        msg.blank(2)
-
+        msg.blank()
         options = ""
         if self.debug:
             options += " DEBUG=true"
         if self.profile:
             options += " GPROF=true"
 
-        codestr = "cd {}; make -f 'Makefile.{}' F90={}" + options
-        code = system(codestr.format(target, testid, self.compiler))
+        codestr = "cd {}; make -f 'Makefile.{}' F90='{}' FAM='{}'" + options
+        #If we are running in quiet mode, we don't want the compile information
+        #to post to stdout; only errors should be redirected. This means we need
+        #to wrap the execution in a subprocess and redirect the std* to PIPE
+        from os import waitpid
+        from subprocess import Popen, PIPE
+        command = codestr.format(target, testid, executor(self.compiler), family(self.compiler))
+        pcompile = Popen(command, shell=True, executable="/bin/bash", stdout=PIPE, stderr=PIPE)
+        waitpid(pcompile.pid, 0)
         
-        msg.blank()
+        if not self.quiet:
+            output = pcompile.stdout.readlines()
+            msg.std(''.join(output))
+        #else: #We don't need to get these lines since we are purposefully redirecting them.
+        error = pcompile.stderr.readlines()
+        code = len(error)
+        if code != 0:
+            msg.err(''.join(error))
 
         #It turns out that the compiler still returns a code of zero, even if the compile
         #failed because the actual compiler didn't fail; it did its job properly. We need to
@@ -581,7 +618,7 @@ class UnitTester(object):
                 msg.err("Could not compile executable {}.x".format(testid))
                 exit(-1)
 
-        return code == 0
+        return code == 0, target
 
     def _run_exec(self, identifier, testid, result):
         """Runs the executable for unit test for the specified identifier
@@ -597,7 +634,7 @@ class UnitTester(object):
         #get copied.
 
         #Create the folder for staging the tests.
-        tests = path.join(self.libraryroot(identifier), identifier, "tests")
+        tests = path.join(result.target, "tests")
         if not path.exists(tests):
             mkdir(tests)
         
@@ -607,7 +644,7 @@ class UnitTester(object):
         method = module.executables[kmethod]
 
         #Get the absolute path to the executable that we created
-        exepath = path.join(self.libraryroot(identifier), identifier, "{}.x".format(testid))
+        exepath = path.join(result.target, "{}.x".format(testid))
 
         #Since we have already split out all the tests that need to be run and 
         #we have a 'testid' for the current test to run, just run that test.
@@ -652,9 +689,6 @@ class UnitTester(object):
                 else:
                     result.warnings.append("Duplicate CASES specified for unit testing:" + 
                                            " {}".format(caseid))
-
-            #This is the extra space for readablity in multi-case mode
-            msg.blank()
         else:
             #Create a folder for this test specification to run in.
             testpath = path.join(testsfolder, testspec.identifier)
@@ -669,9 +703,9 @@ class UnitTester(object):
 
         #Copy across all the input files we need to run.
         for i in testspec.inputs:
-            i.copy(self._codefolder, testpath, case)
+            i.copy(self._codefolder, testpath, case, self.compiler)
         #Also copy any assignment file dependencies.
-        testwriter.copy(self._codefolder, testpath, case, testspec.identifier)
+        testwriter.copy(self._codefolder, testpath, case, testspec.identifier, self.compiler)
         #Clean the testing folder to remove any target variable output files
         #from any earlier test runs.
         testspec.clean(testpath)
@@ -681,7 +715,23 @@ class UnitTester(object):
         msg.okay("Executing {}.x in folder ./tests{}".format(testspec.identifier, 
                                                              testpath.split("tests")[1]))
         start_time = clock()                              
-        code = system("cd {}; {}".format(testpath, exepath))
+        from os import waitpid
+        from subprocess import Popen, PIPE
+        command = "cd {}; {}".format(testpath, exepath)
+        prun = Popen(command, shell=True, executable="/bin/bash", stdout=PIPE, stderr=PIPE)
+        waitpid(prun.pid, 0)        
+        if not self.quiet:
+            output = prun.stdout.readlines()
+            if len(output) > 0:
+                msg.std(''.join(output))
+        #else: #We don't need to get these lines since we are purposefully redirecting them.
+        error = prun.stderr.readlines()
+        if len(error) > 0:
+            if self.quiet:
+                msg.info("With Executable at {}".format(exepath), 1)
+            msg.err('\n  '+'  '.join(error))
+        code = len(error)
+        
         if case == "":
             result.cases[caseid] = ExecutionResult(testpath, code, clock() - start_time, tester)
         else:
@@ -692,10 +742,6 @@ class UnitTester(object):
         if self.profile:
             profiling.profile(testpath, testspec.testgroup.method_fullname, 
                               exepath, self.compiler)
-
-        #Add some whitespace for readability between tests
-        if case == "":
-            msg.blank()
 
     def _write_success(self, testpath, code):
         """Creates a SUCCESS file in the specified testpath if code==0 that has

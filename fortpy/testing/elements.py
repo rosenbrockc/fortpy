@@ -302,18 +302,21 @@ class AssignmentValue(object):
         else:
             return self.filename
  
-    def copy(self, coderoot, testroot, case):
+    def copy(self, coderoot, testroot, case, compiler):
         """Copies the input files needed for this value to set a variable.
 
         :arg coderoot: the full path to folder with the code files.
         :arg testroot: the full path the folder where the test is running.
         :arg case: the case id for multi-case testing.
+        :arg compiler: the name of the compiler being used for the unit tests.
         """
         #We only want to do the copy if we are assigning a value from a file.
         if self.folder is not None:
             from fortpy.tramp import coderelpath
+            from fortpy.testing.compilers import replace
             relpath = coderelpath(coderoot, self.folder)
-            source = path.join(relpath, self.filename.format(case))
+            source = replace(path.join(relpath, self.filename.format(case)), compiler)
+            source = replace(source, compiler, True)
             #For the cases where multiple files specify the values for different
             #parts of an array, the <value> file specification will have a wildcard
             #at the position where the array index id will go. We just copy *all* the
@@ -1023,16 +1026,17 @@ class Assignment(object):
         for v in self.values:
             self.values[v].check_prereqs(finder)
 
-    def copy(self, coderoot, testroot, case):
+    def copy(self, coderoot, testroot, case, compiler):
         """Copies the input files needed for this assignment to set a variable.
 
         :arg coderoot: the full path to folder with the code files.
         :arg testroot: the full path the folder where the test is running.
         :arg case: the case id for multi-case testing.
+        :arg compiler: the name of the compiler used to make the unit test executable.
         """
         #Just call copy on all the child value objects.
         for v in self.values:
-            self.values[v].copy(coderoot, testroot, case)        
+            self.values[v].copy(coderoot, testroot, case, compiler)        
         
     def _code_setvar_allocate(self, lines, spacer):
         """Allocates the variables before a general value setting if they need to be
@@ -1266,7 +1270,7 @@ class TestInput(object):
         if self.constant:
             lines.append("{}close({})".format(spacer, self.fileunit))
 
-    def copy(self, coderoot, testroot, case=""):
+    def copy(self, coderoot, testroot, case="", compiler=None):
         """Copies the input file from the specified code root directory to
         the folder where the test is being performed.
 
@@ -1275,10 +1279,14 @@ class TestInput(object):
           performed in.
         :arg case: if a specific case of the same test is being performed, the
           case identifier to use for string formatting.
+        :arg compiler: the name of the compiler used to make the unit test executable.
         """
         from fortpy.tramp import coderelpath
+        from fortpy.testing.compilers import replace
         relpath = coderelpath(coderoot, self.folder)
-        source = path.join(relpath, self.filename.format(case))
+        source = replace(path.join(relpath, self.filename.format(case)), compiler)
+        source = replace(source, compiler, True)
+        
         if self.rename is not None:
             target = path.join(testroot, self.rename)
         else:

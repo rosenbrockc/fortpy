@@ -131,11 +131,10 @@ def _add_explicit_includes(lines, dependencies=None, extralinks=None):
 
 def _make_compiler_include(precompile, extralinks):
     """Returns the include statement for the compiler to use."""
-    #We need to see whether to include the pre-compiler directive or not.
-    base = """ifeq ($(F90),ifort)
+    base = """ifeq ($(FAM),ifort)
   include {2}/Makefile.ifort{0}{3}
 else
-ifeq ($(F90),gfortran)
+ifeq ($(FAM),gfortran)
   include {2}/Makefile.gfortran{1}{3}
 else
   include Makefile.error
@@ -151,7 +150,8 @@ endif"""
         exlinks = "\n  FFLAGS += {}".format(' '.join(libs))
     else:
         exlinks = ""
-    
+        
+    #We need to see whether to include the pre-compiler directive or not.    
     if precompile:
         insert = ["\n  FFLAGS += -fpp -save-temps -heap-arrays", "\n  FFLAGS += -cpp",
                   get_fortpy_templates(), exlinks]

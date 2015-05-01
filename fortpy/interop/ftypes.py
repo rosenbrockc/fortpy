@@ -137,8 +137,8 @@ class WrapperModule(object):
             options += " GPROF=true"
 
         from os import system
-        codestr = "cd {}; make -f '{}' F90={}" + options
-        code = system(codestr.format(dirpath, makename, compiler))
+        codestr = "cd {}; make -f '{}' F90={} FAM={}" + options
+        code = system(codestr.format(dirpath, makename, compiler, compiler[0]))
 
         #It turns out that the compiler still returns a code of zero, even if the compile
         #failed because the actual compiler didn't fail; it did its job properly. We need to

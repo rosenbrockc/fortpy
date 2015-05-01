@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <config>
+  <compilers>~/codes/fortpy-dist/fortpy/compilers.xml</compilers>
   <codes>
     <trunk name="uncle" value="~/codes/uncle/trunk" />
     <trunk name="celib" value="~/codes/celib/trunk" />
