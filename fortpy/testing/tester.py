@@ -367,7 +367,8 @@ class UnitTester(object):
         """Returns the version number of the latest fortpy.f90 file."""
         if filename not in self._templatev:
             from os import path
-            tempath = path.join(self.get_fortpy_templates_dir(), filename)
+            from fortpy.utility import get_fortpy_templates_dir
+            tempath = path.join(get_fortpy_templates_dir(), filename)
             self._templatev[filename] = self.get_fortpy_version(tempath)
 
         return self._templatev[filename]

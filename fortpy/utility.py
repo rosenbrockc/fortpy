@@ -49,6 +49,7 @@ def set_fortpy_templates(obj, fortpy_templates=None):
     """
     #If they didn't specify a custom templates directory, use the default
     #one that shipped with the package.
+    from os import path
     if fortpy_templates is not None:
         obj.fortpy_templates = path.abspath(path.expanduser(fortpy_templates))
     else:
@@ -64,6 +65,9 @@ def get_dir_relpath(base, relpath):
     """
     from os import path
     xbase = path.abspath(path.expanduser(base))
+    if not path.isdir(xbase):
+        return path.join(xbase, relpath)
+    
     if relpath[0:2] == "./":
         return path.join(xbase, relpath[2::])
     else:

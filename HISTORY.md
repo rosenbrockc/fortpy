@@ -1,8 +1,10 @@
-FORTPY: Revision History
-======
+# FORTPY: Revision History
 
-Revision 1.5.4
-------
+## Revision 1.5.5
+
+- Fixed a bug introduced last revision 1.5.4; I thought I had run the unit tests before committing but I hadn't. Since I haven't set up the CI server yet on fortpy, it didn't get picked up until now.
+
+## Revision 1.5.4
 
 - Fixed a bug in the handling of explicitly-specified staging directories with `runtests.py`. The paths were being mapped using `path.expanduser` instead of `path.abspath`.
 - Fixed issue #27
@@ -11,24 +13,20 @@ Revision 1.5.4
 - Fixed additional issues with file comparison related to template sources, explicit templates in the `<fortpy>` tags of input/output files and one small issue with single valued body comparison keys.
 - Added integer verbosity level to `compare.py`.
 
-Revision 1.5.3
-------
+## Revision 1.5.3
 
 - Fixed a bug in the executable parser. Executables without any parameters were being ignored.
 - Fixed a bug in the unit tester from the fix in Revision 1.5.2 for relative paths in the _staging_ attribute.
 
-Revision 1.5.2
-------
+## Revision 1.5.2
 
 - Added support for a previously advertised feature that wasn't implemented yet. Paths to _folder_ attributes in `<input>`, `<output>`, and the _staging_ attribute for `<group>` tags now support relative paths (relative to the code folder). This allows different executables to define unique staging folders at the testing group level. It also allows the `runtests.py` script to run with a single parameter, the positional parameter specifying the code directory to run.
 
-Revision 1.5.1
-------
+## Revision 1.5.1
 
 - Fixed issue #31 related to value overwriting of shared memory between subsequent calls to the same method loaded from a shared library.
 
-Revision 1.5.0
------
+## Revision 1.5.0
 
 This minor version increment presents an additional interoperability tool call `ftypes` to the fortpy suite. It automatically:
 - generates wrapper subroutines for fortran code including for output parameters that are `pointer` or `allocatable`.
