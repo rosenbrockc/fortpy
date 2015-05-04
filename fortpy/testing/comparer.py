@@ -561,13 +561,15 @@ class FileComparer(object):
     def _get_fortpy(self, line1):
         """Extracts the fortpy tag from the first line of the file."""
         if "#" in line1:
+            from fortpy.utility import XML_fromstring
             try:
-                lxml = ET.fromstring(line1.split("#")[1])
+                lxml = XML_fromstring(line1.split("#")[1])
                 if lxml.tag == "fortpy":
                     return lxml
                 else:
                     return None
-            except ET.ParseError:
+            except ET.ParseError as err:
+                msg.warn(err.msg)
                 msg.warn("no version information found in the file. Assuming version 1.")
                 return None
         else:

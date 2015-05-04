@@ -1,5 +1,9 @@
 # FORTPY: Revision History
 
+## Revision 1.5.6
+
+- Added a more useful error message for XML tag parsing. Instead of just specifying the line number and column, the error message includes an excerpt of the original XML string showing the badly formed XML tag. This addresses issue #35.
+
 ## Revision 1.5.5
 
 - Fixed a bug introduced last revision 1.5.4; I thought I had run the unit tests before committing but I hadn't. Since I haven't set up the CI server yet on fortpy, it didn't get picked up until now.

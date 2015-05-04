@@ -77,3 +77,21 @@ def get_dir_relpath(base, relpath):
         result = path.abspath(relpath)
         chdir(cd)
         return result
+
+import io
+import itertools as IT
+import xml.etree.ElementTree as ET
+
+def XML_fromstring(content):
+    """Parses the XML string into a node tree. If an ParseError exception is raised,
+    the error message is formatted nicely to show the badly formed XML to the user.
+    """
+    try:
+        tree = ET.fromstring(content)
+    except ET.ParseError as err:
+        lineno, column = err.position
+        line = next(IT.islice(io.BytesIO(content), lineno))
+        caret = '{:=>{}}'.format('^', column)
+        err.msg = '{}\n{}\n{}'.format(err, line, caret)
+        raise 
+    return tree

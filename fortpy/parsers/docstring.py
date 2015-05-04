@@ -288,7 +288,8 @@ class DocStringParser(object):
         """Parses the docstrings out of the specified xml file."""
         result = {}
 
-        xmlroot = ET.fromstring(xmlstring)
+        from fortpy.utility import XML_fromstring
+        xmlroot = XML_fromstring(xmlstring)
         if xmlroot.tag == "fortpy" and "mode" in xmlroot.attrib and \
            xmlroot.attrib["mode"] == "docstring":
             #We fill the dictionary with decorates names as keys and lists
