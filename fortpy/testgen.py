@@ -81,7 +81,7 @@ def load(names, folder, infile=True, case=None):
         else:
             with open(absfile) as f:
                 for line in f:
-                    values = map(eval, line.strip().split())
+                    values = list(map(eval, line.strip().split()))
                     if len(values) == 1:
                         varval.append(values[0])
                     else:

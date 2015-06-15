@@ -254,6 +254,9 @@ def _compare_body(rep1, rep2, mode):
     #each line will only be matched to a corresponding one that has
     #the same value for the key.
     result = BodyResult(rep1.body, rep2.body)
+    if len(rep1.body) == 0 and len(rep2.body) == 0:
+        #Don't bother computing anything, we have two empty sets.
+        return result
 
     if rep1.template.key is not None:
         #Loop through the list of body elements and re-store them in a dictionary
@@ -520,7 +523,7 @@ class FileComparer(object):
             msg.err("The file {} is empty; can't create representation.".format(source))
             return None
 
-        sf = self._get_fortpy(slines[0])
+        sf = self._get_fortpy(slines[0], source)
         sv = self._get_file_version(sf)
 
         #By convention, if the two files have different filenames, we only
@@ -558,12 +561,15 @@ class FileComparer(object):
         else:
             return None
 
-    def _get_fortpy(self, line1):
-        """Extracts the fortpy tag from the first line of the file."""
+    def _get_fortpy(self, line1, source):
+        """Extracts the fortpy tag from the first line of the file.
+
+        :arg source: the path to the file from which the line was extracted.
+        """
         if "#" in line1:
             from fortpy.utility import XML_fromstring
             try:
-                lxml = XML_fromstring(line1.split("#")[1])
+                lxml = XML_fromstring(line1.split("#")[1], source)
                 if lxml.tag == "fortpy":
                     return lxml
                 else:

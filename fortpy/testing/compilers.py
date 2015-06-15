@@ -152,6 +152,6 @@ def _load_xml():
                         _default = compiler.name
 
             if _default is None and len(compilers) > 0:
-                _default = compilers.keys()[0]            
+                _default = list(compilers.keys())[0]            
 
 _load_xml()

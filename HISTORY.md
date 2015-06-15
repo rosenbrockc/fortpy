@@ -1,5 +1,27 @@
 # FORTPY: Revision History
 
+## Revision 1.6.0
+
+- As a follow up to issue #35, added more lines of the XML file in which the error occurred and also the file path to the source.
+- Fixed a bug where the module parser was adding local variables of _executables_ to its members list if the module didn't have any user-defined custom types.
+- Fixed a bug where `allocatable` was being added to any variables receiving initialization from files, even if the size of the array was fixed.
+- Updated `fortpy.f90` to include support for fixed-dimension arrays when using `fpy_read`.
+- Fixed issue #46
+- Fixed issue #45
+- Fixed issue #44 by introducing case insensitivity to the `regular="true"` parameter check and by fixing a new bug we discovered where if `dimension` was added as a _modifier_ instead of attached to the variable name, it wasn't being parsed correctly by `parsers.variable`.
+- Fixed `fpy_value_count` in `fortpy.f90`. The variable `prev` was having its value set to `0` in the variable declaration, which is only evaluated when the subroutine is first read into memory. Subsequent calls retain their values from previous ones. `prev` now sets is value to `-1` on each call to the routine, which also solves a problem where `adjustl` was not removing leading tabs from the strings that are later cleaned with `trim`.
+- Added support for `logical` and `complex` types for `pysave` and `fpy_read` interfaces in `fortpy.f90`.
+- Added support for multi-dimensional arrays up to the fortran-max of 7D. Fixes issue #41.
+- Added pre-compile support for `fortpy.f90` into `fortpy.mod` and `fortpy.o` for each compiler used in the unit testing. After adding multi-dimensional array support, the `fortpy.f90` file exceeds 10,000 lines and takes 2-20 seconds to compile. Pre-compilation makes sense for lots of quick unit tests: fortpy shouldn't be the bottleneck.
+- Fixed issue #3 in `msg-byu/symlib` by printing more digits of the values being compared.
+- Fixed issue #48
+- Fixed issue #52
+- Fixed issue #53
+- Fixed issue #50
+- Updated additional modules with `2to3` for `python3` compatibility.
+- Fixed an issue in `analyze.py` where setting the prompt failed because of the new compiler support.
+- Fixed a bug in the analysis shell where tests that have no `.compare.out` file (and thus a `None` percentage) raised an exception when trying to be printed as a percentage.
+
 ## Revision 1.5.6
 
 - Added a more useful error message for XML tag parsing. Instead of just specifying the line number and column, the error message includes an excerpt of the original XML string showing the badly formed XML tag. This addresses issue #35.

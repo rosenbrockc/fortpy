@@ -29,7 +29,7 @@ def writef90():
     dependencies = ["{}_c".format(m) for m in cparser.modules]
     originals = list(cparser.modules.keys())
     writers = {}
-    for modname, module in cparser.modules.items():
+    for modname, module in list(cparser.modules.items()):
         msg.info("Writing wrapper module for {}".format(modname))
         fwriter = f90.WrapperModule(module, args["library"], args["f90"], args["link"])
         writers[modname] = fwriter
@@ -37,7 +37,7 @@ def writef90():
         msg.okay("Finished writing {}_c.f90".format(modname))
         
     #We can compile all these modules together into a single shared library.
-    writer = writers.values()[0]
+    writer = list(writers.values())[0]
     code = writer.make(remake=args["remake"], dependencies=dependencies, compiler=args["compiler"],
                        debug=args["debug"], profile=args["profile"])
     if code == 0:

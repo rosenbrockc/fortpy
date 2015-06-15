@@ -13,7 +13,7 @@ def initialize():
         with open(fullpath, "w") as f:
             f.write(print_compare_result(result, args["verbose"]))
     else:
-        print(print_compare_result(result, args["verbose"]))
+        print((print_compare_result(result, args["verbose"])))
 
     return result
 

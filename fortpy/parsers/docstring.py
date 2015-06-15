@@ -44,6 +44,7 @@ class DocStringParser(object):
 
         :arg container: the instance of the element who owns the string.
         """
+        from fortpy.utility import XML
         result = {}
         if container is None:
             #We are working with the code file at the module level. Extract the module
@@ -52,7 +53,7 @@ class DocStringParser(object):
                 docstring = re.sub("\s*!!", "", module.group("docstring"))
                 doctext = "<doc>{}</doc>".format(re.sub("\n", "\s", docstring))
                 try:
-                    docs = ET.XML(doctext)
+                    docs = XML(doctext)
                     #Get the name of the module to use as the key and then add the list
                     #of XML docstrings to the result.
                     key = module.group("name")
@@ -228,6 +229,7 @@ class DocStringParser(object):
         #The easiest way to do this is to look at one line at a time and see if it is a docstring
         #When we find a group of docstrings that suddenly ends, the next item is the code element
         #that they were decorating (which may or may not be pertinent).
+        from fortpy.utility import XML
         current = []
         docblocks = {}
         docstart = 0
@@ -252,7 +254,7 @@ class DocStringParser(object):
                     #parser will scream. Wrap everything in a doc tag.
                     doctext = "<doc>{}</doc>".format(" ".join(current))
                     try:
-                        docs = ET.XML(doctext)
+                        docs = XML(doctext)
                         if not key in docblocks:
                             #Let the docstart and docend *always* be absolute 
                             #character references.
@@ -262,8 +264,8 @@ class DocStringParser(object):
                             docblocks[key] = [list(docs), absstart, absend]
                         else:
                             docblocks[key][0].extend(list(docs))
-                    except ET.ParseError:
-                        msg.err(doctext)
+                    except ET.ParseError as err:
+                        msg.err(err.msg)
 
                     #Reset the list of current docstrings
                     current = []
@@ -284,12 +286,15 @@ class DocStringParser(object):
         else:
             return container.name
 
-    def parsexml(self, xmlstring, modules):
-        """Parses the docstrings out of the specified xml file."""
+    def parsexml(self, xmlstring, modules, source=None):
+        """Parses the docstrings out of the specified xml file.
+
+        :arg source: the path to the file from which the XML string was extracted.
+        """
         result = {}
 
         from fortpy.utility import XML_fromstring
-        xmlroot = XML_fromstring(xmlstring)
+        xmlroot = XML_fromstring(xmlstring, source)
         if xmlroot.tag == "fortpy" and "mode" in xmlroot.attrib and \
            xmlroot.attrib["mode"] == "docstring":
             #We fill the dictionary with decorates names as keys and lists

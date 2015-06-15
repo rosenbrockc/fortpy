@@ -123,7 +123,7 @@ class CodeParser(object):
         xmlpath = self.get_xmldoc_path(filepath)
         if self.tramp.exists(xmlpath):
             xmlstring = self.tramp.read(xmlpath)
-            self.modulep.docparser.parsexml(xmlstring, self.modules)
+            self.modulep.docparser.parsexml(xmlstring, self.modules, xmlpath)
             
     def get_xmldoc_path(self, filepath):
         """Returns the full path to a possible XML documentation file for the

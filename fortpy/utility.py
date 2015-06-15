@@ -82,16 +82,71 @@ import io
 import itertools as IT
 import xml.etree.ElementTree as ET
 
-def XML_fromstring(content):
+def wrap_line(line, limit=None, chars=80):
+    """Wraps the specified line of text on whitespace to make sure that none of the
+    lines' lengths exceeds 'chars' characters.
+    """
+    result = []
+    builder = []
+    length = 0
+    if limit is not None:
+        sline = line[0:limit]
+    else:
+        sline = line
+        
+    for word in sline.split():
+        if length <= chars:
+            builder.append(word)
+            length += len(word) + 1
+        else:
+            result.append(' '.join(builder))
+            builder = [word]
+            length = 0
+
+    result.append(' '.join(builder))
+    return result
+
+def x_parse_error(err, content, source):
+    """Explains the specified ParseError instance to show the user where the error
+    happened in their XML.
+    """
+    lineno, column = err.position
+    if "<doc>" in content:
+        #Adjust the position since we are taking the <doc> part out of the tags
+        #since we may have put that in ourselves.
+        column -= 5
+    start = lineno - (1 if lineno == 1 else 2)
+    lines = []
+    tcontent = content.replace("<doc>", "").replace("</doc>", "")
+    for context in IT.islice(tcontent, start, lineno):
+        lines.append(context.strip())
+    last = wrap_line(lines.pop(), column)
+    lines.extend(last)
+    
+    caret = '{:=>{}}'.format('^', len(last[-1]))
+    if source is not None:
+        err.msg = '\nIn: {}\n{}\n{}\n{}'.format(source, err, '\n'.join(lines), caret)
+    else:
+        err.msg = '{}\n{}\n{}'.format(err, '\n'.join(lines), caret)
+
+    raise err
+
+def XML(content, source=None):
+    """Parses the XML text using the ET.XML function, but handling the ParseError in
+    a user-friendly way.
+    """
+    try:
+        tree = ET.XML(content)
+    except ET.ParseError as err:
+        x_parse_error(err, content, source)
+    return tree
+
+def XML_fromstring(content, source=None):
     """Parses the XML string into a node tree. If an ParseError exception is raised,
     the error message is formatted nicely to show the badly formed XML to the user.
     """
     try:
         tree = ET.fromstring(content)
     except ET.ParseError as err:
-        lineno, column = err.position
-        line = next(IT.islice(io.BytesIO(content), lineno))
-        caret = '{:=>{}}'.format('^', column)
-        err.msg = '{}\n{}\n{}'.format(err, line, caret)
-        raise 
+        x_parse_error(err, content, source)
     return tree

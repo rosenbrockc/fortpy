@@ -38,12 +38,12 @@ def _format_executable(lines, element, spacer=""):
     #Subroutines can have embedded types and functions which need to be handled.
     if len(element.types) > 0:
         rlines.append("\nEMBEDDED TYPES")
-        for key, value in element.types.items():
+        for key, value in list(element.types.items()):
             _format_type(rlines, value, "  ")
 
     if len(element.executables) > 0:
         rlines.append("\nEMBEDDED EXECUTABLES")
-        for key, value in element.executables.items():
+        for key, value in list(element.executables.items()):
             _format_executable(rlines, value, "  ")
 
     lines.extend([spacer + l for l in rlines])
@@ -59,7 +59,7 @@ def _format_type(lines, element, spacer=""):
 
     if len(element.executables) > 0:
         rlines.append("\nEMBEDDED PROCEDURES")
-        for key, value in element.executables.items():
+        for key, value in list(element.executables.items()):
             rlines.append("  {}".format(value.__str__()))
             target = value.target
             if target is not None:
@@ -67,7 +67,7 @@ def _format_type(lines, element, spacer=""):
 
     if len(element.members) > 0:
         rlines.append("\nEMBEDDED MEMBERS")
-        for key, value in element.members.items():
+        for key, value in list(element.members.items()):
             _format_value_element(rlines, value, "  ")
 
     lines.extend([spacer + l for l in rlines])    

@@ -125,7 +125,7 @@ class DocElement(object):
         lines = ["  {}: {}".format(self.doctype.upper(), self.contents)]
         if len(self.attributes) > 0:
             strattr = []
-            for key, value in self.attributes.items():
+            for key, value in list(self.attributes.items()):
                 strattr.append("{} -> {}".format(key, value))
             lines.append("    Attributes:" + "; ".join(strattr))
 

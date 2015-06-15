@@ -1,11 +1,12 @@
-!!<fortpy version="1.3.12" />
+!!<fortpy version="1.6.0" />
 !!<summary>Provides an interface for saving the values of multiple variable
 !!types using a single call. Used as part of the FORTPY unit testing framework.</summary>
 module fortpy
   implicit none
   private
   public pysave, fdp, fsp, fsi, fli, fpy_linevalue_count, fpy_newunit, fpy_read, &
-       fpy_value_count, fpy_period_join_indices, fpy_linevalue_count_all, fpy_read_p
+       fpy_value_count, fpy_period_join_indices, fpy_linevalue_count_all, fpy_read_p, &
+       fpy_read_f
 
   !!<member name="fileunit">I/O unit for the file to write the output to.</member>
   integer :: fileunit
@@ -22,446 +23,10359 @@ module fortpy
   !!for single values, 1D and 2D arrays. Also handles outputting true/false for
   !!logical type variables.</summary>
   interface pysave
-     module procedure pysave_integer, pysave_integer_1d, pysave_integer_2d, &
-          pysave_integer_li, pysave_integer_1d_li, pysave_integer_2d_li, &
-          pysave_real, pysave_real_1d, pysave_real_2d, pysave_logical
+     module procedure pysave_realsp_0d, pysave_realsp_1d, pysave_realsp_2d, &
+                       pysave_realsp_3d, pysave_realsp_4d, pysave_realsp_5d, &
+                       pysave_realsp_6d, pysave_realsp_7d, pysave_realdp_0d, &
+                       pysave_realdp_1d, pysave_realdp_2d, pysave_realdp_3d, &
+                       pysave_realdp_4d, pysave_realdp_5d, pysave_realdp_6d, &
+                       pysave_realdp_7d, pysave_integer_0d, pysave_integer_1d, &
+                       pysave_integer_2d, pysave_integer_3d, pysave_integer_4d, &
+                       pysave_integer_5d, pysave_integer_6d, pysave_integer_7d, &
+                       pysave_integersp_0d, pysave_integersp_1d, pysave_integersp_2d, &
+                       pysave_integersp_3d, pysave_integersp_4d, pysave_integersp_5d, &
+                       pysave_integersp_6d, pysave_integersp_7d, pysave_integerdp_0d, &
+                       pysave_integerdp_1d, pysave_integerdp_2d, pysave_integerdp_3d, &
+                       pysave_integerdp_4d, pysave_integerdp_5d, pysave_integerdp_6d, &
+                       pysave_integerdp_7d, pysave_complexsp_0d, pysave_complexsp_1d, &
+                       pysave_complexsp_2d, pysave_complexsp_3d, pysave_complexsp_4d, &
+                       pysave_complexsp_5d, pysave_complexsp_6d, pysave_complexsp_7d, &
+                       pysave_complexdp_0d, pysave_complexdp_1d, pysave_complexdp_2d, &
+                       pysave_complexdp_3d, pysave_complexdp_4d, pysave_complexdp_5d, &
+                       pysave_complexdp_6d, pysave_complexdp_7d, pysave_character_0d, &
+                       pysave_character_1d, pysave_character_2d, pysave_character_3d, &
+                       pysave_character_4d, pysave_character_5d, pysave_character_6d, &
+                       pysave_character_7d, pysave_logical_0d, pysave_logical_1d, &
+                       pysave_logical_2d, pysave_logical_3d, pysave_logical_4d, &
+                       pysave_logical_5d, pysave_logical_6d, pysave_logical_7d
   end interface pysave
-
-  !!<summary>Generates a 0-2 dimensional array of integer or real values.</summary>
-  interface randomfpy
-     module procedure random_real, random_integer, random_real_1d, random_real_2d, &
-          random_integer_1d, random_integer_2d
-  end interface randomfpy
-
-  !!<summary>Determines whether the specified value lies within the range for
-  !!0-2 dimensional integer and real values.</summary>
-  interface fpyin_range
-     module procedure in_range_integer, in_range_integer_1d, in_range_integer_2d, &
-          in_range_real, in_range_real_1d, in_range_real_2d
-  end interface fpyin_range
 
   !!<summary>Reads values from a data file into a variable.</summary>
   interface fpy_read
-     module procedure fpy_read_integer, fpy_read_integer_1d, fpy_read_integer_2d, &
-          fpy_read_real, fpy_read_real_1d, fpy_read_real_2d
+     module procedure fpy_read_realsp_0d, fpy_read_realsp_1d, fpy_read_realsp_2d, &
+                       fpy_read_realsp_3d, fpy_read_realsp_4d, fpy_read_realsp_5d, &
+                       fpy_read_realsp_6d, fpy_read_realsp_7d, fpy_read_realdp_0d, &
+                       fpy_read_realdp_1d, fpy_read_realdp_2d, fpy_read_realdp_3d, &
+                       fpy_read_realdp_4d, fpy_read_realdp_5d, fpy_read_realdp_6d, &
+                       fpy_read_realdp_7d, fpy_read_integer_0d, fpy_read_integer_1d, &
+                       fpy_read_integer_2d, fpy_read_integer_3d, fpy_read_integer_4d, &
+                       fpy_read_integer_5d, fpy_read_integer_6d, fpy_read_integer_7d, &
+                       fpy_read_integersp_0d, fpy_read_integersp_1d, fpy_read_integersp_2d, &
+                       fpy_read_integersp_3d, fpy_read_integersp_4d, fpy_read_integersp_5d, &
+                       fpy_read_integersp_6d, fpy_read_integersp_7d, fpy_read_integerdp_0d, &
+                       fpy_read_integerdp_1d, fpy_read_integerdp_2d, fpy_read_integerdp_3d, &
+                       fpy_read_integerdp_4d, fpy_read_integerdp_5d, fpy_read_integerdp_6d, &
+                       fpy_read_integerdp_7d, fpy_read_complexsp_0d, fpy_read_complexsp_1d, &
+                       fpy_read_complexsp_2d, fpy_read_complexsp_3d, fpy_read_complexsp_4d, &
+                       fpy_read_complexsp_5d, fpy_read_complexsp_6d, fpy_read_complexsp_7d, &
+                       fpy_read_complexdp_0d, fpy_read_complexdp_1d, fpy_read_complexdp_2d, &
+                       fpy_read_complexdp_3d, fpy_read_complexdp_4d, fpy_read_complexdp_5d, &
+                       fpy_read_complexdp_6d, fpy_read_complexdp_7d, fpy_read_character_0d, &
+                       fpy_read_character_1d, fpy_read_character_2d, fpy_read_character_3d, &
+                       fpy_read_character_4d, fpy_read_character_5d, fpy_read_character_6d, &
+                       fpy_read_character_7d, fpy_read_logical_0d, fpy_read_logical_1d, &
+                       fpy_read_logical_2d, fpy_read_logical_3d, fpy_read_logical_4d, &
+                       fpy_read_logical_5d, fpy_read_logical_6d, fpy_read_logical_7d
   end interface fpy_read
 
+  !!<summary>Interface for fpy_read for variables with fixed dimensions (i.e. they
+  !!don't have the 'pointer' or 'allocatable' attributes.</summary>
+  interface fpy_read_f
+     module procedure fpy_read_realsp_1df, fpy_read_realsp_2df, fpy_read_realsp_3df, &
+                       fpy_read_realsp_4df, fpy_read_realsp_5df, fpy_read_realsp_6df, &
+                       fpy_read_realsp_7df, fpy_read_realdp_1df, fpy_read_realdp_2df, &
+                       fpy_read_realdp_3df, fpy_read_realdp_4df, fpy_read_realdp_5df, &
+                       fpy_read_realdp_6df, fpy_read_realdp_7df, fpy_read_integer_1df, &
+                       fpy_read_integer_2df, fpy_read_integer_3df, fpy_read_integer_4df, &
+                       fpy_read_integer_5df, fpy_read_integer_6df, fpy_read_integer_7df, &
+                       fpy_read_integersp_1df, fpy_read_integersp_2df, &
+                       fpy_read_integersp_3df, fpy_read_integersp_4df, &
+                       fpy_read_integersp_5df, fpy_read_integersp_6df, &
+                       fpy_read_integersp_7df, fpy_read_integerdp_1df, &
+                       fpy_read_integerdp_2df, fpy_read_integerdp_3df, &
+                       fpy_read_integerdp_4df, fpy_read_integerdp_5df, &
+                       fpy_read_integerdp_6df, fpy_read_integerdp_7df, &
+                       fpy_read_complexsp_1df, fpy_read_complexsp_2df, &
+                       fpy_read_complexsp_3df, fpy_read_complexsp_4df, &
+                       fpy_read_complexsp_5df, fpy_read_complexsp_6df, &
+                       fpy_read_complexsp_7df, fpy_read_complexdp_1df, &
+                       fpy_read_complexdp_2df, fpy_read_complexdp_3df, &
+                       fpy_read_complexdp_4df, fpy_read_complexdp_5df, &
+                       fpy_read_complexdp_6df, fpy_read_complexdp_7df, &
+                       fpy_read_character_1df, fpy_read_character_2df, &
+                       fpy_read_character_3df, fpy_read_character_4df, &
+                       fpy_read_character_5df, fpy_read_character_6df, &
+                       fpy_read_character_7df, fpy_read_logical_1df, fpy_read_logical_2df, &
+                       fpy_read_logical_3df, fpy_read_logical_4df, fpy_read_logical_5df, &
+                       fpy_read_logical_6df, fpy_read_logical_7df
+  end interface fpy_read_f
+  
   !!<summary>Provides an interface for fpy_read for pointer-valued variables that
   !!need to be allocated before reading data.</summary>
   interface fpy_read_p
-     module procedure fpy_read_integer_p1d, fpy_read_integer_p2d, fpy_read_real_p1d, &
-          fpy_read_real_p2d
+     module procedure fpy_read_realsp_1dp, fpy_read_realsp_2dp, fpy_read_realsp_3dp, &
+                       fpy_read_realsp_4dp, fpy_read_realsp_5dp, fpy_read_realsp_6dp, &
+                       fpy_read_realsp_7dp, fpy_read_realdp_1dp, fpy_read_realdp_2dp, &
+                       fpy_read_realdp_3dp, fpy_read_realdp_4dp, fpy_read_realdp_5dp, &
+                       fpy_read_realdp_6dp, fpy_read_realdp_7dp, fpy_read_integer_1dp, &
+                       fpy_read_integer_2dp, fpy_read_integer_3dp, fpy_read_integer_4dp, &
+                       fpy_read_integer_5dp, fpy_read_integer_6dp, fpy_read_integer_7dp, &
+                       fpy_read_integersp_1dp, fpy_read_integersp_2dp, &
+                       fpy_read_integersp_3dp, fpy_read_integersp_4dp, &
+                       fpy_read_integersp_5dp, fpy_read_integersp_6dp, &
+                       fpy_read_integersp_7dp, fpy_read_integerdp_1dp, &
+                       fpy_read_integerdp_2dp, fpy_read_integerdp_3dp, &
+                       fpy_read_integerdp_4dp, fpy_read_integerdp_5dp, &
+                       fpy_read_integerdp_6dp, fpy_read_integerdp_7dp, &
+                       fpy_read_complexsp_1dp, fpy_read_complexsp_2dp, &
+                       fpy_read_complexsp_3dp, fpy_read_complexsp_4dp, &
+                       fpy_read_complexsp_5dp, fpy_read_complexsp_6dp, &
+                       fpy_read_complexsp_7dp, fpy_read_complexdp_1dp, &
+                       fpy_read_complexdp_2dp, fpy_read_complexdp_3dp, &
+                       fpy_read_complexdp_4dp, fpy_read_complexdp_5dp, &
+                       fpy_read_complexdp_6dp, fpy_read_complexdp_7dp, &
+                       fpy_read_character_1dp, fpy_read_character_2dp, &
+                       fpy_read_character_3dp, fpy_read_character_4dp, &
+                       fpy_read_character_5dp, fpy_read_character_6dp, &
+                       fpy_read_character_7dp, fpy_read_logical_1dp, fpy_read_logical_2dp, &
+                       fpy_read_logical_3dp, fpy_read_logical_4dp, fpy_read_logical_5dp, &
+                       fpy_read_logical_6dp, fpy_read_logical_7dp
   end interface fpy_read_p
 contains
-  !!<summary>Reads a single integer value from a file that may have comments.</summary>
-  !!<parameter name="filename">The name of the file to get the value(s) from.</parameter>
-  !!<parameter name="n">The number of characters in n.</parameter>
-  !!<parameter name="commentchar">The character that marks the start of a line with
-  !!that is commented out.</parameter>
-  !!<parameter name="variable">The variable that the value in the file should be
-  !!placed into.</parameter>
-  subroutine fpy_read_integer(filename, commentchar, variable)
+
+    subroutine fpy_read_realsp_0d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fsp), intent(inout) :: variable
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nvalues .gt. 1) .or. (nlines /= 1)) then
+      write(*,*) "Cannot read a single value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realsp_0d
+    
+  subroutine fpy_read_realsp_1d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fsp), allocatable, intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+      write(*,*) "Cannot read a vector value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+    if (nlines .gt. 1) then
+      allocate(variable(nlines))
+    else
+      allocate(variable(nvalues))
+    end if
+    variable = 0
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              if (nlines .gt. 1) then
+                read(line, *) variable(i)
+                i = i+1
+              else
+                read(line, *) variable
+              end if
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realsp_1d
+    
+  subroutine fpy_read_realsp_2d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fsp), allocatable, intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    allocate(variable(nlines, nvalues))
+    variable = 0
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i,:)
+              i = i+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realsp_2d
+    
+  subroutine fpy_read_realsp_3d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fsp), allocatable, intent(inout) :: variable(:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(3), i1, i2, i3, indices(3)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 3D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,:)
+              i2 = i2+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realsp_3d
+    
+  subroutine fpy_read_realsp_4d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fsp), allocatable, intent(inout) :: variable(:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(4), i1, i2, i3, i4, indices(4)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 4D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,:)
+              i3 = i3+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realsp_4d
+    
+  subroutine fpy_read_realsp_5d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fsp), allocatable, intent(inout) :: variable(:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 5D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,:)
+              i4 = i4+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realsp_5d
+    
+  subroutine fpy_read_realsp_6d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fsp), allocatable, intent(inout) :: variable(:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 6D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              i5 = i5+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realsp_6d
+    
+  subroutine fpy_read_realsp_7d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fsp), allocatable, intent(inout) :: variable(:,:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 7D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6), dims(7)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = indices(5)
+              i6 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              i6 = i6+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realsp_7d
+      subroutine fpy_read_realdp_0d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fdp), intent(inout) :: variable
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nvalues .gt. 1) .or. (nlines /= 1)) then
+      write(*,*) "Cannot read a single value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realdp_0d
+    
+  subroutine fpy_read_realdp_1d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fdp), allocatable, intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+      write(*,*) "Cannot read a vector value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+    if (nlines .gt. 1) then
+      allocate(variable(nlines))
+    else
+      allocate(variable(nvalues))
+    end if
+    variable = 0
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              if (nlines .gt. 1) then
+                read(line, *) variable(i)
+                i = i+1
+              else
+                read(line, *) variable
+              end if
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realdp_1d
+    
+  subroutine fpy_read_realdp_2d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fdp), allocatable, intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    allocate(variable(nlines, nvalues))
+    variable = 0
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i,:)
+              i = i+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realdp_2d
+    
+  subroutine fpy_read_realdp_3d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fdp), allocatable, intent(inout) :: variable(:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(3), i1, i2, i3, indices(3)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 3D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,:)
+              i2 = i2+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realdp_3d
+    
+  subroutine fpy_read_realdp_4d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fdp), allocatable, intent(inout) :: variable(:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(4), i1, i2, i3, i4, indices(4)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 4D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,:)
+              i3 = i3+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realdp_4d
+    
+  subroutine fpy_read_realdp_5d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fdp), allocatable, intent(inout) :: variable(:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 5D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,:)
+              i4 = i4+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realdp_5d
+    
+  subroutine fpy_read_realdp_6d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fdp), allocatable, intent(inout) :: variable(:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 6D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              i5 = i5+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realdp_6d
+    
+  subroutine fpy_read_realdp_7d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fdp), allocatable, intent(inout) :: variable(:,:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 7D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6), dims(7)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = indices(5)
+              i6 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              i6 = i6+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realdp_7d
+    
+  subroutine fpy_read_integer_0d(filename, commentchar, variable)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
     integer, intent(inout) :: variable
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit, nlines, nvalues
+    integer :: ioerr, funit
+    integer :: nlines, nvalues
     character(150000) :: line
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nvalues .gt. 1) .or. (nlines /= 1)) then
-       write(*,*) "Cannot read a single value from ", filename
-       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-       stop
+      write(*,*) "Cannot read a single value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
     end if
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
-       do
-          read(funit, "(A)", iostat=ioerr) line
-          if (ioerr == 0) then
-             cleaned = trim(adjustl(line))
-             if (len(cleaned) .gt. 0) then
-                if (cleaned(1:1) /= commentchar) then
-                   read(line, *) variable
-                end if
-             end if
-          else
-             exit
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable
+            end if
           end if
-       end do
+        else
+          exit
+        end if
+      end do
     end if
     close(funit)    
-  end subroutine fpy_read_integer
-
+  end subroutine fpy_read_integer_0d
+    
   subroutine fpy_read_integer_1d(filename, commentchar, variable)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
     integer, allocatable, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit, nlines, nvalues, i
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
     character(150000) :: line
 
+    if (allocated(variable)) deallocate(variable)
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
-       write(*,*) "Cannot read a vector value from ", filename
-       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-       stop
+      write(*,*) "Cannot read a vector value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
     end if
-    if (allocated(variable)) deallocate(variable)
-    !Allocate according to whether the 1D vector is in the row or column
     if (nlines .gt. 1) then
-       allocate(variable(nlines))
+      allocate(variable(nlines))
     else
-       allocate(variable(nvalues))
+      allocate(variable(nvalues))
     end if
     variable = 0
+
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
-    i = 1
     if (ioerr == 0) then
-       do
-          read(funit, "(A)", iostat=ioerr) line
-          if (ioerr == 0) then
-             cleaned = trim(adjustl(line))
-             if (len(cleaned) .gt. 0) then
-                if (cleaned(1:1) /= commentchar) then
-                   !Handle the possibility of 1D column data.
-                   if (nlines .gt. 1) then
-                      read(line, *) variable(i)
-                      i = i+1
-                   else
-                      read(line, *) variable
-                   end if
-                end if
-             end if
-          else
-             exit
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              if (nlines .gt. 1) then
+                read(line, *) variable(i)
+                i = i+1
+              else
+                read(line, *) variable
+              end if
+            end if
           end if
-       end do
+        else
+          exit
+        end if
+      end do
     end if
     close(funit)    
   end subroutine fpy_read_integer_1d
-
+    
   subroutine fpy_read_integer_2d(filename, commentchar, variable)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
     integer, allocatable, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit, nlines, nvalues, i
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
     character(150000) :: line
 
-    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if (allocated(variable)) deallocate(variable)
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     allocate(variable(nlines, nvalues))
-    i=1
     variable = 0
+
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
-       do
-          read(funit, "(A)", iostat=ioerr) line
-          if (ioerr == 0) then
-             cleaned = trim(adjustl(line))
-             if (len(cleaned) .gt. 0) then
-                if (cleaned(1:1) /= commentchar) then
-                   read(line, *) variable(i,:)
-                   i = i+1
-                end if
-             end if
-          else
-             exit
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i,:)
+              i = i+1
+            end if
           end if
-       end do
+        else
+          exit
+        end if
+      end do
     end if
     close(funit)    
   end subroutine fpy_read_integer_2d
-  
-  subroutine fpy_read_integer_p1d(filename, commentchar, variable)
+    
+  subroutine fpy_read_integer_3d(filename, commentchar, variable)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
-    integer, pointer, intent(inout) :: variable(:)
+    integer, allocatable, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit, nlines, nvalues, i
+    integer :: ioerr, funit
+    integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
 
-    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
-    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
-       write(*,*) "Cannot read a vector value from ", filename
-       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-       stop
-    end if
-    if (associated(variable)) variable => null()
-    !Allocate according to whether the 1D vector is in the row or column
-    if (nlines .gt. 1) then
-       allocate(variable(nlines))
-    else
-       allocate(variable(nvalues))
-    end if
-    variable = 0
+    if (allocated(variable)) deallocate(variable)
+
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
-    i = 1
     if (ioerr == 0) then
-       do
-          read(funit, "(A)", iostat=ioerr) line
-          if (ioerr == 0) then
-             cleaned = trim(adjustl(line))
-             if (len(cleaned) .gt. 0) then
-                if (cleaned(1:1) /= commentchar) then
-                   !Handle the possibility of 1D column data.
-                   if (nlines .gt. 1) then
-                      read(line, *) variable(i)
-                      i = i+1
-                   else
-                      read(line, *) variable
-                   end if
-                end if
-             end if
-          else
-             exit
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
           end if
-       end do
+        else
+          write(*,*) "No shape information found for 3D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,:)
+              i2 = i2+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
     end if
     close(funit)    
-  end subroutine fpy_read_integer_p1d
-
-  subroutine fpy_read_integer_p2d(filename, commentchar, variable)
+  end subroutine fpy_read_integer_3d
+    
+  subroutine fpy_read_integer_4d(filename, commentchar, variable)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
-    integer, pointer, intent(inout) :: variable(:,:)
+    integer, allocatable, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit, nlines, nvalues, i
+    integer :: ioerr, funit
+    integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
 
-    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
-    if (associated(variable)) variable => null()
-    allocate(variable(nlines, nvalues))
-    i=1
-    variable = 0
+    if (allocated(variable)) deallocate(variable)
+
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
-       do
-          read(funit, "(A)", iostat=ioerr) line
-          if (ioerr == 0) then
-             cleaned = trim(adjustl(line))
-             if (len(cleaned) .gt. 0) then
-                if (cleaned(1:1) /= commentchar) then
-                   read(line, *) variable(i,:)
-                   i = i+1
-                end if
-             end if
-          else
-             exit
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
           end if
-       end do
+        else
+          write(*,*) "No shape information found for 4D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,:)
+              i3 = i3+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
     end if
     close(funit)    
-  end subroutine fpy_read_integer_p2d
-
-  subroutine fpy_read_real(filename, commentchar, variable)
+  end subroutine fpy_read_integer_4d
+    
+  subroutine fpy_read_integer_5d(filename, commentchar, variable)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
-    real(fdp), intent(inout) :: variable
+    integer, allocatable, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit, nlines, nvalues
+    integer :: ioerr, funit
+    integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 5D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,:)
+              i4 = i4+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integer_5d
+    
+  subroutine fpy_read_integer_6d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer, allocatable, intent(inout) :: variable(:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 6D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              i5 = i5+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integer_6d
+    
+  subroutine fpy_read_integer_7d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer, allocatable, intent(inout) :: variable(:,:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 7D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6), dims(7)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = indices(5)
+              i6 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              i6 = i6+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integer_7d
+      subroutine fpy_read_integersp_0d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fsi), intent(inout) :: variable
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues
     character(150000) :: line
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nvalues .gt. 1) .or. (nlines /= 1)) then
-       write(*,*) "Cannot read a single value from ", filename
-       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-       stop
+      write(*,*) "Cannot read a single value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
     end if
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
-       do
-          read(funit, "(A)", iostat=ioerr) line
-          if (ioerr == 0) then
-             cleaned = trim(adjustl(line))
-             if (len(cleaned) .gt. 0) then
-                if (cleaned(1:1) /= commentchar) then
-                   read(line, *) variable
-                end if
-             end if
-          else
-             exit
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable
+            end if
           end if
-       end do
+        else
+          exit
+        end if
+      end do
     end if
     close(funit)    
-  end subroutine fpy_read_real
-
-  subroutine fpy_read_real_1d(filename, commentchar, variable)
+  end subroutine fpy_read_integersp_0d
+    
+  subroutine fpy_read_integersp_1d(filename, commentchar, variable)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
-    real(fdp), allocatable, intent(inout) :: variable(:)
+    integer(fsi), allocatable, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit, nlines, nvalues, i
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+      write(*,*) "Cannot read a vector value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+    if (nlines .gt. 1) then
+      allocate(variable(nlines))
+    else
+      allocate(variable(nvalues))
+    end if
+    variable = 0
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              if (nlines .gt. 1) then
+                read(line, *) variable(i)
+                i = i+1
+              else
+                read(line, *) variable
+              end if
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integersp_1d
+    
+  subroutine fpy_read_integersp_2d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fsi), allocatable, intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    allocate(variable(nlines, nvalues))
+    variable = 0
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i,:)
+              i = i+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integersp_2d
+    
+  subroutine fpy_read_integersp_3d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fsi), allocatable, intent(inout) :: variable(:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(3), i1, i2, i3, indices(3)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 3D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,:)
+              i2 = i2+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integersp_3d
+    
+  subroutine fpy_read_integersp_4d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fsi), allocatable, intent(inout) :: variable(:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(4), i1, i2, i3, i4, indices(4)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 4D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,:)
+              i3 = i3+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integersp_4d
+    
+  subroutine fpy_read_integersp_5d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fsi), allocatable, intent(inout) :: variable(:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 5D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,:)
+              i4 = i4+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integersp_5d
+    
+  subroutine fpy_read_integersp_6d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fsi), allocatable, intent(inout) :: variable(:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 6D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              i5 = i5+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integersp_6d
+    
+  subroutine fpy_read_integersp_7d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fsi), allocatable, intent(inout) :: variable(:,:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 7D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6), dims(7)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = indices(5)
+              i6 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              i6 = i6+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integersp_7d
+      subroutine fpy_read_integerdp_0d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fli), intent(inout) :: variable
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nvalues .gt. 1) .or. (nlines /= 1)) then
+      write(*,*) "Cannot read a single value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integerdp_0d
+    
+  subroutine fpy_read_integerdp_1d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fli), allocatable, intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+      write(*,*) "Cannot read a vector value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+    if (nlines .gt. 1) then
+      allocate(variable(nlines))
+    else
+      allocate(variable(nvalues))
+    end if
+    variable = 0
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              if (nlines .gt. 1) then
+                read(line, *) variable(i)
+                i = i+1
+              else
+                read(line, *) variable
+              end if
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integerdp_1d
+    
+  subroutine fpy_read_integerdp_2d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fli), allocatable, intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    allocate(variable(nlines, nvalues))
+    variable = 0
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i,:)
+              i = i+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integerdp_2d
+    
+  subroutine fpy_read_integerdp_3d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fli), allocatable, intent(inout) :: variable(:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(3), i1, i2, i3, indices(3)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 3D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,:)
+              i2 = i2+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integerdp_3d
+    
+  subroutine fpy_read_integerdp_4d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fli), allocatable, intent(inout) :: variable(:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(4), i1, i2, i3, i4, indices(4)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 4D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,:)
+              i3 = i3+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integerdp_4d
+    
+  subroutine fpy_read_integerdp_5d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fli), allocatable, intent(inout) :: variable(:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 5D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,:)
+              i4 = i4+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integerdp_5d
+    
+  subroutine fpy_read_integerdp_6d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fli), allocatable, intent(inout) :: variable(:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 6D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              i5 = i5+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integerdp_6d
+    
+  subroutine fpy_read_integerdp_7d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fli), allocatable, intent(inout) :: variable(:,:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 7D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6), dims(7)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = indices(5)
+              i6 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              i6 = i6+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integerdp_7d
+    
+  subroutine fpy_read_complexsp_0d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fsp), intent(inout) :: variable
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nvalues .gt. 1) .or. (nlines /= 1)) then
+      write(*,*) "Cannot read a single value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexsp_0d
+    
+  subroutine fpy_read_complexsp_1d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fsp), allocatable, intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+      write(*,*) "Cannot read a vector value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+    if (nlines .gt. 1) then
+      allocate(variable(nlines))
+    else
+      allocate(variable(nvalues))
+    end if
+    variable = 0
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              if (nlines .gt. 1) then
+                read(line, *) variable(i)
+                i = i+1
+              else
+                read(line, *) variable
+              end if
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexsp_1d
+    
+  subroutine fpy_read_complexsp_2d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fsp), allocatable, intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    allocate(variable(nlines, nvalues))
+    variable = 0
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i,:)
+              i = i+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexsp_2d
+    
+  subroutine fpy_read_complexsp_3d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fsp), allocatable, intent(inout) :: variable(:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(3), i1, i2, i3, indices(3)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 3D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,:)
+              i2 = i2+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexsp_3d
+    
+  subroutine fpy_read_complexsp_4d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fsp), allocatable, intent(inout) :: variable(:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(4), i1, i2, i3, i4, indices(4)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 4D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,:)
+              i3 = i3+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexsp_4d
+    
+  subroutine fpy_read_complexsp_5d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fsp), allocatable, intent(inout) :: variable(:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 5D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,:)
+              i4 = i4+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexsp_5d
+    
+  subroutine fpy_read_complexsp_6d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fsp), allocatable, intent(inout) :: variable(:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 6D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              i5 = i5+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexsp_6d
+    
+  subroutine fpy_read_complexsp_7d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fsp), allocatable, intent(inout) :: variable(:,:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 7D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6), dims(7)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = indices(5)
+              i6 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              i6 = i6+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexsp_7d
+      subroutine fpy_read_complexdp_0d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fdp), intent(inout) :: variable
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nvalues .gt. 1) .or. (nlines /= 1)) then
+      write(*,*) "Cannot read a single value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexdp_0d
+    
+  subroutine fpy_read_complexdp_1d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fdp), allocatable, intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+      write(*,*) "Cannot read a vector value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+    if (nlines .gt. 1) then
+      allocate(variable(nlines))
+    else
+      allocate(variable(nvalues))
+    end if
+    variable = 0
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              if (nlines .gt. 1) then
+                read(line, *) variable(i)
+                i = i+1
+              else
+                read(line, *) variable
+              end if
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexdp_1d
+    
+  subroutine fpy_read_complexdp_2d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fdp), allocatable, intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    allocate(variable(nlines, nvalues))
+    variable = 0
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i,:)
+              i = i+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexdp_2d
+    
+  subroutine fpy_read_complexdp_3d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fdp), allocatable, intent(inout) :: variable(:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(3), i1, i2, i3, indices(3)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 3D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,:)
+              i2 = i2+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexdp_3d
+    
+  subroutine fpy_read_complexdp_4d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fdp), allocatable, intent(inout) :: variable(:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(4), i1, i2, i3, i4, indices(4)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 4D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,:)
+              i3 = i3+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexdp_4d
+    
+  subroutine fpy_read_complexdp_5d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fdp), allocatable, intent(inout) :: variable(:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 5D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,:)
+              i4 = i4+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexdp_5d
+    
+  subroutine fpy_read_complexdp_6d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fdp), allocatable, intent(inout) :: variable(:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 6D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              i5 = i5+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexdp_6d
+    
+  subroutine fpy_read_complexdp_7d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fdp), allocatable, intent(inout) :: variable(:,:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 7D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6), dims(7)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = indices(5)
+              i6 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              i6 = i6+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexdp_7d
+    
+  subroutine fpy_read_character_0d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    character(len=*), intent(inout) :: variable
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues, .true.)
+    if ((nvalues .gt. 1) .or. (nlines /= 1)) then
+      write(*,*) "Cannot read a single value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_character_0d
+    
+  subroutine fpy_read_character_1d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    character(len=*), allocatable, intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues, .true.)
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+      write(*,*) "Cannot read a vector value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+    if (nlines .gt. 1) then
+      allocate(variable(nlines))
+    else
+      allocate(variable(nvalues))
+    end if
+    variable = ''
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              if (nlines .gt. 1) then
+                read(line, *) variable(i)
+                i = i+1
+              else
+                read(line, *) variable
+              end if
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_character_1d
+    
+  subroutine fpy_read_character_2d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    character(len=*), allocatable, intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues, .true.)
+    allocate(variable(nlines, nvalues))
+    variable = ''
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i,:)
+              i = i+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_character_2d
+    
+  subroutine fpy_read_character_3d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    character(len=*), allocatable, intent(inout) :: variable(:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(3), i1, i2, i3, indices(3)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 3D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3)))
+      variable = ''
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,:)
+              i2 = i2+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_character_3d
+    
+  subroutine fpy_read_character_4d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    character(len=*), allocatable, intent(inout) :: variable(:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(4), i1, i2, i3, i4, indices(4)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 4D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4)))
+      variable = ''
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,:)
+              i3 = i3+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_character_4d
+    
+  subroutine fpy_read_character_5d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    character(len=*), allocatable, intent(inout) :: variable(:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 5D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5)))
+      variable = ''
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,:)
+              i4 = i4+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_character_5d
+    
+  subroutine fpy_read_character_6d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    character(len=*), allocatable, intent(inout) :: variable(:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 6D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6)))
+      variable = ''
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              i5 = i5+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_character_6d
+    
+  subroutine fpy_read_character_7d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    character(len=*), allocatable, intent(inout) :: variable(:,:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 7D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6), dims(7)))
+      variable = ''
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = indices(5)
+              i6 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              i6 = i6+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_character_7d
+    
+  subroutine fpy_read_logical_0d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    logical, intent(inout) :: variable
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nvalues .gt. 1) .or. (nlines /= 1)) then
+      write(*,*) "Cannot read a single value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_logical_0d
+    
+  subroutine fpy_read_logical_1d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    logical, allocatable, intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+      write(*,*) "Cannot read a vector value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+    if (nlines .gt. 1) then
+      allocate(variable(nlines))
+    else
+      allocate(variable(nvalues))
+    end if
+    variable = .false.
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              if (nlines .gt. 1) then
+                read(line, *) variable(i)
+                i = i+1
+              else
+                read(line, *) variable
+              end if
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_logical_1d
+    
+  subroutine fpy_read_logical_2d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    logical, allocatable, intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    allocate(variable(nlines, nvalues))
+    variable = .false.
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i,:)
+              i = i+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_logical_2d
+    
+  subroutine fpy_read_logical_3d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    logical, allocatable, intent(inout) :: variable(:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(3), i1, i2, i3, indices(3)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 3D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3)))
+      variable = .false.
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,:)
+              i2 = i2+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_logical_3d
+    
+  subroutine fpy_read_logical_4d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    logical, allocatable, intent(inout) :: variable(:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(4), i1, i2, i3, i4, indices(4)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 4D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4)))
+      variable = .false.
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,:)
+              i3 = i3+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_logical_4d
+    
+  subroutine fpy_read_logical_5d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    logical, allocatable, intent(inout) :: variable(:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 5D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5)))
+      variable = .false.
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,:)
+              i4 = i4+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_logical_5d
+    
+  subroutine fpy_read_logical_6d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    logical, allocatable, intent(inout) :: variable(:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 6D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6)))
+      variable = .false.
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              i5 = i5+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_logical_6d
+    
+  subroutine fpy_read_logical_7d(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    logical, allocatable, intent(inout) :: variable(:,:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
+    character(150000) :: line
+
+    if (allocated(variable)) deallocate(variable)
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 7D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6), dims(7)))
+      variable = .false.
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = indices(5)
+              i6 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              i6 = i6+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_logical_7d
+    
+
+    subroutine fpy_read_realsp_1df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fsp), intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
     character(150000) :: line
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
-       write(*,*) "Cannot read a vector value from ", filename
-       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-       stop
+      write(*,*) "Cannot read a vector value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
     end if
-    if (allocated(variable)) deallocate(variable)
-    !Allocate according to whether the 1D vector is in the row or column
-    if (nlines .gt. 1) then
-       allocate(variable(nlines))
-    else
-       allocate(variable(nvalues))
+
+    
+    if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then
+      write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
+      write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
+      stop
     end if
-    variable = 0
+
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
-    i = 1
     if (ioerr == 0) then
-       do
-          read(funit, "(A)", iostat=ioerr) line
-          if (ioerr == 0) then
-             cleaned = trim(adjustl(line))
-             if (len(cleaned) .gt. 0) then
-                if (cleaned(1:1) /= commentchar) then
-                   !Handle the possibility of 1D column data.
-                   if (nlines .gt. 1) then
-                      read(line, *) variable(i)
-                      i = i+1
-                   else
-                      read(line, *) variable
-                   end if
-                end if
-             end if
-          else
-             exit
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              if (nlines .gt. 1) then
+                read(line, *) variable(i)
+                i = i+1
+              else
+                read(line, *) variable
+              end if
+            end if
           end if
-       end do
+        else
+          exit
+        end if
+      end do
     end if
     close(funit)    
-  end subroutine fpy_read_real_1d
-
-  subroutine fpy_read_real_2d(filename, commentchar, variable)
+  end subroutine fpy_read_realsp_1df
+    
+  subroutine fpy_read_realsp_2df(filename, commentchar, variable)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
-    real(fdp), allocatable, intent(inout) :: variable(:,:)
+    real(fsp), intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit, nlines, nvalues, i
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
     character(150000) :: line
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
-    if (allocated(variable)) deallocate(variable)
-    allocate(variable(nlines, nvalues))
-    i=1
-    variable = 0
+    if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 2))) then
+      write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
+      write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
+      stop
+    end if
+
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
-       do
-          read(funit, "(A)", iostat=ioerr) line
-          if (ioerr == 0) then
-             cleaned = trim(adjustl(line))
-             if (len(cleaned) .gt. 0) then
-                if (cleaned(1:1) /= commentchar) then
-                   read(line, *) variable(i,:)
-                   i = i+1
-                end if
-             end if
-          else
-             exit
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i,:)
+              i = i+1
+            end if
           end if
-       end do
+        else
+          exit
+        end if
+      end do
     end if
     close(funit)    
-  end subroutine fpy_read_real_2d
+  end subroutine fpy_read_realsp_2df
+    
+  subroutine fpy_read_realsp_3df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fsp), intent(inout) :: variable(:,:,:)
 
-  subroutine fpy_read_real_p1d(filename, commentchar, variable)
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(3), i1, i2, i3, indices(3)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 3D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,:)
+              i2 = i2+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realsp_3df
+    
+  subroutine fpy_read_realsp_4df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fsp), intent(inout) :: variable(:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(4), i1, i2, i3, i4, indices(4)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 4D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,:)
+              i3 = i3+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realsp_4df
+    
+  subroutine fpy_read_realsp_5df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fsp), intent(inout) :: variable(:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 5D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,:)
+              i4 = i4+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realsp_5df
+    
+  subroutine fpy_read_realsp_6df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fsp), intent(inout) :: variable(:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 6D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              i5 = i5+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realsp_6df
+    
+  subroutine fpy_read_realsp_7df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fsp), intent(inout) :: variable(:,:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 7D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = indices(5)
+              i6 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              i6 = i6+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realsp_7df
+      subroutine fpy_read_realdp_1df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fdp), intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+      write(*,*) "Cannot read a vector value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+
+    
+    if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then
+      write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
+      write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
+      stop
+    end if
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              if (nlines .gt. 1) then
+                read(line, *) variable(i)
+                i = i+1
+              else
+                read(line, *) variable
+              end if
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realdp_1df
+    
+  subroutine fpy_read_realdp_2df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fdp), intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 2))) then
+      write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
+      write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
+      stop
+    end if
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i,:)
+              i = i+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realdp_2df
+    
+  subroutine fpy_read_realdp_3df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fdp), intent(inout) :: variable(:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(3), i1, i2, i3, indices(3)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 3D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,:)
+              i2 = i2+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realdp_3df
+    
+  subroutine fpy_read_realdp_4df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fdp), intent(inout) :: variable(:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(4), i1, i2, i3, i4, indices(4)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 4D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,:)
+              i3 = i3+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realdp_4df
+    
+  subroutine fpy_read_realdp_5df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fdp), intent(inout) :: variable(:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 5D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,:)
+              i4 = i4+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realdp_5df
+    
+  subroutine fpy_read_realdp_6df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fdp), intent(inout) :: variable(:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 6D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              i5 = i5+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realdp_6df
+    
+  subroutine fpy_read_realdp_7df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fdp), intent(inout) :: variable(:,:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 7D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = indices(5)
+              i6 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              i6 = i6+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realdp_7df
+    
+  subroutine fpy_read_integer_1df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer, intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+      write(*,*) "Cannot read a vector value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+
+    
+    if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then
+      write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
+      write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
+      stop
+    end if
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              if (nlines .gt. 1) then
+                read(line, *) variable(i)
+                i = i+1
+              else
+                read(line, *) variable
+              end if
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integer_1df
+    
+  subroutine fpy_read_integer_2df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer, intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 2))) then
+      write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
+      write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
+      stop
+    end if
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i,:)
+              i = i+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integer_2df
+    
+  subroutine fpy_read_integer_3df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer, intent(inout) :: variable(:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(3), i1, i2, i3, indices(3)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 3D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,:)
+              i2 = i2+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integer_3df
+    
+  subroutine fpy_read_integer_4df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer, intent(inout) :: variable(:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(4), i1, i2, i3, i4, indices(4)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 4D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,:)
+              i3 = i3+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integer_4df
+    
+  subroutine fpy_read_integer_5df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer, intent(inout) :: variable(:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 5D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,:)
+              i4 = i4+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integer_5df
+    
+  subroutine fpy_read_integer_6df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer, intent(inout) :: variable(:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 6D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              i5 = i5+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integer_6df
+    
+  subroutine fpy_read_integer_7df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer, intent(inout) :: variable(:,:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 7D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = indices(5)
+              i6 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              i6 = i6+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integer_7df
+      subroutine fpy_read_integersp_1df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fsi), intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+      write(*,*) "Cannot read a vector value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+
+    
+    if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then
+      write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
+      write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
+      stop
+    end if
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              if (nlines .gt. 1) then
+                read(line, *) variable(i)
+                i = i+1
+              else
+                read(line, *) variable
+              end if
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integersp_1df
+    
+  subroutine fpy_read_integersp_2df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fsi), intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 2))) then
+      write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
+      write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
+      stop
+    end if
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i,:)
+              i = i+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integersp_2df
+    
+  subroutine fpy_read_integersp_3df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fsi), intent(inout) :: variable(:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(3), i1, i2, i3, indices(3)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 3D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,:)
+              i2 = i2+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integersp_3df
+    
+  subroutine fpy_read_integersp_4df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fsi), intent(inout) :: variable(:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(4), i1, i2, i3, i4, indices(4)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 4D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,:)
+              i3 = i3+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integersp_4df
+    
+  subroutine fpy_read_integersp_5df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fsi), intent(inout) :: variable(:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 5D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,:)
+              i4 = i4+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integersp_5df
+    
+  subroutine fpy_read_integersp_6df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fsi), intent(inout) :: variable(:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 6D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              i5 = i5+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integersp_6df
+    
+  subroutine fpy_read_integersp_7df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fsi), intent(inout) :: variable(:,:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 7D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = indices(5)
+              i6 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              i6 = i6+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integersp_7df
+      subroutine fpy_read_integerdp_1df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fli), intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+      write(*,*) "Cannot read a vector value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+
+    
+    if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then
+      write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
+      write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
+      stop
+    end if
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              if (nlines .gt. 1) then
+                read(line, *) variable(i)
+                i = i+1
+              else
+                read(line, *) variable
+              end if
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integerdp_1df
+    
+  subroutine fpy_read_integerdp_2df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fli), intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 2))) then
+      write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
+      write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
+      stop
+    end if
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i,:)
+              i = i+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integerdp_2df
+    
+  subroutine fpy_read_integerdp_3df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fli), intent(inout) :: variable(:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(3), i1, i2, i3, indices(3)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 3D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,:)
+              i2 = i2+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integerdp_3df
+    
+  subroutine fpy_read_integerdp_4df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fli), intent(inout) :: variable(:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(4), i1, i2, i3, i4, indices(4)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 4D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,:)
+              i3 = i3+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integerdp_4df
+    
+  subroutine fpy_read_integerdp_5df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fli), intent(inout) :: variable(:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 5D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,:)
+              i4 = i4+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integerdp_5df
+    
+  subroutine fpy_read_integerdp_6df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fli), intent(inout) :: variable(:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 6D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              i5 = i5+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integerdp_6df
+    
+  subroutine fpy_read_integerdp_7df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fli), intent(inout) :: variable(:,:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 7D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = indices(5)
+              i6 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              i6 = i6+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integerdp_7df
+    
+  subroutine fpy_read_complexsp_1df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fsp), intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+      write(*,*) "Cannot read a vector value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+
+    
+    if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then
+      write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
+      write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
+      stop
+    end if
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              if (nlines .gt. 1) then
+                read(line, *) variable(i)
+                i = i+1
+              else
+                read(line, *) variable
+              end if
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexsp_1df
+    
+  subroutine fpy_read_complexsp_2df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fsp), intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 2))) then
+      write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
+      write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
+      stop
+    end if
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i,:)
+              i = i+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexsp_2df
+    
+  subroutine fpy_read_complexsp_3df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fsp), intent(inout) :: variable(:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(3), i1, i2, i3, indices(3)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 3D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,:)
+              i2 = i2+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexsp_3df
+    
+  subroutine fpy_read_complexsp_4df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fsp), intent(inout) :: variable(:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(4), i1, i2, i3, i4, indices(4)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 4D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,:)
+              i3 = i3+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexsp_4df
+    
+  subroutine fpy_read_complexsp_5df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fsp), intent(inout) :: variable(:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 5D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,:)
+              i4 = i4+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexsp_5df
+    
+  subroutine fpy_read_complexsp_6df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fsp), intent(inout) :: variable(:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 6D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              i5 = i5+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexsp_6df
+    
+  subroutine fpy_read_complexsp_7df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fsp), intent(inout) :: variable(:,:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 7D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = indices(5)
+              i6 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              i6 = i6+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexsp_7df
+      subroutine fpy_read_complexdp_1df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fdp), intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+      write(*,*) "Cannot read a vector value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+
+    
+    if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then
+      write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
+      write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
+      stop
+    end if
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              if (nlines .gt. 1) then
+                read(line, *) variable(i)
+                i = i+1
+              else
+                read(line, *) variable
+              end if
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexdp_1df
+    
+  subroutine fpy_read_complexdp_2df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fdp), intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 2))) then
+      write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
+      write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
+      stop
+    end if
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i,:)
+              i = i+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexdp_2df
+    
+  subroutine fpy_read_complexdp_3df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fdp), intent(inout) :: variable(:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(3), i1, i2, i3, indices(3)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 3D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,:)
+              i2 = i2+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexdp_3df
+    
+  subroutine fpy_read_complexdp_4df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fdp), intent(inout) :: variable(:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(4), i1, i2, i3, i4, indices(4)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 4D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,:)
+              i3 = i3+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexdp_4df
+    
+  subroutine fpy_read_complexdp_5df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fdp), intent(inout) :: variable(:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 5D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,:)
+              i4 = i4+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexdp_5df
+    
+  subroutine fpy_read_complexdp_6df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fdp), intent(inout) :: variable(:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 6D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              i5 = i5+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexdp_6df
+    
+  subroutine fpy_read_complexdp_7df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fdp), intent(inout) :: variable(:,:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 7D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = indices(5)
+              i6 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              i6 = i6+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexdp_7df
+    
+  subroutine fpy_read_character_1df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    character(len=*), intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues, .true.)
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+      write(*,*) "Cannot read a vector value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+
+    
+    if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then
+      write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
+      write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
+      stop
+    end if
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              if (nlines .gt. 1) then
+                read(line, *) variable(i)
+                i = i+1
+              else
+                read(line, *) variable
+              end if
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_character_1df
+    
+  subroutine fpy_read_character_2df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    character(len=*), intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues, .true.)
+    if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 2))) then
+      write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
+      write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
+      stop
+    end if
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i,:)
+              i = i+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_character_2df
+    
+  subroutine fpy_read_character_3df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    character(len=*), intent(inout) :: variable(:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(3), i1, i2, i3, indices(3)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 3D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = ''
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,:)
+              i2 = i2+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_character_3df
+    
+  subroutine fpy_read_character_4df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    character(len=*), intent(inout) :: variable(:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(4), i1, i2, i3, i4, indices(4)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 4D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = ''
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,:)
+              i3 = i3+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_character_4df
+    
+  subroutine fpy_read_character_5df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    character(len=*), intent(inout) :: variable(:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 5D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = ''
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,:)
+              i4 = i4+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_character_5df
+    
+  subroutine fpy_read_character_6df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    character(len=*), intent(inout) :: variable(:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 6D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = ''
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              i5 = i5+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_character_6df
+    
+  subroutine fpy_read_character_7df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    character(len=*), intent(inout) :: variable(:,:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 7D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = ''
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = indices(5)
+              i6 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              i6 = i6+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_character_7df
+    
+  subroutine fpy_read_logical_1df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    logical, intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+      write(*,*) "Cannot read a vector value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+
+    
+    if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then
+      write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
+      write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
+      stop
+    end if
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              if (nlines .gt. 1) then
+                read(line, *) variable(i)
+                i = i+1
+              else
+                read(line, *) variable
+              end if
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_logical_1df
+    
+  subroutine fpy_read_logical_2df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    logical, intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 2))) then
+      write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
+      write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
+      stop
+    end if
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i,:)
+              i = i+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_logical_2df
+    
+  subroutine fpy_read_logical_3df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    logical, intent(inout) :: variable(:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(3), i1, i2, i3, indices(3)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 3D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = .false.
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,:)
+              i2 = i2+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_logical_3df
+    
+  subroutine fpy_read_logical_4df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    logical, intent(inout) :: variable(:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(4), i1, i2, i3, i4, indices(4)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 4D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = .false.
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,:)
+              i3 = i3+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_logical_4df
+    
+  subroutine fpy_read_logical_5df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    logical, intent(inout) :: variable(:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 5D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = .false.
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,:)
+              i4 = i4+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_logical_5df
+    
+  subroutine fpy_read_logical_6df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    logical, intent(inout) :: variable(:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 6D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = .false.
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              i5 = i5+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_logical_6df
+    
+  subroutine fpy_read_logical_7df(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    logical, intent(inout) :: variable(:,:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
+    character(150000) :: line
+
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 7D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      variable = .false.
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = indices(5)
+              i6 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              i6 = i6+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_logical_7df
+    
+
+    subroutine fpy_read_realsp_1dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fsp), pointer, intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+      write(*,*) "Cannot read a vector value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+    if (nlines .gt. 1) then
+      allocate(variable(nlines))
+    else
+      allocate(variable(nvalues))
+    end if
+    variable = 0
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              if (nlines .gt. 1) then
+                read(line, *) variable(i)
+                i = i+1
+              else
+                read(line, *) variable
+              end if
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realsp_1dp
+    
+  subroutine fpy_read_realsp_2dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fsp), pointer, intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    allocate(variable(nlines, nvalues))
+    variable = 0
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i,:)
+              i = i+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realsp_2dp
+    
+  subroutine fpy_read_realsp_3dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fsp), pointer, intent(inout) :: variable(:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(3), i1, i2, i3, indices(3)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 3D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,:)
+              i2 = i2+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realsp_3dp
+    
+  subroutine fpy_read_realsp_4dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fsp), pointer, intent(inout) :: variable(:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(4), i1, i2, i3, i4, indices(4)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 4D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,:)
+              i3 = i3+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realsp_4dp
+    
+  subroutine fpy_read_realsp_5dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fsp), pointer, intent(inout) :: variable(:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 5D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,:)
+              i4 = i4+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realsp_5dp
+    
+  subroutine fpy_read_realsp_6dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fsp), pointer, intent(inout) :: variable(:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 6D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              i5 = i5+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realsp_6dp
+    
+  subroutine fpy_read_realsp_7dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fsp), pointer, intent(inout) :: variable(:,:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 7D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6), dims(7)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = indices(5)
+              i6 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              i6 = i6+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realsp_7dp
+      subroutine fpy_read_realdp_1dp(filename, commentchar, variable)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
     real(fdp), pointer, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit, nlines, nvalues, i
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
     character(150000) :: line
 
+    if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
-       write(*,*) "Cannot read a vector value from ", filename
-       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-       stop
+      write(*,*) "Cannot read a vector value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
     end if
-    if (associated(variable)) variable => null()
-    !Allocate according to whether the 1D vector is in the row or column
     if (nlines .gt. 1) then
-       allocate(variable(nlines))
+      allocate(variable(nlines))
     else
-       allocate(variable(nvalues))
+      allocate(variable(nvalues))
     end if
     variable = 0
+
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
-    i = 1
     if (ioerr == 0) then
-       do
-          read(funit, "(A)", iostat=ioerr) line
-          if (ioerr == 0) then
-             cleaned = trim(adjustl(line))
-             if (len(cleaned) .gt. 0) then
-                if (cleaned(1:1) /= commentchar) then
-                   !Handle the possibility of 1D column data.
-                   if (nlines .gt. 1) then
-                      read(line, *) variable(i)
-                      i = i+1
-                   else
-                      read(line, *) variable
-                   end if
-                end if
-             end if
-          else
-             exit
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              if (nlines .gt. 1) then
+                read(line, *) variable(i)
+                i = i+1
+              else
+                read(line, *) variable
+              end if
+            end if
           end if
-       end do
+        else
+          exit
+        end if
+      end do
     end if
     close(funit)    
-  end subroutine fpy_read_real_p1d
-
-  subroutine fpy_read_real_p2d(filename, commentchar, variable)
+  end subroutine fpy_read_realdp_1dp
+    
+  subroutine fpy_read_realdp_2dp(filename, commentchar, variable)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
     real(fdp), pointer, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit, nlines, nvalues, i
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
     character(150000) :: line
 
-    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if (associated(variable)) variable => null()
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     allocate(variable(nlines, nvalues))
-    i=1
     variable = 0
+
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
-       do
-          read(funit, "(A)", iostat=ioerr) line
-          if (ioerr == 0) then
-             cleaned = trim(adjustl(line))
-             if (len(cleaned) .gt. 0) then
-                if (cleaned(1:1) /= commentchar) then
-                   read(line, *) variable(i,:)
-                   i = i+1
-                end if
-             end if
-          else
-             exit
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i,:)
+              i = i+1
+            end if
           end if
-       end do
+        else
+          exit
+        end if
+      end do
     end if
     close(funit)    
-  end subroutine fpy_read_real_p2d
+  end subroutine fpy_read_realdp_2dp
+    
+  subroutine fpy_read_realdp_3dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fdp), pointer, intent(inout) :: variable(:,:,:)
 
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(3), i1, i2, i3, indices(3)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 3D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,:)
+              i2 = i2+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realdp_3dp
+    
+  subroutine fpy_read_realdp_4dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fdp), pointer, intent(inout) :: variable(:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(4), i1, i2, i3, i4, indices(4)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 4D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,:)
+              i3 = i3+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realdp_4dp
+    
+  subroutine fpy_read_realdp_5dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fdp), pointer, intent(inout) :: variable(:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 5D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,:)
+              i4 = i4+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realdp_5dp
+    
+  subroutine fpy_read_realdp_6dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fdp), pointer, intent(inout) :: variable(:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 6D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              i5 = i5+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realdp_6dp
+    
+  subroutine fpy_read_realdp_7dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    real(fdp), pointer, intent(inout) :: variable(:,:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 7D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6), dims(7)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = indices(5)
+              i6 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              i6 = i6+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_realdp_7dp
+    
+  subroutine fpy_read_integer_1dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer, pointer, intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+      write(*,*) "Cannot read a vector value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+    if (nlines .gt. 1) then
+      allocate(variable(nlines))
+    else
+      allocate(variable(nvalues))
+    end if
+    variable = 0
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              if (nlines .gt. 1) then
+                read(line, *) variable(i)
+                i = i+1
+              else
+                read(line, *) variable
+              end if
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integer_1dp
+    
+  subroutine fpy_read_integer_2dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer, pointer, intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    allocate(variable(nlines, nvalues))
+    variable = 0
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i,:)
+              i = i+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integer_2dp
+    
+  subroutine fpy_read_integer_3dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer, pointer, intent(inout) :: variable(:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(3), i1, i2, i3, indices(3)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 3D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,:)
+              i2 = i2+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integer_3dp
+    
+  subroutine fpy_read_integer_4dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer, pointer, intent(inout) :: variable(:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(4), i1, i2, i3, i4, indices(4)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 4D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,:)
+              i3 = i3+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integer_4dp
+    
+  subroutine fpy_read_integer_5dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer, pointer, intent(inout) :: variable(:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 5D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,:)
+              i4 = i4+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integer_5dp
+    
+  subroutine fpy_read_integer_6dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer, pointer, intent(inout) :: variable(:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 6D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              i5 = i5+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integer_6dp
+    
+  subroutine fpy_read_integer_7dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer, pointer, intent(inout) :: variable(:,:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 7D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6), dims(7)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = indices(5)
+              i6 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              i6 = i6+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integer_7dp
+      subroutine fpy_read_integersp_1dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fsi), pointer, intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+      write(*,*) "Cannot read a vector value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+    if (nlines .gt. 1) then
+      allocate(variable(nlines))
+    else
+      allocate(variable(nvalues))
+    end if
+    variable = 0
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              if (nlines .gt. 1) then
+                read(line, *) variable(i)
+                i = i+1
+              else
+                read(line, *) variable
+              end if
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integersp_1dp
+    
+  subroutine fpy_read_integersp_2dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fsi), pointer, intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    allocate(variable(nlines, nvalues))
+    variable = 0
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i,:)
+              i = i+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integersp_2dp
+    
+  subroutine fpy_read_integersp_3dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fsi), pointer, intent(inout) :: variable(:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(3), i1, i2, i3, indices(3)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 3D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,:)
+              i2 = i2+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integersp_3dp
+    
+  subroutine fpy_read_integersp_4dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fsi), pointer, intent(inout) :: variable(:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(4), i1, i2, i3, i4, indices(4)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 4D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,:)
+              i3 = i3+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integersp_4dp
+    
+  subroutine fpy_read_integersp_5dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fsi), pointer, intent(inout) :: variable(:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 5D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,:)
+              i4 = i4+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integersp_5dp
+    
+  subroutine fpy_read_integersp_6dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fsi), pointer, intent(inout) :: variable(:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 6D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              i5 = i5+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integersp_6dp
+    
+  subroutine fpy_read_integersp_7dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fsi), pointer, intent(inout) :: variable(:,:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 7D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6), dims(7)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = indices(5)
+              i6 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              i6 = i6+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integersp_7dp
+      subroutine fpy_read_integerdp_1dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fli), pointer, intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+      write(*,*) "Cannot read a vector value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+    if (nlines .gt. 1) then
+      allocate(variable(nlines))
+    else
+      allocate(variable(nvalues))
+    end if
+    variable = 0
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              if (nlines .gt. 1) then
+                read(line, *) variable(i)
+                i = i+1
+              else
+                read(line, *) variable
+              end if
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integerdp_1dp
+    
+  subroutine fpy_read_integerdp_2dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fli), pointer, intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    allocate(variable(nlines, nvalues))
+    variable = 0
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i,:)
+              i = i+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integerdp_2dp
+    
+  subroutine fpy_read_integerdp_3dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fli), pointer, intent(inout) :: variable(:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(3), i1, i2, i3, indices(3)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 3D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,:)
+              i2 = i2+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integerdp_3dp
+    
+  subroutine fpy_read_integerdp_4dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fli), pointer, intent(inout) :: variable(:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(4), i1, i2, i3, i4, indices(4)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 4D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,:)
+              i3 = i3+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integerdp_4dp
+    
+  subroutine fpy_read_integerdp_5dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fli), pointer, intent(inout) :: variable(:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 5D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,:)
+              i4 = i4+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integerdp_5dp
+    
+  subroutine fpy_read_integerdp_6dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fli), pointer, intent(inout) :: variable(:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 6D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              i5 = i5+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integerdp_6dp
+    
+  subroutine fpy_read_integerdp_7dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    integer(fli), pointer, intent(inout) :: variable(:,:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 7D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6), dims(7)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = indices(5)
+              i6 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              i6 = i6+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_integerdp_7dp
+    
+  subroutine fpy_read_complexsp_1dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fsp), pointer, intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+      write(*,*) "Cannot read a vector value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+    if (nlines .gt. 1) then
+      allocate(variable(nlines))
+    else
+      allocate(variable(nvalues))
+    end if
+    variable = 0
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              if (nlines .gt. 1) then
+                read(line, *) variable(i)
+                i = i+1
+              else
+                read(line, *) variable
+              end if
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexsp_1dp
+    
+  subroutine fpy_read_complexsp_2dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fsp), pointer, intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    allocate(variable(nlines, nvalues))
+    variable = 0
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i,:)
+              i = i+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexsp_2dp
+    
+  subroutine fpy_read_complexsp_3dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fsp), pointer, intent(inout) :: variable(:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(3), i1, i2, i3, indices(3)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 3D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,:)
+              i2 = i2+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexsp_3dp
+    
+  subroutine fpy_read_complexsp_4dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fsp), pointer, intent(inout) :: variable(:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(4), i1, i2, i3, i4, indices(4)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 4D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,:)
+              i3 = i3+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexsp_4dp
+    
+  subroutine fpy_read_complexsp_5dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fsp), pointer, intent(inout) :: variable(:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 5D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,:)
+              i4 = i4+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexsp_5dp
+    
+  subroutine fpy_read_complexsp_6dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fsp), pointer, intent(inout) :: variable(:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 6D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              i5 = i5+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexsp_6dp
+    
+  subroutine fpy_read_complexsp_7dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fsp), pointer, intent(inout) :: variable(:,:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 7D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6), dims(7)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = indices(5)
+              i6 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              i6 = i6+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexsp_7dp
+      subroutine fpy_read_complexdp_1dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fdp), pointer, intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+      write(*,*) "Cannot read a vector value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+    if (nlines .gt. 1) then
+      allocate(variable(nlines))
+    else
+      allocate(variable(nvalues))
+    end if
+    variable = 0
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              if (nlines .gt. 1) then
+                read(line, *) variable(i)
+                i = i+1
+              else
+                read(line, *) variable
+              end if
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexdp_1dp
+    
+  subroutine fpy_read_complexdp_2dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fdp), pointer, intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    allocate(variable(nlines, nvalues))
+    variable = 0
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i,:)
+              i = i+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexdp_2dp
+    
+  subroutine fpy_read_complexdp_3dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fdp), pointer, intent(inout) :: variable(:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(3), i1, i2, i3, indices(3)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 3D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,:)
+              i2 = i2+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexdp_3dp
+    
+  subroutine fpy_read_complexdp_4dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fdp), pointer, intent(inout) :: variable(:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(4), i1, i2, i3, i4, indices(4)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 4D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,:)
+              i3 = i3+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexdp_4dp
+    
+  subroutine fpy_read_complexdp_5dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fdp), pointer, intent(inout) :: variable(:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 5D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,:)
+              i4 = i4+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexdp_5dp
+    
+  subroutine fpy_read_complexdp_6dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fdp), pointer, intent(inout) :: variable(:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 6D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              i5 = i5+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexdp_6dp
+    
+  subroutine fpy_read_complexdp_7dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    complex(fdp), pointer, intent(inout) :: variable(:,:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 7D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6), dims(7)))
+      variable = 0
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = indices(5)
+              i6 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              i6 = i6+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_complexdp_7dp
+    
+  subroutine fpy_read_character_1dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    character(len=*), pointer, intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues, .true.)
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+      write(*,*) "Cannot read a vector value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+    if (nlines .gt. 1) then
+      allocate(variable(nlines))
+    else
+      allocate(variable(nvalues))
+    end if
+    variable = ''
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              if (nlines .gt. 1) then
+                read(line, *) variable(i)
+                i = i+1
+              else
+                read(line, *) variable
+              end if
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_character_1dp
+    
+  subroutine fpy_read_character_2dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    character(len=*), pointer, intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues, .true.)
+    allocate(variable(nlines, nvalues))
+    variable = ''
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i,:)
+              i = i+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_character_2dp
+    
+  subroutine fpy_read_character_3dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    character(len=*), pointer, intent(inout) :: variable(:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(3), i1, i2, i3, indices(3)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 3D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3)))
+      variable = ''
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,:)
+              i2 = i2+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_character_3dp
+    
+  subroutine fpy_read_character_4dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    character(len=*), pointer, intent(inout) :: variable(:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(4), i1, i2, i3, i4, indices(4)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 4D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4)))
+      variable = ''
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,:)
+              i3 = i3+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_character_4dp
+    
+  subroutine fpy_read_character_5dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    character(len=*), pointer, intent(inout) :: variable(:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 5D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5)))
+      variable = ''
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,:)
+              i4 = i4+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_character_5dp
+    
+  subroutine fpy_read_character_6dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    character(len=*), pointer, intent(inout) :: variable(:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 6D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6)))
+      variable = ''
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              i5 = i5+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_character_6dp
+    
+  subroutine fpy_read_character_7dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    character(len=*), pointer, intent(inout) :: variable(:,:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 7D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6), dims(7)))
+      variable = ''
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = indices(5)
+              i6 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              i6 = i6+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_character_7dp
+    
+  subroutine fpy_read_logical_1dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    logical, pointer, intent(inout) :: variable(:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+      write(*,*) "Cannot read a vector value from ", filename
+      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
+      stop
+    end if
+    if (nlines .gt. 1) then
+      allocate(variable(nlines))
+    else
+      allocate(variable(nvalues))
+    end if
+    variable = .false.
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              if (nlines .gt. 1) then
+                read(line, *) variable(i)
+                i = i+1
+              else
+                read(line, *) variable
+              end if
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_logical_1dp
+    
+  subroutine fpy_read_logical_2dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    logical, pointer, intent(inout) :: variable(:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: nlines, nvalues, i
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+    call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+    allocate(variable(nlines, nvalues))
+    variable = .false.
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      i=1
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i,:)
+              i = i+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_logical_2dp
+    
+  subroutine fpy_read_logical_3dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    logical, pointer, intent(inout) :: variable(:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(3), i1, i2, i3, indices(3)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 3D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3)))
+      variable = .false.
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,:)
+              i2 = i2+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_logical_3dp
+    
+  subroutine fpy_read_logical_4dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    logical, pointer, intent(inout) :: variable(:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(4), i1, i2, i3, i4, indices(4)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 4D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4)))
+      variable = .false.
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,:)
+              i3 = i3+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_logical_4dp
+    
+  subroutine fpy_read_logical_5dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    logical, pointer, intent(inout) :: variable(:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 5D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5)))
+      variable = .false.
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,:)
+              i4 = i4+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_logical_5dp
+    
+  subroutine fpy_read_logical_6dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    logical, pointer, intent(inout) :: variable(:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 6D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6)))
+      variable = .false.
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              i5 = i5+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_logical_6dp
+    
+  subroutine fpy_read_logical_7dp(filename, commentchar, variable)
+    character(len=*), intent(in) :: filename
+    character(1), intent(in) :: commentchar
+    logical, pointer, intent(inout) :: variable(:,:,:,:,:,:,:)
+
+    character(len=:), allocatable :: cleaned
+    integer :: ioerr, funit
+    integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
+    character(150000) :: line
+
+    if (associated(variable)) variable => null()
+
+    open(fpy_newunit(funit), file=filename, iostat=ioerr)
+    if (ioerr == 0) then
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 1) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:) ,*) dims
+              exit
+            end if
+          end if
+        else
+          write(*,*) "No shape information found for 7D data file '", filename, "'"
+          stop
+        end if
+      end do
+      
+      allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6), dims(7)))
+      variable = .false.
+      
+      do
+        read(funit, "(A)", iostat=ioerr) line
+        if (ioerr == 0) then
+          cleaned = trim(adjustl(line))
+          if (len(cleaned) .gt. 0) then
+            if (cleaned(1:2) .eq. '##') then
+              read(cleaned(3:), *) indices
+              i1 = indices(1)
+              i2 = indices(2)
+              i3 = indices(3)
+              i4 = indices(4)
+              i5 = indices(5)
+              i6 = 1
+            elseif (cleaned(1:1) /= commentchar) then
+              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              i6 = i6+1
+            end if
+          end if
+        else
+          exit
+        end if
+      end do
+    end if
+    close(funit)    
+  end subroutine fpy_read_logical_7dp
+    
+
+  
   !!<summary>Joins an array of integer indices as a period-separated string for
   !!concatenating to a file name.</summary>
   !!<parameter name="pslist">The period-separated result.</parameter>
@@ -492,74 +10406,7 @@ contains
     pslist = trim(tempstr)
   end subroutine fpy_period_join_indices
 
-  logical function in_range_real_2d(variable, min, max)
-    real(fdp), intent(in) :: variable(:,:)
-    real(fdp), intent(in) :: min, max
-    in_range_real_2d = any(variable .ge. min .and. variable .le. max)
-    return
-  end function in_range_real_2d
-
-  logical function in_range_real_1d(variable, min, max)
-    real(fdp), intent(in) :: variable(:)
-    real(fdp), intent(in) :: min, max
-    in_range_real_1d = any(variable .ge. min .and. variable .le. max)
-    return
-  end function in_range_real_1d
-
-  logical function in_range_real(variable, min, max)
-    real(fdp), intent(in) :: variable
-    real(fdp), intent(in) :: min, max
-    in_range_real = (variable .ge. min .and. variable .le. max)
-    return
-  end function in_range_real
-
-  logical function in_range_integer_2d(variable, min, max)
-    integer, intent(in) :: variable(:,:)
-    integer, intent(in) :: min, max
-    in_range_integer_2d = any(variable .ge. min .and. variable .le. max)
-    return
-  end function in_range_integer_2d
-
-  logical function in_range_integer_1d(variable, min, max)
-    integer, intent(in) :: variable(:)
-    integer, intent(in) :: min, max
-    in_range_integer_1d = any(variable .ge. min .and. variable .le. max)
-    return
-  end function in_range_integer_1d
-
-  logical function in_range_integer(variable, min, max)
-    integer, intent(in) :: variable
-    integer, intent(in) :: min, max
-    in_range_integer = (variable .ge. min .and. variable .le. max)
-    return
-  end function in_range_integer
-
-  subroutine random_real_2d(variable, min, max)
-    real(fdp), intent(out) :: variable(:,:)
-    real(fdp), intent(in) :: min, max
-    integer :: r, c, i, j
-
-    r = size(variable, 1)
-    c = size(variable, 2)
-    do i = 1, r
-       do j = 1, c
-          call random_real(variable(i, j), min, max)
-       end do
-    end do
-  end subroutine random_real_2d
-
-  subroutine random_real_1d(variable, min, max)
-    real(fdp), intent(out) :: variable(:)
-    real(fdp), intent(in) :: min, max
-    integer :: r, i
-
-    r = size(variable, 1)
-    do i = 1, r
-       call random_real(variable(i), min, max)
-    end do
-  end subroutine random_real_1d
-
-   subroutine random_real(variable, min, max)
+  subroutine random_real(variable, min, max)
     real(fdp), intent(out) :: variable
     real(fdp), intent(in) :: min, max
     real(fdp) :: x
@@ -568,31 +10415,6 @@ contains
     call random_number(x)    
     variable = min + x * (max - min)
   end subroutine random_real
-
- subroutine random_integer_2d(variable, min, max)
-    integer, intent(out) :: variable(:,:)
-    integer, intent(in) :: min, max
-    integer :: r, c, i, j
-
-    r = size(variable, 1)
-    c = size(variable, 2)
-    do i = 1, r
-       do j = 1, c
-          call random_integer(variable(i, j), min, max)
-       end do
-    end do
-  end subroutine random_integer_2d
-
-  subroutine random_integer_1d(variable, min, max)
-    integer, intent(out) :: variable(:)
-    integer, intent(in) :: min, max
-    integer :: r, i
-
-    r = size(variable, 1)
-    do i = 1, r
-       call random_integer(variable(i), min, max)
-    end do
-  end subroutine random_integer_1d
 
   subroutine random_integer(variable, min, max)
     integer, intent(out) :: variable
@@ -617,181 +10439,1533 @@ contains
     end if
   end subroutine random_init
 
-  subroutine pysave_integer(variable, filename, n)
-    integer, intent(in) :: variable
-    integer, intent(in) :: n
-    character(n), intent(in) :: filename
+  !!<summary>Escapes all the apostrophes in each word and surrounds it
+  !!with a set of apostrophes.</summary>
+  subroutine char_escape_word(word, escaped)
+    character(len=*), intent(in) :: word
+    character(1000), intent(inout) :: escaped
+    integer :: ichar, ibuff
 
-    call file_open(filename, n, 'integer')
-    write(fileunit, '(i12)') variable
+    escaped = "'"
+    ibuff = 2
+    do ichar=1, len(trim(adjustl(word)))
+       if (word(ichar:ichar) .eq. "'") then
+          escaped(ibuff:ibuff+1) = "''"
+          ibuff = ibuff + 2
+       else
+          escaped(ibuff:ibuff) = word(ichar:ichar)
+          ibuff = ibuff + 1
+       end if
+    end do
+    escaped(ibuff:ibuff) = "'"
+  end subroutine char_escape_word
 
-    call file_close()
-  end subroutine pysave_integer
+  !!<summary>Writes a vector array of *escaped* strings as a single line
+  !!to the currently open file unit.</summary>
+  subroutine char_write_trimmed(variable)
+    character(len=*), intent(in) :: variable(:)
+    !!<local name="fmt">The compiled format string that includes an 'A#' directive
+    !!for each string in the variable array where # is the length of the string.</local>
+    !!<local name="word">Holds the length of the current array element as a string.</local>
+    character(len=:), allocatable :: fmt
+    character(10) :: word
+    integer :: i
+    character(1000) :: escaped(size(variable, 1))
 
-  subroutine pysave_integer_1d(variable, filename, n)
-    integer, intent(in) :: variable(:)
-    integer, intent(in) :: n
-    character(n), intent(in) :: filename
-    integer :: c, i
-    character(20) :: FMT
-
-    c = size(variable, 1)
-    write(FMT, *) c
-
-    call file_open(filename, n, 'integer')
-    write(fileunit, '('// adjustl(FMT) // 'i12)') variable
-    call file_close()
-  end subroutine pysave_integer_1d
-
-  subroutine pysave_integer_2d(variable, filename, n)
-    integer, intent(in) :: variable(:,:)
-    integer, intent(in) :: n
-    character(n), intent(in) :: filename
-    character(20) :: FMT
-    integer :: r, c, i
-
-    r = size(variable, 1)
-    c = size(variable, 2)
-    write(FMT, *) c
-
-    call file_open(filename, n, 'integer')
-    do i = 1, r
-       write(fileunit, '('// adjustl(FMT) // 'i12)') variable(i, :)
+    !First we need to escape all the quotes in each word in the array
+    !so that they can be read in correctly by Fortran later.
+    do i=1, size(variable, 1)
+       call char_escape_word(variable(i), escaped(i))
     end do
 
-    call file_close()
-  end subroutine pysave_integer_2d
-
-  subroutine pysave_integer_li(variable, filename, n)
-    integer(fli), intent(in) :: variable
-    integer, intent(in) :: n
-    character(n), intent(in) :: filename
-
-    call file_open(filename, n, 'integer')
-    write(fileunit, '(i25)') variable
-
-    call file_close()
-  end subroutine pysave_integer_li
-
-  subroutine pysave_integer_1d_li(variable, filename, n)
-    integer(fli), intent(in) :: variable(:)
-    integer, intent(in) :: n
-    character(n), intent(in) :: filename
-    integer :: c
+    fmt = "("
+    do i=1, size(escaped, 1)
+       write (word, "(i10)") (len(trim(adjustl(escaped(i)))) + 2)
+       fmt = fmt // "A" // trim(adjustl(word))
+       if (i .lt. size(escaped, 1)) then
+          fmt = fmt // ","
+       end if
+    end do
+    fmt = fmt // ")"
+    write(fileunit, fmt) escaped
+  end subroutine char_write_trimmed
+  
+    subroutine pysave_realsp_0d(variable, filename)
+    character(len=*), intent(in) :: filename
+    real(fsp), intent(in) :: variable
     character(20) :: FMT
+    
+    write(FMT, *) 1
 
-    c = size(variable, 1)
-    write(FMT, *) c
+    call file_open(filename, len(filename), 'real')
+    write(fileunit, *) variable
+    call file_close()
+  end subroutine pysave_realsp_0d
+    
+  subroutine pysave_realsp_1d(variable, filename)
+    character(len=*), intent(in) :: filename
+    real(fsp), intent(in) :: variable(:)
+    character(20) :: FMT
+    integer :: dims(1)
 
-    call file_open(filename, n, 'integer')
+    dims = shape(variable)
+    write(FMT, *) dims(1)
+
+    call file_open(filename, len(filename), 'real')
+    write(fileunit, *) variable(:)
+    call file_close()
+  end subroutine pysave_realsp_1d
+    
+  subroutine pysave_realsp_2d(variable, filename)
+    character(len=*), intent(in) :: filename
+    real(fsp), intent(in) :: variable(:,:)
+    character(20) :: FMT
+    integer :: dims(2), i1
+
+    dims = shape(variable)
+    write(FMT, *) dims(2)
+
+    call file_open(filename, len(filename), 'real')
+    do i1=1, dims(1)
+      write(fileunit, *) variable(i1, :)
+    end do
+    call file_close()
+  end subroutine pysave_realsp_2d
+    
+  subroutine pysave_realsp_3d(variable, filename)
+    character(len=*), intent(in) :: filename
+    real(fsp), intent(in) :: variable(:,:,:)
+    character(20) :: FMT
+    integer :: dims(3), i1, i2
+
+    dims = shape(variable)
+    write(FMT, *) dims(3)
+
+    call file_open(filename, len(filename), 'real')
+    write(fileunit, "(A, 3i15)") "## ", dims
+    do i1=1, dims(1)
+      write(fileunit, "(A, 3i15)") "## ", i1, 0, 0
+      do i2=1, dims(2)
+        write(fileunit, *) variable(i1, i2, :)
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_realsp_3d
+    
+  subroutine pysave_realsp_4d(variable, filename)
+    character(len=*), intent(in) :: filename
+    real(fsp), intent(in) :: variable(:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(4), i1, i2, i3
+
+    dims = shape(variable)
+    write(FMT, *) dims(4)
+
+    call file_open(filename, len(filename), 'real')
+    write(fileunit, "(A, 4i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        write(fileunit, "(A, 4i15)") "## ", i1, i2, 0, 0
+        do i3=1, dims(3)
+          write(fileunit, *) variable(i1, i2, i3, :)
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_realsp_4d
+    
+  subroutine pysave_realsp_5d(variable, filename)
+    character(len=*), intent(in) :: filename
+    real(fsp), intent(in) :: variable(:,:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(5), i1, i2, i3, i4
+
+    dims = shape(variable)
+    write(FMT, *) dims(5)
+
+    call file_open(filename, len(filename), 'real')
+    write(fileunit, "(A, 5i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        do i3=1, dims(3)
+          write(fileunit, "(A, 5i15)") "## ", i1, i2, i3, 0, 0
+          do i4=1, dims(4)
+            write(fileunit, *) variable(i1, i2, i3, i4, :)
+          end do
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_realsp_5d
+    
+  subroutine pysave_realsp_6d(variable, filename)
+    character(len=*), intent(in) :: filename
+    real(fsp), intent(in) :: variable(:,:,:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(6), i1, i2, i3, i4, i5
+
+    dims = shape(variable)
+    write(FMT, *) dims(6)
+
+    call file_open(filename, len(filename), 'real')
+    write(fileunit, "(A, 6i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        do i3=1, dims(3)
+          do i4=1, dims(4)
+            write(fileunit, "(A, 6i15)") "## ", i1, i2, i3, i4, 0, 0
+            do i5=1, dims(5)
+              write(fileunit, *) variable(i1, i2, i3, i4, i5, :)
+            end do
+          end do
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_realsp_6d
+    
+  subroutine pysave_realsp_7d(variable, filename)
+    character(len=*), intent(in) :: filename
+    real(fsp), intent(in) :: variable(:,:,:,:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(7), i1, i2, i3, i4, i5, i6
+
+    dims = shape(variable)
+    write(FMT, *) dims(7)
+
+    call file_open(filename, len(filename), 'real')
+    write(fileunit, "(A, 7i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        do i3=1, dims(3)
+          do i4=1, dims(4)
+            do i5=1, dims(5)
+              write(fileunit, "(A, 7i15)") "## ", i1, i2, i3, i4, i5, 0, 0
+              do i6=1, dims(6)
+                write(fileunit, *) variable(i1, i2, i3, i4, i5, i6, :)
+              end do
+            end do
+          end do
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_realsp_7d
+      subroutine pysave_realdp_0d(variable, filename)
+    character(len=*), intent(in) :: filename
+    real(fdp), intent(in) :: variable
+    character(20) :: FMT
+    
+    write(FMT, *) 1
+
+    call file_open(filename, len(filename), 'real')
+    write(fileunit, *) variable
+    call file_close()
+  end subroutine pysave_realdp_0d
+    
+  subroutine pysave_realdp_1d(variable, filename)
+    character(len=*), intent(in) :: filename
+    real(fdp), intent(in) :: variable(:)
+    character(20) :: FMT
+    integer :: dims(1)
+
+    dims = shape(variable)
+    write(FMT, *) dims(1)
+
+    call file_open(filename, len(filename), 'real')
+    write(fileunit, *) variable(:)
+    call file_close()
+  end subroutine pysave_realdp_1d
+    
+  subroutine pysave_realdp_2d(variable, filename)
+    character(len=*), intent(in) :: filename
+    real(fdp), intent(in) :: variable(:,:)
+    character(20) :: FMT
+    integer :: dims(2), i1
+
+    dims = shape(variable)
+    write(FMT, *) dims(2)
+
+    call file_open(filename, len(filename), 'real')
+    do i1=1, dims(1)
+      write(fileunit, *) variable(i1, :)
+    end do
+    call file_close()
+  end subroutine pysave_realdp_2d
+    
+  subroutine pysave_realdp_3d(variable, filename)
+    character(len=*), intent(in) :: filename
+    real(fdp), intent(in) :: variable(:,:,:)
+    character(20) :: FMT
+    integer :: dims(3), i1, i2
+
+    dims = shape(variable)
+    write(FMT, *) dims(3)
+
+    call file_open(filename, len(filename), 'real')
+    write(fileunit, "(A, 3i15)") "## ", dims
+    do i1=1, dims(1)
+      write(fileunit, "(A, 3i15)") "## ", i1, 0, 0
+      do i2=1, dims(2)
+        write(fileunit, *) variable(i1, i2, :)
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_realdp_3d
+    
+  subroutine pysave_realdp_4d(variable, filename)
+    character(len=*), intent(in) :: filename
+    real(fdp), intent(in) :: variable(:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(4), i1, i2, i3
+
+    dims = shape(variable)
+    write(FMT, *) dims(4)
+
+    call file_open(filename, len(filename), 'real')
+    write(fileunit, "(A, 4i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        write(fileunit, "(A, 4i15)") "## ", i1, i2, 0, 0
+        do i3=1, dims(3)
+          write(fileunit, *) variable(i1, i2, i3, :)
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_realdp_4d
+    
+  subroutine pysave_realdp_5d(variable, filename)
+    character(len=*), intent(in) :: filename
+    real(fdp), intent(in) :: variable(:,:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(5), i1, i2, i3, i4
+
+    dims = shape(variable)
+    write(FMT, *) dims(5)
+
+    call file_open(filename, len(filename), 'real')
+    write(fileunit, "(A, 5i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        do i3=1, dims(3)
+          write(fileunit, "(A, 5i15)") "## ", i1, i2, i3, 0, 0
+          do i4=1, dims(4)
+            write(fileunit, *) variable(i1, i2, i3, i4, :)
+          end do
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_realdp_5d
+    
+  subroutine pysave_realdp_6d(variable, filename)
+    character(len=*), intent(in) :: filename
+    real(fdp), intent(in) :: variable(:,:,:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(6), i1, i2, i3, i4, i5
+
+    dims = shape(variable)
+    write(FMT, *) dims(6)
+
+    call file_open(filename, len(filename), 'real')
+    write(fileunit, "(A, 6i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        do i3=1, dims(3)
+          do i4=1, dims(4)
+            write(fileunit, "(A, 6i15)") "## ", i1, i2, i3, i4, 0, 0
+            do i5=1, dims(5)
+              write(fileunit, *) variable(i1, i2, i3, i4, i5, :)
+            end do
+          end do
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_realdp_6d
+    
+  subroutine pysave_realdp_7d(variable, filename)
+    character(len=*), intent(in) :: filename
+    real(fdp), intent(in) :: variable(:,:,:,:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(7), i1, i2, i3, i4, i5, i6
+
+    dims = shape(variable)
+    write(FMT, *) dims(7)
+
+    call file_open(filename, len(filename), 'real')
+    write(fileunit, "(A, 7i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        do i3=1, dims(3)
+          do i4=1, dims(4)
+            do i5=1, dims(5)
+              write(fileunit, "(A, 7i15)") "## ", i1, i2, i3, i4, i5, 0, 0
+              do i6=1, dims(6)
+                write(fileunit, *) variable(i1, i2, i3, i4, i5, i6, :)
+              end do
+            end do
+          end do
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_realdp_7d
+    
+  subroutine pysave_integer_0d(variable, filename)
+    character(len=*), intent(in) :: filename
+    integer, intent(in) :: variable
+    character(20) :: FMT
+    
+    write(FMT, *) 1
+
+    call file_open(filename, len(filename), 'integer')
     write(fileunit, '('// adjustl(FMT) // 'i25)') variable
     call file_close()
-  end subroutine pysave_integer_1d_li
-
-  subroutine pysave_integer_2d_li(variable, filename, n)
-    integer(fli), intent(in) :: variable(:,:)
-    integer, intent(in) :: n
-    character(n), intent(in) :: filename
-    character(20) :: FMT
-    integer :: r, c, i
-
-    r = size(variable, 1)
-    c = size(variable, 2)
-
-    write(FMT, *) c
-
-    call file_open(filename, n, 'integer')
-    do i = 1, r
-       write(fileunit, '('// adjustl(FMT) // 'i25)') variable(i, :)
-    end do
-
-    call file_close()
-  end subroutine pysave_integer_2d_li
-
-  subroutine pysave_real(variable, filename, n)
-    real(fdp), intent(in) :: variable
-    integer, intent(in) :: n
-    character(n), intent(in) :: filename
-
-    call file_open(filename, n, 'float')
-    write(fileunit, '(f22.12)') variable
-
-    call file_close()
-  end subroutine pysave_real
-
-  subroutine pysave_real_1d(variable, filename, n)
-    real(fdp), intent(in) :: variable(:)
-    integer, intent(in) :: n
-    character(n), intent(in) :: filename
-    integer :: c
-    character(20) :: FMT
-
-    c = size(variable, 1)
-    write(FMT, *) c
-
-    if (c .gt. 0) then
-       call file_open(filename, n, 'float')
-       write(fileunit, '('// adjustl(FMT) // 'f22.12)') variable
-       call file_close()
-    else
-       write(*,*) "Error writing 2D real matrix to file; no columns"
-    end if
-  end subroutine pysave_real_1d
-
-  subroutine pysave_real_2d(variable, filename, n)
-    real(fdp), intent(in) :: variable(:,:)
-    integer, intent(in) :: n
-    character(n), intent(in) :: filename
-    character(20) :: FMT
-    integer :: r, c, i
-
-    r = size(variable, 1)
-    c = size(variable, 2)
-    write(FMT, *) c
-
-    call file_open(filename, n, 'float')
-    do i = 1, r
-       write(fileunit, '(' // adjustl(FMT) // 'f22.12)') variable(i, :)
-    end do
-
-    call file_close()
-  end subroutine pysave_real_2d
-
-  subroutine pysave_logical(variable, filename, n)
-    logical, intent(in) :: variable
-    integer, intent(in) :: n
-    character(n), intent(in) :: filename
-
-    call file_open(filename, n, 'logical')
-    if (variable) then
-       write(fileunit, *) 'true'
-    else
-       write(fileunit, *) 'false'
-    end if
+  end subroutine pysave_integer_0d
     
-    call file_close()
-  end subroutine pysave_logical
+  subroutine pysave_integer_1d(variable, filename)
+    character(len=*), intent(in) :: filename
+    integer, intent(in) :: variable(:)
+    character(20) :: FMT
+    integer :: dims(1)
 
-  subroutine file_close()
-    !This is just a one line routine, but if we decide to add cleanup later
-    !it makes it easier to do it.
-    close(fileunit)
-  end subroutine file_close
- 
+    dims = shape(variable)
+    write(FMT, *) dims(1)
+
+    call file_open(filename, len(filename), 'integer')
+    write(fileunit, '('// adjustl(FMT) // 'i25)') variable(:)
+    call file_close()
+  end subroutine pysave_integer_1d
+    
+  subroutine pysave_integer_2d(variable, filename)
+    character(len=*), intent(in) :: filename
+    integer, intent(in) :: variable(:,:)
+    character(20) :: FMT
+    integer :: dims(2), i1
+
+    dims = shape(variable)
+    write(FMT, *) dims(2)
+
+    call file_open(filename, len(filename), 'integer')
+    do i1=1, dims(1)
+      write(fileunit, '('// adjustl(FMT) // 'i25)') variable(i1, :)
+    end do
+    call file_close()
+  end subroutine pysave_integer_2d
+    
+  subroutine pysave_integer_3d(variable, filename)
+    character(len=*), intent(in) :: filename
+    integer, intent(in) :: variable(:,:,:)
+    character(20) :: FMT
+    integer :: dims(3), i1, i2
+
+    dims = shape(variable)
+    write(FMT, *) dims(3)
+
+    call file_open(filename, len(filename), 'integer')
+    write(fileunit, "(A, 3i15)") "## ", dims
+    do i1=1, dims(1)
+      write(fileunit, "(A, 3i15)") "## ", i1, 0, 0
+      do i2=1, dims(2)
+        write(fileunit, '('// adjustl(FMT) // 'i25)') variable(i1, i2, :)
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_integer_3d
+    
+  subroutine pysave_integer_4d(variable, filename)
+    character(len=*), intent(in) :: filename
+    integer, intent(in) :: variable(:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(4), i1, i2, i3
+
+    dims = shape(variable)
+    write(FMT, *) dims(4)
+
+    call file_open(filename, len(filename), 'integer')
+    write(fileunit, "(A, 4i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        write(fileunit, "(A, 4i15)") "## ", i1, i2, 0, 0
+        do i3=1, dims(3)
+          write(fileunit, '('// adjustl(FMT) // 'i25)') variable(i1, i2, i3, :)
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_integer_4d
+    
+  subroutine pysave_integer_5d(variable, filename)
+    character(len=*), intent(in) :: filename
+    integer, intent(in) :: variable(:,:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(5), i1, i2, i3, i4
+
+    dims = shape(variable)
+    write(FMT, *) dims(5)
+
+    call file_open(filename, len(filename), 'integer')
+    write(fileunit, "(A, 5i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        do i3=1, dims(3)
+          write(fileunit, "(A, 5i15)") "## ", i1, i2, i3, 0, 0
+          do i4=1, dims(4)
+            write(fileunit, '('// adjustl(FMT) // 'i25)') variable(i1, i2, i3, i4, :)
+          end do
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_integer_5d
+    
+  subroutine pysave_integer_6d(variable, filename)
+    character(len=*), intent(in) :: filename
+    integer, intent(in) :: variable(:,:,:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(6), i1, i2, i3, i4, i5
+
+    dims = shape(variable)
+    write(FMT, *) dims(6)
+
+    call file_open(filename, len(filename), 'integer')
+    write(fileunit, "(A, 6i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        do i3=1, dims(3)
+          do i4=1, dims(4)
+            write(fileunit, "(A, 6i15)") "## ", i1, i2, i3, i4, 0, 0
+            do i5=1, dims(5)
+              write(fileunit, '('// adjustl(FMT) // 'i25)') variable(i1, i2, i3, i4, i5, :)
+            end do
+          end do
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_integer_6d
+    
+  subroutine pysave_integer_7d(variable, filename)
+    character(len=*), intent(in) :: filename
+    integer, intent(in) :: variable(:,:,:,:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(7), i1, i2, i3, i4, i5, i6
+
+    dims = shape(variable)
+    write(FMT, *) dims(7)
+
+    call file_open(filename, len(filename), 'integer')
+    write(fileunit, "(A, 7i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        do i3=1, dims(3)
+          do i4=1, dims(4)
+            do i5=1, dims(5)
+              write(fileunit, "(A, 7i15)") "## ", i1, i2, i3, i4, i5, 0, 0
+              do i6=1, dims(6)
+                write(fileunit, '('// adjustl(FMT) // 'i25)') variable(i1, i2, i3, i4, i5, i6, :)
+              end do
+            end do
+          end do
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_integer_7d
+      subroutine pysave_integersp_0d(variable, filename)
+    character(len=*), intent(in) :: filename
+    integer(fsi), intent(in) :: variable
+    character(20) :: FMT
+    
+    write(FMT, *) 1
+
+    call file_open(filename, len(filename), 'integer')
+    write(fileunit, '('// adjustl(FMT) // 'i5)') variable
+    call file_close()
+  end subroutine pysave_integersp_0d
+    
+  subroutine pysave_integersp_1d(variable, filename)
+    character(len=*), intent(in) :: filename
+    integer(fsi), intent(in) :: variable(:)
+    character(20) :: FMT
+    integer :: dims(1)
+
+    dims = shape(variable)
+    write(FMT, *) dims(1)
+
+    call file_open(filename, len(filename), 'integer')
+    write(fileunit, '('// adjustl(FMT) // 'i5)') variable(:)
+    call file_close()
+  end subroutine pysave_integersp_1d
+    
+  subroutine pysave_integersp_2d(variable, filename)
+    character(len=*), intent(in) :: filename
+    integer(fsi), intent(in) :: variable(:,:)
+    character(20) :: FMT
+    integer :: dims(2), i1
+
+    dims = shape(variable)
+    write(FMT, *) dims(2)
+
+    call file_open(filename, len(filename), 'integer')
+    do i1=1, dims(1)
+      write(fileunit, '('// adjustl(FMT) // 'i5)') variable(i1, :)
+    end do
+    call file_close()
+  end subroutine pysave_integersp_2d
+    
+  subroutine pysave_integersp_3d(variable, filename)
+    character(len=*), intent(in) :: filename
+    integer(fsi), intent(in) :: variable(:,:,:)
+    character(20) :: FMT
+    integer :: dims(3), i1, i2
+
+    dims = shape(variable)
+    write(FMT, *) dims(3)
+
+    call file_open(filename, len(filename), 'integer')
+    write(fileunit, "(A, 3i15)") "## ", dims
+    do i1=1, dims(1)
+      write(fileunit, "(A, 3i15)") "## ", i1, 0, 0
+      do i2=1, dims(2)
+        write(fileunit, '('// adjustl(FMT) // 'i5)') variable(i1, i2, :)
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_integersp_3d
+    
+  subroutine pysave_integersp_4d(variable, filename)
+    character(len=*), intent(in) :: filename
+    integer(fsi), intent(in) :: variable(:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(4), i1, i2, i3
+
+    dims = shape(variable)
+    write(FMT, *) dims(4)
+
+    call file_open(filename, len(filename), 'integer')
+    write(fileunit, "(A, 4i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        write(fileunit, "(A, 4i15)") "## ", i1, i2, 0, 0
+        do i3=1, dims(3)
+          write(fileunit, '('// adjustl(FMT) // 'i5)') variable(i1, i2, i3, :)
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_integersp_4d
+    
+  subroutine pysave_integersp_5d(variable, filename)
+    character(len=*), intent(in) :: filename
+    integer(fsi), intent(in) :: variable(:,:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(5), i1, i2, i3, i4
+
+    dims = shape(variable)
+    write(FMT, *) dims(5)
+
+    call file_open(filename, len(filename), 'integer')
+    write(fileunit, "(A, 5i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        do i3=1, dims(3)
+          write(fileunit, "(A, 5i15)") "## ", i1, i2, i3, 0, 0
+          do i4=1, dims(4)
+            write(fileunit, '('// adjustl(FMT) // 'i5)') variable(i1, i2, i3, i4, :)
+          end do
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_integersp_5d
+    
+  subroutine pysave_integersp_6d(variable, filename)
+    character(len=*), intent(in) :: filename
+    integer(fsi), intent(in) :: variable(:,:,:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(6), i1, i2, i3, i4, i5
+
+    dims = shape(variable)
+    write(FMT, *) dims(6)
+
+    call file_open(filename, len(filename), 'integer')
+    write(fileunit, "(A, 6i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        do i3=1, dims(3)
+          do i4=1, dims(4)
+            write(fileunit, "(A, 6i15)") "## ", i1, i2, i3, i4, 0, 0
+            do i5=1, dims(5)
+              write(fileunit, '('// adjustl(FMT) // 'i5)') variable(i1, i2, i3, i4, i5, :)
+            end do
+          end do
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_integersp_6d
+    
+  subroutine pysave_integersp_7d(variable, filename)
+    character(len=*), intent(in) :: filename
+    integer(fsi), intent(in) :: variable(:,:,:,:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(7), i1, i2, i3, i4, i5, i6
+
+    dims = shape(variable)
+    write(FMT, *) dims(7)
+
+    call file_open(filename, len(filename), 'integer')
+    write(fileunit, "(A, 7i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        do i3=1, dims(3)
+          do i4=1, dims(4)
+            do i5=1, dims(5)
+              write(fileunit, "(A, 7i15)") "## ", i1, i2, i3, i4, i5, 0, 0
+              do i6=1, dims(6)
+                write(fileunit, '('// adjustl(FMT) // 'i5)') variable(i1, i2, i3, i4, i5, i6, :)
+              end do
+            end do
+          end do
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_integersp_7d
+      subroutine pysave_integerdp_0d(variable, filename)
+    character(len=*), intent(in) :: filename
+    integer(fli), intent(in) :: variable
+    character(20) :: FMT
+    
+    write(FMT, *) 1
+
+    call file_open(filename, len(filename), 'integer')
+    write(fileunit, '('// adjustl(FMT) // 'i50)') variable
+    call file_close()
+  end subroutine pysave_integerdp_0d
+    
+  subroutine pysave_integerdp_1d(variable, filename)
+    character(len=*), intent(in) :: filename
+    integer(fli), intent(in) :: variable(:)
+    character(20) :: FMT
+    integer :: dims(1)
+
+    dims = shape(variable)
+    write(FMT, *) dims(1)
+
+    call file_open(filename, len(filename), 'integer')
+    write(fileunit, '('// adjustl(FMT) // 'i50)') variable(:)
+    call file_close()
+  end subroutine pysave_integerdp_1d
+    
+  subroutine pysave_integerdp_2d(variable, filename)
+    character(len=*), intent(in) :: filename
+    integer(fli), intent(in) :: variable(:,:)
+    character(20) :: FMT
+    integer :: dims(2), i1
+
+    dims = shape(variable)
+    write(FMT, *) dims(2)
+
+    call file_open(filename, len(filename), 'integer')
+    do i1=1, dims(1)
+      write(fileunit, '('// adjustl(FMT) // 'i50)') variable(i1, :)
+    end do
+    call file_close()
+  end subroutine pysave_integerdp_2d
+    
+  subroutine pysave_integerdp_3d(variable, filename)
+    character(len=*), intent(in) :: filename
+    integer(fli), intent(in) :: variable(:,:,:)
+    character(20) :: FMT
+    integer :: dims(3), i1, i2
+
+    dims = shape(variable)
+    write(FMT, *) dims(3)
+
+    call file_open(filename, len(filename), 'integer')
+    write(fileunit, "(A, 3i15)") "## ", dims
+    do i1=1, dims(1)
+      write(fileunit, "(A, 3i15)") "## ", i1, 0, 0
+      do i2=1, dims(2)
+        write(fileunit, '('// adjustl(FMT) // 'i50)') variable(i1, i2, :)
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_integerdp_3d
+    
+  subroutine pysave_integerdp_4d(variable, filename)
+    character(len=*), intent(in) :: filename
+    integer(fli), intent(in) :: variable(:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(4), i1, i2, i3
+
+    dims = shape(variable)
+    write(FMT, *) dims(4)
+
+    call file_open(filename, len(filename), 'integer')
+    write(fileunit, "(A, 4i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        write(fileunit, "(A, 4i15)") "## ", i1, i2, 0, 0
+        do i3=1, dims(3)
+          write(fileunit, '('// adjustl(FMT) // 'i50)') variable(i1, i2, i3, :)
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_integerdp_4d
+    
+  subroutine pysave_integerdp_5d(variable, filename)
+    character(len=*), intent(in) :: filename
+    integer(fli), intent(in) :: variable(:,:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(5), i1, i2, i3, i4
+
+    dims = shape(variable)
+    write(FMT, *) dims(5)
+
+    call file_open(filename, len(filename), 'integer')
+    write(fileunit, "(A, 5i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        do i3=1, dims(3)
+          write(fileunit, "(A, 5i15)") "## ", i1, i2, i3, 0, 0
+          do i4=1, dims(4)
+            write(fileunit, '('// adjustl(FMT) // 'i50)') variable(i1, i2, i3, i4, :)
+          end do
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_integerdp_5d
+    
+  subroutine pysave_integerdp_6d(variable, filename)
+    character(len=*), intent(in) :: filename
+    integer(fli), intent(in) :: variable(:,:,:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(6), i1, i2, i3, i4, i5
+
+    dims = shape(variable)
+    write(FMT, *) dims(6)
+
+    call file_open(filename, len(filename), 'integer')
+    write(fileunit, "(A, 6i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        do i3=1, dims(3)
+          do i4=1, dims(4)
+            write(fileunit, "(A, 6i15)") "## ", i1, i2, i3, i4, 0, 0
+            do i5=1, dims(5)
+              write(fileunit, '('// adjustl(FMT) // 'i50)') variable(i1, i2, i3, i4, i5, :)
+            end do
+          end do
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_integerdp_6d
+    
+  subroutine pysave_integerdp_7d(variable, filename)
+    character(len=*), intent(in) :: filename
+    integer(fli), intent(in) :: variable(:,:,:,:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(7), i1, i2, i3, i4, i5, i6
+
+    dims = shape(variable)
+    write(FMT, *) dims(7)
+
+    call file_open(filename, len(filename), 'integer')
+    write(fileunit, "(A, 7i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        do i3=1, dims(3)
+          do i4=1, dims(4)
+            do i5=1, dims(5)
+              write(fileunit, "(A, 7i15)") "## ", i1, i2, i3, i4, i5, 0, 0
+              do i6=1, dims(6)
+                write(fileunit, '('// adjustl(FMT) // 'i50)') variable(i1, i2, i3, i4, i5, i6, :)
+              end do
+            end do
+          end do
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_integerdp_7d
+    
+  subroutine pysave_complexsp_0d(variable, filename)
+    character(len=*), intent(in) :: filename
+    complex(fsp), intent(in) :: variable
+    character(20) :: FMT
+    
+    write(FMT, *) 1
+
+    call file_open(filename, len(filename), 'complex')
+    write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable
+    call file_close()
+  end subroutine pysave_complexsp_0d
+    
+  subroutine pysave_complexsp_1d(variable, filename)
+    character(len=*), intent(in) :: filename
+    complex(fsp), intent(in) :: variable(:)
+    character(20) :: FMT
+    integer :: dims(1)
+
+    dims = shape(variable)
+    write(FMT, *) dims(1)
+
+    call file_open(filename, len(filename), 'complex')
+    write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(:)
+    call file_close()
+  end subroutine pysave_complexsp_1d
+    
+  subroutine pysave_complexsp_2d(variable, filename)
+    character(len=*), intent(in) :: filename
+    complex(fsp), intent(in) :: variable(:,:)
+    character(20) :: FMT
+    integer :: dims(2), i1
+
+    dims = shape(variable)
+    write(FMT, *) dims(2)
+
+    call file_open(filename, len(filename), 'complex')
+    do i1=1, dims(1)
+      write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(i1, :)
+    end do
+    call file_close()
+  end subroutine pysave_complexsp_2d
+    
+  subroutine pysave_complexsp_3d(variable, filename)
+    character(len=*), intent(in) :: filename
+    complex(fsp), intent(in) :: variable(:,:,:)
+    character(20) :: FMT
+    integer :: dims(3), i1, i2
+
+    dims = shape(variable)
+    write(FMT, *) dims(3)
+
+    call file_open(filename, len(filename), 'complex')
+    write(fileunit, "(A, 3i15)") "## ", dims
+    do i1=1, dims(1)
+      write(fileunit, "(A, 3i15)") "## ", i1, 0, 0
+      do i2=1, dims(2)
+        write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(i1, i2, :)
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_complexsp_3d
+    
+  subroutine pysave_complexsp_4d(variable, filename)
+    character(len=*), intent(in) :: filename
+    complex(fsp), intent(in) :: variable(:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(4), i1, i2, i3
+
+    dims = shape(variable)
+    write(FMT, *) dims(4)
+
+    call file_open(filename, len(filename), 'complex')
+    write(fileunit, "(A, 4i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        write(fileunit, "(A, 4i15)") "## ", i1, i2, 0, 0
+        do i3=1, dims(3)
+          write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(i1, i2, i3, :)
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_complexsp_4d
+    
+  subroutine pysave_complexsp_5d(variable, filename)
+    character(len=*), intent(in) :: filename
+    complex(fsp), intent(in) :: variable(:,:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(5), i1, i2, i3, i4
+
+    dims = shape(variable)
+    write(FMT, *) dims(5)
+
+    call file_open(filename, len(filename), 'complex')
+    write(fileunit, "(A, 5i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        do i3=1, dims(3)
+          write(fileunit, "(A, 5i15)") "## ", i1, i2, i3, 0, 0
+          do i4=1, dims(4)
+            write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(i1, i2, i3, i4, :)
+          end do
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_complexsp_5d
+    
+  subroutine pysave_complexsp_6d(variable, filename)
+    character(len=*), intent(in) :: filename
+    complex(fsp), intent(in) :: variable(:,:,:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(6), i1, i2, i3, i4, i5
+
+    dims = shape(variable)
+    write(FMT, *) dims(6)
+
+    call file_open(filename, len(filename), 'complex')
+    write(fileunit, "(A, 6i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        do i3=1, dims(3)
+          do i4=1, dims(4)
+            write(fileunit, "(A, 6i15)") "## ", i1, i2, i3, i4, 0, 0
+            do i5=1, dims(5)
+              write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(i1, i2, i3, i4, i5, :)
+            end do
+          end do
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_complexsp_6d
+    
+  subroutine pysave_complexsp_7d(variable, filename)
+    character(len=*), intent(in) :: filename
+    complex(fsp), intent(in) :: variable(:,:,:,:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(7), i1, i2, i3, i4, i5, i6
+
+    dims = shape(variable)
+    write(FMT, *) dims(7)
+
+    call file_open(filename, len(filename), 'complex')
+    write(fileunit, "(A, 7i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        do i3=1, dims(3)
+          do i4=1, dims(4)
+            do i5=1, dims(5)
+              write(fileunit, "(A, 7i15)") "## ", i1, i2, i3, i4, i5, 0, 0
+              do i6=1, dims(6)
+                write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(i1, i2, i3, i4, i5, i6, :)
+              end do
+            end do
+          end do
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_complexsp_7d
+      subroutine pysave_complexdp_0d(variable, filename)
+    character(len=*), intent(in) :: filename
+    complex(fdp), intent(in) :: variable
+    character(20) :: FMT
+    
+    write(FMT, *) 1
+
+    call file_open(filename, len(filename), 'complex')
+    write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable
+    call file_close()
+  end subroutine pysave_complexdp_0d
+    
+  subroutine pysave_complexdp_1d(variable, filename)
+    character(len=*), intent(in) :: filename
+    complex(fdp), intent(in) :: variable(:)
+    character(20) :: FMT
+    integer :: dims(1)
+
+    dims = shape(variable)
+    write(FMT, *) dims(1)
+
+    call file_open(filename, len(filename), 'complex')
+    write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(:)
+    call file_close()
+  end subroutine pysave_complexdp_1d
+    
+  subroutine pysave_complexdp_2d(variable, filename)
+    character(len=*), intent(in) :: filename
+    complex(fdp), intent(in) :: variable(:,:)
+    character(20) :: FMT
+    integer :: dims(2), i1
+
+    dims = shape(variable)
+    write(FMT, *) dims(2)
+
+    call file_open(filename, len(filename), 'complex')
+    do i1=1, dims(1)
+      write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(i1, :)
+    end do
+    call file_close()
+  end subroutine pysave_complexdp_2d
+    
+  subroutine pysave_complexdp_3d(variable, filename)
+    character(len=*), intent(in) :: filename
+    complex(fdp), intent(in) :: variable(:,:,:)
+    character(20) :: FMT
+    integer :: dims(3), i1, i2
+
+    dims = shape(variable)
+    write(FMT, *) dims(3)
+
+    call file_open(filename, len(filename), 'complex')
+    write(fileunit, "(A, 3i15)") "## ", dims
+    do i1=1, dims(1)
+      write(fileunit, "(A, 3i15)") "## ", i1, 0, 0
+      do i2=1, dims(2)
+        write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(i1, i2, :)
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_complexdp_3d
+    
+  subroutine pysave_complexdp_4d(variable, filename)
+    character(len=*), intent(in) :: filename
+    complex(fdp), intent(in) :: variable(:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(4), i1, i2, i3
+
+    dims = shape(variable)
+    write(FMT, *) dims(4)
+
+    call file_open(filename, len(filename), 'complex')
+    write(fileunit, "(A, 4i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        write(fileunit, "(A, 4i15)") "## ", i1, i2, 0, 0
+        do i3=1, dims(3)
+          write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(i1, i2, i3, :)
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_complexdp_4d
+    
+  subroutine pysave_complexdp_5d(variable, filename)
+    character(len=*), intent(in) :: filename
+    complex(fdp), intent(in) :: variable(:,:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(5), i1, i2, i3, i4
+
+    dims = shape(variable)
+    write(FMT, *) dims(5)
+
+    call file_open(filename, len(filename), 'complex')
+    write(fileunit, "(A, 5i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        do i3=1, dims(3)
+          write(fileunit, "(A, 5i15)") "## ", i1, i2, i3, 0, 0
+          do i4=1, dims(4)
+            write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(i1, i2, i3, i4, :)
+          end do
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_complexdp_5d
+    
+  subroutine pysave_complexdp_6d(variable, filename)
+    character(len=*), intent(in) :: filename
+    complex(fdp), intent(in) :: variable(:,:,:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(6), i1, i2, i3, i4, i5
+
+    dims = shape(variable)
+    write(FMT, *) dims(6)
+
+    call file_open(filename, len(filename), 'complex')
+    write(fileunit, "(A, 6i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        do i3=1, dims(3)
+          do i4=1, dims(4)
+            write(fileunit, "(A, 6i15)") "## ", i1, i2, i3, i4, 0, 0
+            do i5=1, dims(5)
+              write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(i1, i2, i3, i4, i5, :)
+            end do
+          end do
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_complexdp_6d
+    
+  subroutine pysave_complexdp_7d(variable, filename)
+    character(len=*), intent(in) :: filename
+    complex(fdp), intent(in) :: variable(:,:,:,:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(7), i1, i2, i3, i4, i5, i6
+
+    dims = shape(variable)
+    write(FMT, *) dims(7)
+
+    call file_open(filename, len(filename), 'complex')
+    write(fileunit, "(A, 7i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        do i3=1, dims(3)
+          do i4=1, dims(4)
+            do i5=1, dims(5)
+              write(fileunit, "(A, 7i15)") "## ", i1, i2, i3, i4, i5, 0, 0
+              do i6=1, dims(6)
+                write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(i1, i2, i3, i4, i5, i6, :)
+              end do
+            end do
+          end do
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_complexdp_7d
+    
+  subroutine pysave_character_0d(variable, filename)
+    character(len=*), intent(in) :: filename
+    character(len=*), intent(in) :: variable
+    character(20) :: FMT
+    
+    write(FMT, *) 1
+
+    call file_open(filename, len(filename), 'character')
+    write(fileunit, *) trim(adjustl(variable))
+    call file_close()
+  end subroutine pysave_character_0d
+    
+  subroutine pysave_character_1d(variable, filename)
+    character(len=*), intent(in) :: filename
+    character(len=*), intent(in) :: variable(:)
+    character(20) :: FMT
+    integer :: dims(1)
+
+    dims = shape(variable)
+    write(FMT, *) dims(1)
+
+    call file_open(filename, len(filename), 'character')
+    call char_write_trimmed(variable(:))
+    call file_close()
+  end subroutine pysave_character_1d
+    
+  subroutine pysave_character_2d(variable, filename)
+    character(len=*), intent(in) :: filename
+    character(len=*), intent(in) :: variable(:,:)
+    character(20) :: FMT
+    integer :: dims(2), i1
+
+    dims = shape(variable)
+    write(FMT, *) dims(2)
+
+    call file_open(filename, len(filename), 'character')
+    do i1=1, dims(1)
+      call char_write_trimmed(variable(i1, :))
+    end do
+    call file_close()
+  end subroutine pysave_character_2d
+    
+  subroutine pysave_character_3d(variable, filename)
+    character(len=*), intent(in) :: filename
+    character(len=*), intent(in) :: variable(:,:,:)
+    character(20) :: FMT
+    integer :: dims(3), i1, i2
+
+    dims = shape(variable)
+    write(FMT, *) dims(3)
+
+    call file_open(filename, len(filename), 'character')
+    write(fileunit, "(A, 3i15)") "## ", dims
+    do i1=1, dims(1)
+      write(fileunit, "(A, 3i15)") "## ", i1, 0, 0
+      do i2=1, dims(2)
+        call char_write_trimmed(variable(i1, i2, :))
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_character_3d
+    
+  subroutine pysave_character_4d(variable, filename)
+    character(len=*), intent(in) :: filename
+    character(len=*), intent(in) :: variable(:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(4), i1, i2, i3
+
+    dims = shape(variable)
+    write(FMT, *) dims(4)
+
+    call file_open(filename, len(filename), 'character')
+    write(fileunit, "(A, 4i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        write(fileunit, "(A, 4i15)") "## ", i1, i2, 0, 0
+        do i3=1, dims(3)
+          call char_write_trimmed(variable(i1, i2, i3, :))
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_character_4d
+    
+  subroutine pysave_character_5d(variable, filename)
+    character(len=*), intent(in) :: filename
+    character(len=*), intent(in) :: variable(:,:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(5), i1, i2, i3, i4
+
+    dims = shape(variable)
+    write(FMT, *) dims(5)
+
+    call file_open(filename, len(filename), 'character')
+    write(fileunit, "(A, 5i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        do i3=1, dims(3)
+          write(fileunit, "(A, 5i15)") "## ", i1, i2, i3, 0, 0
+          do i4=1, dims(4)
+            call char_write_trimmed(variable(i1, i2, i3, i4, :))
+          end do
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_character_5d
+    
+  subroutine pysave_character_6d(variable, filename)
+    character(len=*), intent(in) :: filename
+    character(len=*), intent(in) :: variable(:,:,:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(6), i1, i2, i3, i4, i5
+
+    dims = shape(variable)
+    write(FMT, *) dims(6)
+
+    call file_open(filename, len(filename), 'character')
+    write(fileunit, "(A, 6i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        do i3=1, dims(3)
+          do i4=1, dims(4)
+            write(fileunit, "(A, 6i15)") "## ", i1, i2, i3, i4, 0, 0
+            do i5=1, dims(5)
+              call char_write_trimmed(variable(i1, i2, i3, i4, i5, :))
+            end do
+          end do
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_character_6d
+    
+  subroutine pysave_character_7d(variable, filename)
+    character(len=*), intent(in) :: filename
+    character(len=*), intent(in) :: variable(:,:,:,:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(7), i1, i2, i3, i4, i5, i6
+
+    dims = shape(variable)
+    write(FMT, *) dims(7)
+
+    call file_open(filename, len(filename), 'character')
+    write(fileunit, "(A, 7i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        do i3=1, dims(3)
+          do i4=1, dims(4)
+            do i5=1, dims(5)
+              write(fileunit, "(A, 7i15)") "## ", i1, i2, i3, i4, i5, 0, 0
+              do i6=1, dims(6)
+                call char_write_trimmed(variable(i1, i2, i3, i4, i5, i6, :))
+              end do
+            end do
+          end do
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_character_7d
+    
+  subroutine pysave_logical_0d(variable, filename)
+    character(len=*), intent(in) :: filename
+    logical, intent(in) :: variable
+    character(20) :: FMT
+    
+    write(FMT, *) 1
+
+    call file_open(filename, len(filename), 'logical')
+    write(fileunit, *) variable
+    call file_close()
+  end subroutine pysave_logical_0d
+    
+  subroutine pysave_logical_1d(variable, filename)
+    character(len=*), intent(in) :: filename
+    logical, intent(in) :: variable(:)
+    character(20) :: FMT
+    integer :: dims(1)
+
+    dims = shape(variable)
+    write(FMT, *) dims(1)
+
+    call file_open(filename, len(filename), 'logical')
+    write(fileunit, *) variable(:)
+    call file_close()
+  end subroutine pysave_logical_1d
+    
+  subroutine pysave_logical_2d(variable, filename)
+    character(len=*), intent(in) :: filename
+    logical, intent(in) :: variable(:,:)
+    character(20) :: FMT
+    integer :: dims(2), i1
+
+    dims = shape(variable)
+    write(FMT, *) dims(2)
+
+    call file_open(filename, len(filename), 'logical')
+    do i1=1, dims(1)
+      write(fileunit, *) variable(i1, :)
+    end do
+    call file_close()
+  end subroutine pysave_logical_2d
+    
+  subroutine pysave_logical_3d(variable, filename)
+    character(len=*), intent(in) :: filename
+    logical, intent(in) :: variable(:,:,:)
+    character(20) :: FMT
+    integer :: dims(3), i1, i2
+
+    dims = shape(variable)
+    write(FMT, *) dims(3)
+
+    call file_open(filename, len(filename), 'logical')
+    write(fileunit, "(A, 3i15)") "## ", dims
+    do i1=1, dims(1)
+      write(fileunit, "(A, 3i15)") "## ", i1, 0, 0
+      do i2=1, dims(2)
+        write(fileunit, *) variable(i1, i2, :)
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_logical_3d
+    
+  subroutine pysave_logical_4d(variable, filename)
+    character(len=*), intent(in) :: filename
+    logical, intent(in) :: variable(:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(4), i1, i2, i3
+
+    dims = shape(variable)
+    write(FMT, *) dims(4)
+
+    call file_open(filename, len(filename), 'logical')
+    write(fileunit, "(A, 4i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        write(fileunit, "(A, 4i15)") "## ", i1, i2, 0, 0
+        do i3=1, dims(3)
+          write(fileunit, *) variable(i1, i2, i3, :)
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_logical_4d
+    
+  subroutine pysave_logical_5d(variable, filename)
+    character(len=*), intent(in) :: filename
+    logical, intent(in) :: variable(:,:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(5), i1, i2, i3, i4
+
+    dims = shape(variable)
+    write(FMT, *) dims(5)
+
+    call file_open(filename, len(filename), 'logical')
+    write(fileunit, "(A, 5i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        do i3=1, dims(3)
+          write(fileunit, "(A, 5i15)") "## ", i1, i2, i3, 0, 0
+          do i4=1, dims(4)
+            write(fileunit, *) variable(i1, i2, i3, i4, :)
+          end do
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_logical_5d
+    
+  subroutine pysave_logical_6d(variable, filename)
+    character(len=*), intent(in) :: filename
+    logical, intent(in) :: variable(:,:,:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(6), i1, i2, i3, i4, i5
+
+    dims = shape(variable)
+    write(FMT, *) dims(6)
+
+    call file_open(filename, len(filename), 'logical')
+    write(fileunit, "(A, 6i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        do i3=1, dims(3)
+          do i4=1, dims(4)
+            write(fileunit, "(A, 6i15)") "## ", i1, i2, i3, i4, 0, 0
+            do i5=1, dims(5)
+              write(fileunit, *) variable(i1, i2, i3, i4, i5, :)
+            end do
+          end do
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_logical_6d
+    
+  subroutine pysave_logical_7d(variable, filename)
+    character(len=*), intent(in) :: filename
+    logical, intent(in) :: variable(:,:,:,:,:,:,:)
+    character(20) :: FMT
+    integer :: dims(7), i1, i2, i3, i4, i5, i6
+
+    dims = shape(variable)
+    write(FMT, *) dims(7)
+
+    call file_open(filename, len(filename), 'logical')
+    write(fileunit, "(A, 7i15)") "## ", dims
+    do i1=1, dims(1)
+      do i2=1, dims(2)
+        do i3=1, dims(3)
+          do i4=1, dims(4)
+            do i5=1, dims(5)
+              write(fileunit, "(A, 7i15)") "## ", i1, i2, i3, i4, i5, 0, 0
+              do i6=1, dims(6)
+                write(fileunit, *) variable(i1, i2, i3, i4, i5, i6, :)
+              end do
+            end do
+          end do
+        end do
+      end do
+    end do
+    call file_close()
+  end subroutine pysave_logical_7d
+    
+  
   subroutine file_open(filename, n, template_name)
     integer, intent(in) :: n
     character(n), intent(in) :: filename    
     character(*), intent(in) :: template_name
+    character(len=:), allocatable :: delim
     integer :: ioerr
     logical :: exist
 
+    if (template_name .eq. "character") then
+       delim = "APOSTROPHE"
+    else
+       delim = "NONE"
+    end if
+    
     inquire(file=filename, exist=exist)
     if (exist) then
        open(fpy_newunit(fileunit), file=filename, status="old", position="append",  &
             action="write", iostat=ioerr)
     else
        open(fpy_newunit(fileunit), file=filename, status="new", action="write", iostat=ioerr)
-       if (ioerr == 0) write(fileunit, *) '# <fortpy version="1" template="', template_name, '"></fortpy>'
+       if (ioerr == 0) write(fileunit, "(A)") '# <fortpy version="1" template="' // template_name // '"></fortpy>'
     end if
 
     if (ioerr /= 0) then
@@ -799,51 +11973,156 @@ contains
     end if
   end subroutine file_open
 
+  subroutine file_close()
+    !This is just a one line routine, but if we decide to add cleanup later
+    !it makes it easier to do it.
+    close(fileunit)
+  end subroutine file_close
+
   !!<summary>Returns the number of values in the specified line assuming
   !!that they are separated by spaces or tabs.</summary>
   !!<parameter name="length">The number of characters in line.</parameter>
   !!<parameter name="line">The string for the line to count values in.</parameter>
-  integer function fpy_value_count(line, length)
+  !!<parameter name="ischar">When true, the type of data being read in is character
+  !!so that whitespace is not the separator, but rather isolated apostrophes or quotes.</parameter>
+  integer function fpy_value_count(line, length, ischar)
     integer, intent(in) :: length
     character(length), intent(in) :: line
+    logical, optional, intent(in) :: ischar
+    
     character(2) :: whitespace
-    integer           :: i, indx, prev = 1
+    integer :: i, ichar, indx, prev, cindx(2)
+    logical :: ischar_, isquote(2), fquote, fquote_set, qopen
+    character :: cchar(2), quote='"', apost="'"
+
+    if (present(ischar)) then
+       ischar_ = ischar
+    else
+       ischar_ = .false.
+    end if
 
     !Initialize the whitespace array. We will cycle through all the characters
     !in the specified line looking for whitespace. Each time we find it, if the
     !character immediately preceding it was not whitespace, we have a value.
-    whitespace = '  '
+    whitespace = ' ' // char(9)
+    fquote_set = .false.
+    qopen = .false.
+
     fpy_value_count = 0
+    prev = -1
+    ichar = 1
 
     do i = 1, length
        !indx will be zero if the current character is not a whitespace character.
-       indx = index(whitespace, line(i:i))
-       !The ichar == 9 statement checks for tabs; we used to have it concatenated onto the
-       !whitespace array, but there was a bug, so we switched to explicit behavior.
-       if ((indx > 0 .or. ichar(line(i:i)) .eq. 9) .and. prev == 0) then
-          !We found the first whitespace after the end of a value we want.
-          fpy_value_count = fpy_value_count + 1
+       cchar(ichar) = line(i:i)
+       if (ischar_) then
+          !We need to identify whether the current character is a quote or apostrophe.
+          !We also need to remember which one it is to handle the escaping of '' or "".
+          if (cchar(ichar) .eq. apost) then
+             isquote(ichar) = .false.
+             cindx(ichar) = 1
+             if (.not. fquote_set) then
+                fquote = .false.
+                fquote_set = .true.
+             end if
+          else
+             if (cchar(ichar) .eq. quote) then
+                isquote(ichar) = .true.
+                cindx(ichar) = 1
+                if (.not. fquote_set) then
+                   fquote = .true.
+                   fquote_set = .true.
+                end if
+             end if
+          end if
+          
+          !Next, we can analyze whether this character and the last are both the same
+          !character. If they are, it is as good as a non-match. If they aren't we
+          !check to see if either is a quote and whether they match the first type of
+          !quote in the line.
+          if (cindx(1) .gt. 0) then
+             !First, make sure that the previous character isn't the same since that would
+             !be an escaped quote.
+             if (ichar .gt. 1) then
+                if (cchar(ichar) .eq. cchar(ichar-1)) then
+                   !Reset the sequencer so that triple quotes count as an escaped quote
+                   !followed by a non-escaped one.
+                   indx = 0
+                else
+                   !If the previous one was a quote and this one is not, then we may have
+                   !a match; in that case, make sure the quote matches the first one in
+                   !the line.
+                   if (cindx(1) .eq. 1 .and. cindx(2) .eq. 0) then
+                      if (isquote(1) .eqv. fquote) then
+                         indx = 1
+                         qopen = (.not. qopen)
+                      else
+                         indx = 0
+                      end if
+                   end if
+                end if
+                ichar = 1
+                cindx = 0
+                cchar = ""
+             else
+                !we can't make decisions using an isolated character because of the
+                !double character escaping standard in Fortran.
+                ichar = ichar + 1
+             end if
+          else
+             !Since neither was a quote, it is the equivalent of matching a non-whitespace
+             !character type for the numeric counters.
+             indx = 0
+             cindx(1) = 0
+             cchar(1) = ""
+          end if
+       else
+          indx = index(whitespace, cchar(ichar))
+       end if
+       
+       if (indx > 0 .and. prev == 0) then
+          !We found the first whitespace/quote after the end of a value we want.
+          if (ischar_) then
+             if (qopen) fpy_value_count = fpy_value_count + 1
+          else
+             fpy_value_count = fpy_value_count + 1
+          end if
        end if
 
        prev = indx
     end do
 
-    !If the last value on the line ends right before \n, then we wouldn't have
-    !picked it up; add an extra one.
-    if (indx == 0) fpy_value_count = fpy_value_count + 1
+    if (ischar_) then
+       !Check if the last character was a quote and of the same variety as the first
+       !quote character on the line.
+       if (ichar .eq. 1 .and. cindx(1) .eq. 1 .and. isquote(1) .eqv. fquote .and. qopen) &
+            fpy_value_count = fpy_value_count + 1
+    else
+       !If the last value on the line ends right before \n, then we wouldn't have
+       !picked it up; add an extra one.
+       if (indx == 0) fpy_value_count = fpy_value_count + 1
+    end if
   end function fpy_value_count
 
   !!<summary>Gets the lengths of ragged-array structured lines for each line
   !!in the specified data file.</summary>
-  subroutine fpy_linevalue_count_all(filename, commentchar, nlines, nvalues)
+  subroutine fpy_linevalue_count_all(filename, commentchar, nlines, nvalues, ischar)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
     integer, intent(out) :: nlines
     integer, allocatable, intent(out) :: nvalues(:)
+    logical, optional :: ischar
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit, i, firstnval
     character(150000) :: line
+    logical :: ischar_
+
+    if (present(ischar)) then
+       ischar_ = ischar
+    else
+       ischar_ = .false.
+    end if
 
     !Initialize the value for the result; if we get an error during the read, we
     !end the loop. It can be caused by badly formatted data or the EOF marker.
@@ -861,7 +12140,7 @@ contains
              if (len(cleaned) .gt. 0) then
                 if (cleaned(1:1) /= commentchar) then
                    i = i + 1
-                   nvalues(i) = fpy_value_count(cleaned, len(cleaned))
+                   nvalues(i) = fpy_value_count(cleaned, len(cleaned), ischar_)
                 end if
              end if
           else
@@ -878,14 +12157,22 @@ contains
   !!<parameter name="n">The number of characters in 'filename'.</parameter>
   !!<parameter name="commentchar">A single character which, when present at the start
   !!of a line designates it as a comment.</parameter>
-  subroutine fpy_linevalue_count(filename, commentchar, nlines, nvalues)
+  subroutine fpy_linevalue_count(filename, commentchar, nlines, nvalues, ischar)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
     integer, intent(out) :: nlines, nvalues
+    logical, optional :: ischar
     
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
     character(150000) :: line
+    logical :: ischar_
+
+    if (present(ischar)) then
+       ischar_ = ischar
+    else
+       ischar_ = .false.
+    end if
 
     !Initialize the value for the result; if we get an error during the read, we
     !end the loop. It can be caused by badly formatted data or the EOF marker.
@@ -904,7 +12191,7 @@ contains
                    !We only need to get the number of values present in a line once.
                    !We restrict the file structure to have rectangular arrays.
                    if (nvalues == 0) then
-                      nvalues = fpy_value_count(cleaned, len(cleaned))
+                      nvalues = fpy_value_count(cleaned, len(cleaned), ischar_)
                    end if
                 end if
              end if

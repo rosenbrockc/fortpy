@@ -39,9 +39,6 @@ def makefile(identifier, dependencies, makepath, compileid,
     
     #Append all the dependent modules to the makefile
     lines.append("LIBMODULESF90\t= \\")
-    if inclfortpy:
-        #Copy over the fortpy module in case we need it.
-        lines.append("\t\tfortpy.f90 \\")
 
     for modk in dependencies[0:-1]:
         if modk != "fortpy" and modk != identifier:
@@ -64,6 +61,9 @@ def makefile(identifier, dependencies, makepath, compileid,
     #Add explicitly defined libraries that should be included when linking
     #the unit testing executable.
     linklibs = _add_explicit_includes(lines, dependencies, extralinks)
+    if inclfortpy:
+        lines.append("\t\tfortpy.o \\")
+
     lines.append("")
 
     #We need to add the error handling commands to make debugging compiling easier.

@@ -680,7 +680,7 @@ class FileTemplate(object):
         with open(self.filepath) as f:
             lines = f.read()
         from fortpy.utility import XML_fromstring
-        root = XML_fromstring(lines)
+        root = XML_fromstring(lines, self.filepath)
 
         #The first element must be a fortpy with attribute template
         #otherwise give a message about it being an invalid template file

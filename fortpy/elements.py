@@ -437,7 +437,7 @@ class ValueElement(CodeElement):
                 import re
                 default = self._kind_module.members[self.kind].default
                 vals = default.split("(")[1].replace(")", "")
-                ints = map(int, re.split(",\s*", vals))
+                ints = list(map(int, re.split(",\s*", vals)))
                 if self.dtype == "integer" and len(ints) == 1:
                     if ints[0] <= 15:
                         return "C_SHORT"
@@ -613,8 +613,8 @@ class Executable(ValueElement, Decoratable):
         #It is understood that this executable's module is obviously required. Just
         #add any additional modules from the parameters.
         result = [p.dependency() for p in self.ordered_parameters]
-        result.extend([v.dependency() for k, v in self.members.items()])
-        for ekey, anexec in self.executables.items():
+        result.extend([v.dependency() for k, v in list(self.members.items())])
+        for ekey, anexec in list(self.executables.items()):
             result.extend(anexec.search_dependencies())
         return [m for m in result if m is not None and m != self.module.name]
         
@@ -878,22 +878,27 @@ class Function(Executable):
         self.kind = kind
         self.update_dtype()
 
-    def update_dtype(self):
+    def update_dtype(self, resvar=None):
         """Updates the dtype attribute of the function. This is required because
         fortran functions can have their types declared either as a modifier on
-        the function *or* as a member inside the function."""
+        the function *or* as a member inside the function.
+
+        :arg resvar: the name of the variable declared using the result(var)
+          construct after the function signature.
+        """
         if self.dtype is None:
             #search the members of this function for one that has the same name
             #as the function. If it gets found, overwrite the dtype, kind and
             #modifiers attributes so the rest of the code works.
             for m in self.members:
-                if m == self.name.lower():
+                if m == self.name.lower() or m == resvar:
                     member = self.members[m]
                     self.dtype = member.dtype
                     self.modifiers = member.modifiers
                     self.kind = member.kind
                     self.default = member.default
                     self.dimension = member.dimension
+                    del self.members[m]
                     break
 
     @property
@@ -1300,12 +1305,12 @@ class Module(CodeElement, Decoratable):
         #Add any incidentals from the automatic construction of code. These can be from
         #executables that use special precision types without importing them or from
         #derived types. Same applies to the local members of this module.
-        for ekey, anexec in self.executables.items():
+        for ekey, anexec in list(self.executables.items()):
             for dep in anexec.search_dependencies():
                 if dep is not None and dep not in result:
                     result.append(dep)
 
-        for member in self.members.values():
+        for member in list(self.members.values()):
             dep = member.dependency()
             if dep is not None and dep not in result:
                 result.append(dep)

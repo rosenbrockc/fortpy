@@ -6,6 +6,9 @@ __pycache__/
 \#*#
 tests/staging/
 *.tmp
+*.bak
+*fortpy.mod.*
+*fortpy.o.*
 
 # C extensions
 *.so
