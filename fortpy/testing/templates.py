@@ -679,7 +679,8 @@ class FileTemplate(object):
         based on version numbers."""
         with open(self.filepath) as f:
             lines = f.read()
-        root = ET.fromstring(lines)
+        from fortpy.utility import XML_fromstring
+        root = XML_fromstring(lines, self.filepath)
 
         #The first element must be a fortpy with attribute template
         #otherwise give a message about it being an invalid template file

@@ -24,7 +24,8 @@ class ExecutableParser(object):
         self._RX_EXEC = r"\n[ \t]*((?P<type>character|real|type|logical|integer)?" + \
                         r"(?P<kind>\([a-z0-9_]+\))?)?((?P<modifiers>[\w, \t]+?))?[ \t]*" + \
                         r"(?P<codetype>subroutine|function)\s+(?P<name>[^(]+)" + \
-                        r"\s*\((?P<parameters>[^)]*)\)(?P<contents>.+?)end\s*(?P=codetype)\s+(?P=name)"
+                        r"\s*\((?P<parameters>[^)]*)\)(?P<result>\sresult\([a-z0-9_]+\))?" + \
+                        r"(?P<contents>.+?)end\s*(?P=codetype)\s+(?P=name)"
         self.RE_EXEC = re.compile(self._RX_EXEC, re.DOTALL | re.I)
         #Regex for the signature is almost identical to the full executable, but it doesn't
         #look for any contents after the parameter list.
@@ -211,7 +212,13 @@ class ExecutableParser(object):
         #Extract a list of local variables
         self._parse_members(contents, result, params)
         if isinstance(result, Function):
-            result.update_dtype()
+            #We need to handle the syntax for defining a function with result(variable)
+            #to specify the return type of the function.
+            if execmatch.group("result") is not None:
+                resvar = execmatch.group("result").lower().split("result(")[1].replace(")", "")
+            else:
+                resvar = None
+            result.update_dtype(resvar)
         
         #Fortran allows lines to be continued using &. The easiest way
         #to deal with this is to remove all of those before processing
@@ -400,6 +407,7 @@ class ExecutableParser(object):
         #First get the variables declared in the body of the executable, these can
         #be either locals or parameter declarations.
         members = self.vparser.parse(contents, anexec)
+
         #If the name matches one in the parameter list, we can connect them
         for param in list(params):
             lparam = param.lower()

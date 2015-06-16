@@ -9,7 +9,6 @@ import dateutil.parser
 class TestGenerator(object):
     """Generates automatic unit tests based on docstrings in the fortran
     doc elements defined in the code files.
-
     :arg parser: an instance of the code parser that has code elements
       with all the docstrings.
     :arg tester: an instance of UnitTester handling the overall testing
@@ -21,7 +20,6 @@ class TestGenerator(object):
     :arg rerun: specifies whether to re-run the tests (i.e. don't recopy
       and re-compile everything, just re-run the tests using existing
       code files. May fail if something has changed.
-
     :attr xgenerator: an instance of ExecutableGenerator to generate the
       .f90 program files for performing the unit tests.
     :attr dependfiles: a list of additional files to be copied from the
@@ -40,7 +38,7 @@ class TestGenerator(object):
         else:
             self.rerun = rerun
 
-        self.dependfiles = [ "fortpy.f90", "Makefile.ifort", "Makefile.gfortran" ]
+        self.dependfiles = [ "Makefile.ifort", "Makefile.gfortran" ]
         self.xtests = {}
         """Dictionary of the dictionary of test specifications indexed by test identifier.
         """
@@ -68,7 +66,6 @@ class TestGenerator(object):
     def write(self, codefolder):
         """Creates a fortran program for each subroutine in the code parsers
         modules lists that tests the subroutine/function.
-
         :arg codefolder: the full path to the folder in which the code files
           reside that tests will be run for.
         """
@@ -120,13 +117,18 @@ class TestGenerator(object):
         #where it can be compiled.
         identifier = "{}.{}".format(module.name, executable.name)
         from os import path
-        newstage = self.xgenerator.reset(identifier, path.dirname(module.filepath), self.rerun)
+        newstage = self.xgenerator.reset(identifier, path.dirname(module.filepath))
         self._xml_get(identifier, newstage)
         needs = self.xgenerator.needs()
 
         #Now we need to check whether the files it depends on have changed
-        #since the last time we wrote and compiled.
-        different = False
+        #since the last time we wrote and compiled. If re-run is specified,
+        #force the difference check to be True so that it re-writes the driver.
+        if self.rerun is not None and (self.rerun == "*" or self.rerun in identifier.lower()):
+            different = True
+        else:
+            different = False
+            
         if identifier in self.archive:
             previous = self.archive[identifier]
         else:
@@ -176,12 +178,12 @@ class TestGenerator(object):
                 different = True
 
         #We also need to rewrite the files if the user deleted the testid.f90
-        #or testid.x files from the directories to force a re-write.
+        #file from the directories to force a re-write.
         if not different:
             for testid in self.xgenerator.writer.tests:
                 codefile = os.path.join(self.xgenerator.folder, "{}.f90".format(testid))
-                xfile = os.path.join(self.xgenerator.folder, "{}.x".format(testid))
-                if not os.path.exists(codefile) or not os.path.exists(xfile):
+                if not os.path.exists(codefile):
+                    msg.std("Missing codefile in {}; re-run.".format(self.xgenerator.folder))
                     different = True
                     break
 

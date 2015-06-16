@@ -299,7 +299,10 @@ class TestResult(object):
                     if result is not None:
                         total += result.percent_match/len(case)
 
-        return float(total) / (len(self.cases) + self.failure_count)
+        if len(self.cases) == 0:
+            return 0
+        else:
+            return float(total) / (len(self.cases) + self.failure_count)
             
     @property
     def common(self):
@@ -316,8 +319,10 @@ class TestResult(object):
                 else:
                     if result is not None:
                         total += result.common_match/len(case)
-
-        return float(total) / (len(self.cases) + self.failure_count)
+        if len(self.cases) == 0:
+            return 0
+        else:
+            return float(total) / (len(self.cases) + self.failure_count)
 
     @property
     def failure_count(self):
@@ -373,19 +378,23 @@ class UnitTester(object):
 
         return self._templatev[filename]
 
-    def get_fortpy_version(self, fortpath):
+    def get_fortpy_version(self, fortpath, recursed=False):
         """Gets the fortpy version number from the first line of the specified file."""
         result = []
         #If the file doesn't exist yet, we don't try to find the version information.
         from os import path
         if not path.isfile(fortpath):
-            return result
+            if path.isfile(fortpath + '.v'):
+                return self.get_fortpy_version(fortpath + '.v', True)
+            else:
+                return result
 
         with open(fortpath) as f:
             for line in f:
-                if line[0:2] == "!!":
-                    vxml = "<doc>{}</doc>".format(line.split("!!")[1])
-                else:
+                try:
+                    lt = line.index("<")
+                    vxml = "<doc>{}</doc>".format(line[lt::])
+                except ValueError:
                     vxml = ""
                 break
             
@@ -393,9 +402,12 @@ class UnitTester(object):
             import xml.etree.ElementTree as ET
             x = list(ET.XML(vxml))
             if len(x) > 0:
-                result = map(int, x[0].attrib["version"].split("."))
+                result = list(map(int, x[0].attrib["version"].split(".")))
 
-        return result
+        if len(result) == 0 and not recursed:
+            return self.get_fortpy_version(fortpath + '.v', True)
+        else:
+            return result
 
     def tests(self, identifier):
         """Returns a dictionary of all the tests that need to be run for the
@@ -542,6 +554,28 @@ class UnitTester(object):
             #Only return a test result if the checks were actually run.
             return result
 
+    def _compile_fortpyf90(self):
+        """Compiles a fortpy.mod and fortpy.o for the current compiler.
+        """
+        msg.info("Compiling fortpy.mod and fortpy.f90 for {}".format(self.compiler))
+        from os import waitpid, path
+        from subprocess import Popen, PIPE
+        from fortpy.testing.compilers import executor, replace
+        command = "cd {0}; {1} fortpy.f90; {1} -c fortpy.f90".format(self.fortpy_templates, executor(self.compiler))
+        pcompile = Popen(command, shell=True, executable="/bin/bash", stdout=PIPE, stderr=PIPE)
+        waitpid(pcompile.pid, 0)
+
+        opath = path.join(self.fortpy_templates, "fortpy.o")
+        mpath = path.join(self.fortpy_templates, "fortpy.mod")
+        if path.isfile(opath) and path.isfile(mpath):
+            from shutil import move
+            nopath = path.join(self.fortpy_templates, replace("fortpy.o.[c]", self.compiler))
+            nmpath = path.join(self.fortpy_templates, replace("fortpy.mod.[c]", self.compiler))
+            move(opath, nopath)
+            move(mpath, nmpath)
+        else:
+            msg.err("Unable to generate fortpy.o and fortpy.mod.")
+        
     def _run_compile(self, identifier, testid):
         """Compiles the executable that was created for the specified identifier,
         returns True if the compile was successful."""
@@ -553,6 +587,29 @@ class UnitTester(object):
         source = path.join(self.libraryroot(identifier), identifier)        
         target = replace(source + ".[c]", self.compiler)
         copytree(source, target)
+
+        #Before we compile, we need to make sure we have the fortpy.o and fortpy.mod
+        #files for the specific compiler.
+        tversion = self.template_version("fortpy.f90")
+        for sdfile in ["fortpy.o", "fortpy.mod"]:
+            fdfile = replace(sdfile + ".[c]", self.compiler)
+            ftarget = path.join(target, sdfile)
+            dversion = self.get_fortpy_version(ftarget)
+                
+            if not path.isfile(ftarget) or dversion != tversion:
+                from shutil import copy
+                source = path.join(self.fortpy_templates, fdfile)
+                if not path.isfile(source):
+                    self._compile_fortpyf90()
+                    
+                msg.info("   COPY: {}".format(source))
+                copy(source, ftarget)
+                #If the file is a binary, we need to save a .v with version
+                #information as well for the next time we want to copy it.
+                pre, ext = path.splitext(ftarget)
+                if ext in [".o", ".so", ".mod"]:
+                    with open(ftarget + '.v', 'w') as f:
+                        f.write("# <fortpy version=\"{}\" />".format('.'.join(map(str, tversion))))
         
         #Find the target folder that has the executables etc then run
         #make and check the exit code.
@@ -610,7 +667,7 @@ class UnitTester(object):
             #additional lines were just warnings).
             exe = path.join(target, "{}.x".format(testid))
             if path.isfile(exe):
-                choice = raw_input("\nWould you still like to run the executable? ").lower()
+                choice = input("\nWould you still like to run the executable? ").lower()
                 code = 0 if "y" in choice else code
                 if "n" in choice:
                     msg.err("Unit testing terminated by user.")

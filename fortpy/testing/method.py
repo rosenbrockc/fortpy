@@ -258,7 +258,8 @@ class MethodWriter(object):
         self._code_assignments(testid, lines, "vars", spacer)
 
         #We also have declarations for functions that need to have their output values
-        #tested by the framework.
+        #tested by the framework; this also adds the variable for recording the execution
+        #time of the unit-tested method.
         for methodk in self.ordered[testid]:
             method = self.method_dicts[testid][methodk]
             if isinstance(method, MethodFinder):
@@ -333,7 +334,7 @@ class MethodWriter(object):
                 else:
                     result[foundmod.name] = [ glob.kind ]
             else:
-                print(glob.definition())
+                print((glob.definition()))
                 raise ValueError("Cannot find dependency for variable kind '{}'".format(glob.kind))
     
     def _process_uses_dependency(self, method, module, result):

@@ -269,7 +269,7 @@ class ModuleParser(object):
 
         #Get a dictionary of all the members in this module body
         #We only want to look at variable definitions before the first type
-        lowest = len(contents)
+        lowest = ichar
         remove = [] #Will use later below, see next comment
         for t in module.types:
             remove.append((module.types[t].start, module.types[t].end))

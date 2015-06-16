@@ -34,6 +34,8 @@ class VariableParser(object):
         #The modifiers regex is very greedy so we have some cleaning up to do
         #to extract the mods.
         modifiers = member.group("modifiers")
+        dimension = None
+        
         if modifiers is not None:
             #Unfortunately, the dimension can also be specified as a modifier and
             #the dimensions can include variable names and functions. This introduces
@@ -43,7 +45,7 @@ class VariableParser(object):
                 dimension = modifiers[start+1:end]
                 dimtext = modifiers[modifiers.index("dimension"):end+1]
                 modifiers = re.split(",\s*", modifiers.replace(dimtext, "").strip())
-                modifiers.append("dimension")
+                #modifiers.append("dimension")
             else:
                 modifiers = re.split("[,\s]+", modifiers.strip())
 
@@ -53,16 +55,17 @@ class VariableParser(object):
         dtype = member.group("type")
         kind = member.group("kind")
         names = member.group("names")
-        
+
         #If there are multiple vars defined on this line we need to return
         #a list of all of them.
         result = []
 
         #They might have defined multiple vars on the same line
         ready = self._separate_multiple_def(re.sub(",\s*", ", ", names.strip()))
-        for name, dimension, default, D in self._clean_multiple_def(ready):
+        for name, ldimension, default, D in self._clean_multiple_def(ready):
             #Now construct the element and set all the values, then add it in the results list.
-            result.append(ValueElement(name, modifiers, dtype, kind, default, dimension, parent, D))
+            udim = ldimension if ldimension is not None else dimension
+            result.append(ValueElement(name, modifiers, dtype, kind, default, udim, parent, D))
 
         return result
 
@@ -189,6 +192,7 @@ class VariableParser(object):
         """
         suffix = modifiers.split("dimension")[1]
         start = modifiers.index("dimension") + len("dimension")
+        
         #We use a stack to monitor how many parenthesis we have traversed in the string.
         #Once we reach the closing parenthesis, we know that we have the dimension info.
         stack = []
@@ -198,6 +202,7 @@ class VariableParser(object):
                 stack.append(i + start)
             elif suffix[i] == ')':
                 args.append((stack.pop(), i + start))
-
-        #The last entry in args should be the indices of the entire dimension expression
-        return args[-1]
+                if len(stack) == 0:
+                    #The last entry in args should be the indices of the entire
+                    #dimension expression once the very first '(' has its twin found.
+                    return args[-1]

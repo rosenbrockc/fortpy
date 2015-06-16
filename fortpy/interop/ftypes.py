@@ -234,7 +234,7 @@ class WrapperModule(object):
             for codefile in found:
                 self.module.parent.load_dependency(codefile.replace(".f90", ""), True, True, False)
                 
-            for modname, module in self.module.parent.modules.items():
+            for modname, module in list(self.module.parent.modules.items()):
                 if path.dirname(module.filepath).lower() == mypath.lower():
                     result.append(modname)
         else:
@@ -255,7 +255,7 @@ class WrapperModule(object):
         for module in modules:
             self.module.parent.load_dependency(module, True, True, False)
             
-        for modname, module in self.module.parent.modules.items():
+        for modname, module in list(self.module.parent.modules.items()):
             pathkey = path.dirname(module.filepath).lower()
             if pathkey not in result:
                 result[pathkey] = path.dirname(module.filepath)
@@ -269,7 +269,7 @@ class WrapperModule(object):
         if len(self.needs) > 0:
             return
         
-        for execname, executable in self.module.executables.items():
+        for execname, executable in list(self.module.executables.items()):
             skip = False
             #At the moment we can't handle executables that use special derived types.
             if not execname in self.module.publics or not executable.primitive:
@@ -522,7 +522,7 @@ def _py_ex_argtype(executable):
         if atypes is not None:
             result.extend(p.argtypes)
         else:
-            print("No argtypes for: {}".format(p.definition()))
+            print(("No argtypes for: {}".format(p.definition())))
 
     if type(executable).__name__ == "Function":
         result.extend(executable.argtypes)        

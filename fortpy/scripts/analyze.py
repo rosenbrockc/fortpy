@@ -228,7 +228,7 @@ class FortpyShell(cmd.Cmd):
     def _complete_cases(self, text, line, istart, iend):
         """Returns the completion list of possible test cases for the active unit test."""
         if text == "":
-            return self.live.keys()
+            return list(self.live.keys())
         else:
             return [c for c in self.live if c.startswith(text)]
 
@@ -290,7 +290,7 @@ class FortpyShell(cmd.Cmd):
         otherwise interacted with.
         """
         if text == "":
-            return self.tests.keys()
+            return list(self.tests.keys())
         else:
             return [t for t in self.tests if t.startswith(text)]
         
@@ -685,7 +685,7 @@ class FortpyShell(cmd.Cmd):
         if arg in self.curargs["functions"]:
             del self.curargs["functions"][arg]     
     def complete_rmpostfix(self, text, lines, istart, iend):
-        return [p for p in self.curargs["functions"].keys() if p.startswith(text)]
+        return [p for p in list(self.curargs["functions"].keys()) if p.startswith(text)]
 
     def do_fit(self, arg):
         usable, filename, append = self._redirect_split(arg)
@@ -741,7 +741,7 @@ class FortpyShell(cmd.Cmd):
         if fitvar in self.curargs["dependents"]:
             self.curargs["dependents"].remove(fitvar)
     def complete_rmfit(self, text, lines, istart, iend):
-        return [p for p in self.curargs["fits"].keys() if p.startswith(text)]
+        return [p for p in list(self.curargs["fits"].keys()) if p.startswith(text)]
 
     def _complete_deps(self, els, line, addlist=True):
         if len(els) == 1:
@@ -796,7 +796,7 @@ class FortpyShell(cmd.Cmd):
         if arg in self.curargs["labels"]:
             del self.curargs["labels"][arg]        
     def complete_rmlabel(self, text, lines, istart, iend):
-        return [p for p in self.curargs["labels"].keys() if p.startswith(text)]
+        return [p for p in list(self.curargs["labels"].keys()) if p.startswith(text)]
 
     def do_color(self, arg):
         usable, filename, append = self._redirect_split(arg)
@@ -836,7 +836,7 @@ class FortpyShell(cmd.Cmd):
         if arg in self.curargs["colors"]:
             del self.curargs["colors"][arg]        
     def complete_rmcolor(self, text, lines, istart, iend):
-        return [p for p in self.curargs["colors"].keys() if p.startswith(text)]
+        return [p for p in list(self.curargs["colors"].keys()) if p.startswith(text)]
 
     def _get_matplot_dict(self, option, prop, defdict):
         """Returns a copy of the settings dictionary for the specified option in 
@@ -851,7 +851,7 @@ class FortpyShell(cmd.Cmd):
         for varname in cargs:
             if prop in cargs[varname]:
                 name = cargs[varname][prop]
-                for key, val in defdict.items():
+                for key, val in list(defdict.items()):
                     if val == name:
                         cargs[varname][prop] = key
                         break
@@ -955,11 +955,16 @@ class FortpyShell(cmd.Cmd):
     def _set_def_prompt(self):
         """Sets the default prompt to match the currently active unit test."""
         if len(self.active) > 15:
-            module, executable = self.active.split(".")
-            self.prompt = "({}*.{}*:{})".format(module[0:6], executable[0:6], self.group)
+            ids = self.active.split(".")
+            if len(ids) > 2:
+                module, executable, compiler = ids
+            else:
+                module, executable = ids
+                compiler = "g"
+            self.prompt = "({}*.{}*.{}:{})".format(module[0:6], executable[0:6], compiler, self.group)
         else:
             self.prompt = "({}:{})".format(self.active, self.group)
-
+            
     def do_set(self, arg):
         """Sets the specified 'module.executable' to be the active test result to interact with.
         """
@@ -998,7 +1003,7 @@ class FortpyShell(cmd.Cmd):
         fullpath = path.expanduser(arg)
 
         data = {
-            "tests": [path.abspath(a.stagedir) for a in self.tests.values()],
+            "tests": [path.abspath(a.stagedir) for a in list(self.tests.values())],
             "args": self.args
         }
 
@@ -1152,7 +1157,7 @@ class FortpyShell(cmd.Cmd):
         self._set_def_prompt()
     def complete_group(self, text, line, istart, iend):
         if text == "":
-            return self.args[self.active].keys()
+            return list(self.args[self.active].keys())
         else:
             return [k for k in self.args[self.active] if k.startswith(text)]
     def help_group(self):
@@ -1173,7 +1178,7 @@ class FortpyShell(cmd.Cmd):
         args = self.curargs
         #We need to generate a fit for the data if there are any fits specified.
         if len(args["fits"]) > 0:
-            for fit in args["fits"].keys():
+            for fit in list(args["fits"].keys()):
                 a.fit(args["independent"], fit, args["fits"][fit], args["threshold"], args["functions"])
 
     def do_table(self, arg):
@@ -1307,7 +1312,7 @@ class FortpyShell(cmd.Cmd):
         usable, filename, append = self._redirect_split(arg)
         if usable == "":
             for i in range(1, readline.get_current_history_length()+1):
-                print("{}: {}".format(i, readline.get_history_item(i)))
+                print(("{}: {}".format(i, readline.get_history_item(i))))
         elif usable == "clear":
             readline.clear_history()
         elif "limit" in usable:
@@ -1648,7 +1653,7 @@ class FortpyShell(cmd.Cmd):
             if varname in self.curargs[option]:
                 del self.curargs[option][varname]
         else:
-            props = map(lambda v: v.split("="), vals[1:len(vals)])
+            props = [v.split("=") for v in vals[1:len(vals)]]
             if varname in self.curargs[option]:
                 #Update the existing values or insert new ones where necessary.
                 target = self.curargs[option][varname]
@@ -1673,7 +1678,7 @@ class FortpyShell(cmd.Cmd):
         elif arg == "list":
             for var in self.curargs[option]:
                 msg.info("'{}' {} SETTINGS".format(var, heading.upper()))
-                for pname, pval in self.curargs[option][var].items():
+                for pname, pval in list(self.curargs[option][var].items()):
                     msg.info("  {} => {}".format(pname, pval))
         else:
             msg.warn("You haven't specified a valid variable and property combination.")
@@ -1693,8 +1698,8 @@ class FortpyShell(cmd.Cmd):
     def complete_markers(self, text, line, istart, iend):
         propkeys = ["marker", "size", "fill", "rm"]        
         opts = {
-            "marker": self._possible_markers.values(),
-            "fill": (u'full', u'left', u'right', u'bottom', u'top', u'none')
+            "marker": list(self._possible_markers.values()),
+            "fill": ('full', 'left', 'right', 'bottom', 'top', 'none')
         }
         return self._complete_dep_keyval(line, propkeys, opts)
 
@@ -1712,7 +1717,7 @@ class FortpyShell(cmd.Cmd):
     def complete_lines(self, text, line, istart, iend):
         propkeys = ["style", "width", "rm"]        
         opts = {
-            "style": self._possible_linestyles.values()
+            "style": list(self._possible_linestyles.values())
         }
         return self._complete_dep_keyval(line, propkeys, opts)
 
@@ -1751,7 +1756,7 @@ class FortpyShell(cmd.Cmd):
             for key in self.curargs["ticks"]:
                 axis, which = key.split("|")
                 msg.info("AXIS: {} and WHICH: {}".format(axis.upper(), which.upper()))
-                for prop, val in self.curargs["ticks"][key].items():
+                for prop, val in list(self.curargs["ticks"][key].items()):
                     msg.info("  {} => {}".format(prop, val))                    
     def help_ticks(self):
         lines = [("Sets the properties for drawing the tick marks on plots for the active "

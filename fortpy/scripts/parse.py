@@ -22,9 +22,9 @@ def parse():
     for fname in c._modulefiles:
         for moduledat in c._modulefiles[fname]:
             if args["verbose"]:
-                print c.modules[moduledat]
+                print(c.modules[moduledat])
             else:
-                print moduledat
+                print(moduledat)
             
         # for progdat in c._programfiles[fname]:
         #     if args["verbose"]:
@@ -58,3 +58,4 @@ from fortpy import settings
 from fortpy import msg
 
 cparser = parse()
+print(list([p.definition() for p in list(cparser.modules["enumeration_utilities"].executables["find_permutation_of_group_and_dset"].parameters.values())]))

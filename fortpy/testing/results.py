@@ -26,6 +26,13 @@ class DictResult(object):
     def __str__(self):
         return print_dict_result(self)
 
+    @property
+    def has_data(self):
+        """Returns True if this result had actual data to compare (compared
+        to two empty sets of data).
+        """
+        return not (len(self.dict1) == 0 and len(self.dict2) == 0)
+    
     def add_common(self, key):
         """Adds the specified key to the list of keys AND values that
         matched betweend the dictionaries."""
@@ -91,6 +98,13 @@ class ListResult(object):
 
     def __str__(self):
         return print_list_result(self)
+
+    @property
+    def has_data(self):
+        """Returns True if this result had actual data to compare (compared
+        to two empty sets of data).
+        """
+        return not (len(self.list1) == 0 and len(self.list2) == 0)
 
     @property
     def percent_match(self):
@@ -170,6 +184,10 @@ def accumulate_matches(results, outcomes = None, ispercent = True):
 
     if count != 0:
         return total / count
+    elif total == 0:
+        #If both are zero, the body is empty for both cases and it is a perfect
+        #match (two empty sets).
+        return 1
     else:
         return 0
 
@@ -190,6 +208,13 @@ class BlockResult(object):
     def __str__(self):
         return print_block_result(self, False)
 
+    @property
+    def has_data(self):
+        """Returns True if this result had actual data to compare (compared
+        to two empty sets of data).
+        """
+        return self.has_results
+    
     @property 
     def has_results(self):
         """Returns True if this block result has any child results."""
@@ -219,6 +244,13 @@ class BodyResult(object):
         return print_body_result(self)
 
     @property
+    def has_data(self):
+        """Returns True if this result had actual data to compare (compared
+        to two empty sets of data).
+        """
+        return not (len(self.blocks) == 0 and len(self.only1) == 0 and len(self.only2) == 0)
+        
+    @property
     def percent_match(self):
         """Calculates the combined percent match for the whole
         body from its constituent results."""
@@ -226,7 +258,10 @@ class BodyResult(object):
         #overlapped in the body.
         overlap = len(list(self.blocks.keys()))
         total = overlap + len(list(self.only1.keys())) + len(list(self.only2.keys()))
-        return accumulate_matches(self.blocks) * float(overlap) / total
+        if total == 0: #Since both have zero entries, we have a perfect match
+            return 1
+        else:
+            return accumulate_matches(self.blocks) * float(overlap) / total
 
     @property
     def common_match(self):
@@ -247,11 +282,20 @@ class CompareResult(object):
         return print_compare_result(self)
 
     @property
+    def has_data(self):
+        """Returns True if this result had actual data to compare (compared
+        to two empty sets of data).
+        """
+        return self.preamble.has_results or self.body.has_data
+
+    @property
     def percent_match(self):
         """Calculates the combined percent match for the whole
         file from its constituent results."""
-        if self.preamble.has_results:
+        if self.preamble.has_results and self.body.has_data:
             return (self.preamble.percent_match + self.body.percent_match) / 2
+        elif self.preamble.has_results:
+            return self.preamble.percent_match
         else:
             return self.body.percent_match
 
@@ -260,8 +304,10 @@ class CompareResult(object):
         """Calculates the combined match for the file by taking
         only those overlapping keys into account from named and compatibility
         comparisons."""
-        if self.preamble.has_results:
+        if self.preamble.has_results and self.body.has_data:
             return (self.preamble.common_match + self.body.common_match) / 2
+        elif self.preamble.has_results:
+            return self.preamble.common_match
         else:
             return self.body.common_match
 
@@ -354,7 +400,14 @@ def print_list_result(result, label = "", verbose = False, ignored = False):
     signore = "(I) " if ignored else ""
 
     if len(result.list1) == 1 and len(result.list2) == 1:
-        match = "MISMATCH ({} vs. {})".format(result.list1[0], result.list2[0]) if result.common == 0 else "MATCH"
+        print((result.list1, result.list2))
+        if isinstance(result.list1[0], float):
+            #Had to add this so that the compare report showed enough significant
+            #figures for the human to understand the difference.
+            fmtstr = "MISMATCH ({0:.12f} vs. {1:.12f})"
+        else:
+            fmtstr = "MISMATCH ({} vs. {})"
+        match = fmtstr.format(result.list1[0], result.list2[0]) if result.common == 0 else "MATCH"
         lines.append("{}ITEM\t{} - {}".format(signore, label, match))            
     else:
         lines.append("{}LIST\t{} : {}".format(signore, label, print_matches(result)))
@@ -392,4 +445,8 @@ def print_compat_result(result, label = "", verbose = False, ignored = False):
     return "\n".join(lines)
 
 def print_matches(result):
-    return "{0:.2%} ({1:.2%} RAW)".format(result.common_match, result.percent_match)
+    """Prints the specified result in decimal percent format as a string."""
+    if result.has_data:
+        return "{0:.2%} ({1:.2%} RAW)".format(result.common_match, result.percent_match)
+    else:
+        return "Excluded from Comparison by Template"

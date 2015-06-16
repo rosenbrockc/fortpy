@@ -144,8 +144,11 @@ class Analysis(object):
             results = ["{}. {}:".format(i+1, keys[i].upper())]
             fkeys = list(sorted(data[keys[i]].keys()))
             for j in range(len(fkeys)):
-                results.append("   {0}: '{1}' => {2:.2f}%".format(j+1, fkeys[j], 
-                                                                  data[keys[i]][fkeys[j]]*100))
+                if data[keys[i]][fkeys[j]] is not None:
+                    results.append("   {0}: '{1}' => {2:.2f}%".format(j+1, fkeys[j], 
+                                                                      data[keys[i]][fkeys[j]]*100))
+                else:
+                    results.append("   {0}: '{1}' => None".format(j+1, fkeys[j]))
             printed.append('\n'.join(results) + '\n')
 
         return '\n'.join(printed)
@@ -209,7 +212,7 @@ class Analysis(object):
         #Handle cases where the values need to have functions applied to them before tabulating
         #or printing the values.
         if functions is not None and fullvar in functions:
-            if isinstance(functions[fullvar], str) or isinstance(functions[fullvar], unicode):
+            if isinstance(functions[fullvar], str) or isinstance(functions[fullvar], str):
                 from importlib import import_module
                 module = functions[fullvar].split(".")
                 fname = module.pop()
@@ -641,7 +644,7 @@ class Analysis(object):
             for line in f:
                 if not rxcomment.match(line):
                     if fullparse or len(values) == 0:
-                        values.append(map(eval, line.split()))
+                        values.append(list(map(eval, line.split())))
                     if width == 0:
                         width = len(values[-1])
                     elif width != len(values[-1]):
