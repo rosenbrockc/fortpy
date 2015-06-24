@@ -212,7 +212,7 @@ info:
 	date >> $(LOG)
 	echo "------------------------------------------------------"| tee -a $(LOG)
 	echo "                     FORTPY"                           | tee -a $(LOG)
-	echo "               >>> version 1.4 <<<                    "| tee -a $(LOG)         
+	echo "               >>> version 1.6 <<<                    "| tee -a $(LOG)         
 	echo "------------------------------------------------------"| tee -a $(LOG)
 	echo -e "Compiling on system  : $(UNAME)"                    | tee -a $(LOG)
 	echo -e "             machine : $(HOSTNAME)"                 | tee -a $(LOG)

@@ -420,7 +420,6 @@ class CodeParser(object):
         #well get a pointer to it.
         oattr = origin.collection(attribute)
         base = None
-
         if symbol in oattr:
             base = oattr[symbol]
             lorigin = origin

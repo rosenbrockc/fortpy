@@ -6,7 +6,7 @@ module fortpy
   private
   public pysave, fdp, fsp, fsi, fli, fpy_linevalue_count, fpy_newunit, fpy_read, &
        fpy_value_count, fpy_period_join_indices, fpy_linevalue_count_all, fpy_read_p, &
-       fpy_read_f
+       fpy_read_f, fpy_vararray, autoclass_analyze
 
   !!<member name="fileunit">I/O unit for the file to write the output to.</member>
   integer :: fileunit
@@ -42,7 +42,75 @@ module fortpy
   interface fpy_read_p
      module procedure __fpy_read_p__
   end interface fpy_read_p
+
+  !!<summary>Provides a structure for variable length arrays that need to have their
+  !!cartesian product taken.</summary>
+  !!<usage>
+  !!type(fpy_vararray) single
+  !!allocate(single)
+  !!single%init(array)
+  !!</usage>
+  type fpy_vararray
+     !!<member name="items">The array of items to take cartesian product over.</member>
+     !!<member name="length">The number of items in @CREF[this.items].</member>
+     integer, pointer :: items(:)
+     integer :: length
+  contains
+    procedure, public :: init => vararray_init
+  end type fpy_vararray
 contains
+  !!<summary>Analyzes the specified .fortpy.analysis file to determine the
+  !!actual dimensionality of the data being read in via auto-class.</summary>
+  subroutine autoclass_analyze(filename, analysis)
+    character(len=*), intent(in) :: filename
+    class(fpy_vararray), allocatable, intent(out) :: analysis(:)
+
+    !!<local name="line">The integer dimensionality specified by a single line of the file.</local>
+    !!<local name="ragvals">The number of values on each line of the file.</local>
+    integer, allocatable :: line(:), ragvals(:)
+    integer :: nlines, nvalues, funit, i
+
+    call fpy_linevalue_count_all(filename, '#', nlines, ragvals)
+    allocate(analysis(nlines))
+
+    open(fpy_newunit(funit), file=filename)
+    do i=1, nlines
+      allocate(line(ragvals(i)))
+      read(funit, *) line
+      call analysis(i)%init(line, alloc=.true.)
+      deallocate(line)
+    end do
+    close(funit)
+  end subroutine autoclass_analyze
+  
+  !!<summary>Initializes the array items and length property.</summary>
+  subroutine vararray_init(self, array, length, alloc)
+    class(fpy_vararray) :: self
+    integer, target, optional, intent(in) :: array(:)
+    integer, optional, intent(in) :: length
+    logical, optional, intent(in) :: alloc
+
+    logical :: nalloc
+    !We need to see if we are *copying* the array, or just referencing it.
+    if (present(alloc)) then
+       nalloc = alloc
+    else
+       nalloc = .false.
+    end if
+
+    if (present(array)) then
+       if (nalloc) then
+          allocate(self%items(size(array, 1)))
+          self%items = array
+       else
+          self%items => array
+       end if
+       self%length = size(self%items, 1)
+    else
+       allocate(self%items(length))
+       self%length = length
+    end if
+  end subroutine vararray_init
 
   __fxpy_read__
   __fxpy_read_f__

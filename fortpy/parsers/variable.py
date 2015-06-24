@@ -14,7 +14,7 @@ class VariableParser(object):
                            r",?(?P<modifiers>[ \w\t:,()]+)?::\s*(?P<names>[^\n!]+)" #Removed $ from end.
         self.RE_MEMBERS = re.compile(self._RX_MEMBERS, re.M | re.I)
 
-        self._RX_MULTIDEF = r"(?P<name>[^(,=]+)(?P<dimension>\([^)]+\))?(\s?=\s*(?P<default>.+))?"
+        self._RX_MULTIDEF = r"(?P<name>[^(,=]+)(?P<dimension>\([^)]+\))?(\s?=?\s*(?P<default>.+))?"
         self.RE_MULTIDEF = re.compile(self._RX_MULTIDEF, re.I)
 
     def parse(self, string, parent):
@@ -75,11 +75,12 @@ class VariableParser(object):
         """
         import pyparsing
         nester = pyparsing.nestedExpr('(', ')')
-        parsed = nester.parseString("(" + defstring.replace("=", " = ") + ")").asList()[0]
+        #parsed = nester.parseString("(" + defstring.replace("=", " = ") + ")").asList()[0]
+        parsed = nester.parseString("(" + re.sub("=(>?)", " =\\1 ", defstring) + ")").asList()[0]
         i = 0
         clean = []
         while i < len(parsed):
-            if (isinstance(parsed[i], str) and parsed[i] != "=" and 
+            if (isinstance(parsed[i], str) and not re.match("=>?", parsed[i]) and 
                 i+1 < len(parsed) and isinstance(parsed[i+1], list)):
                 clean.append((parsed[i], parsed[i+1]))
                 i += 2
@@ -93,9 +94,12 @@ class VariableParser(object):
         i = 0
         ready = []
         while i < len(clean):
-            if isinstance(clean[i], str) and clean[i] == "=":
+            if isinstance(clean[i], str) and re.match("=>?", clean[i]):
                 ready.pop()
-                ready.append([clean[i-1], clean[i+1]])
+                if ">" in clean[i]:
+                    ready.append([clean[i-1], ("> " + clean[i+1][0], clean[i+1][1])])
+                else:
+                    ready.append([clean[i-1], clean[i+1]])
                 i += 2
             else:
                 ready.append(clean[i])

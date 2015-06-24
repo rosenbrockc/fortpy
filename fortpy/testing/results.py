@@ -1,3 +1,57 @@
+class ACResult(object):
+    """The result of an auto-class folder comparison across all nested
+    variables recursively.
+
+    :arg compared: a list of FileComparer results for files that were
+      actually compared because both files existed.
+    :arg onlym: files that were only in the model folder.
+    :arg onlyx: files that were only in the test execution folder.
+    :arg tolerance: the maximum error allowed for the any individual 
+      file comparison result.
+    """
+    def __init__(self, compared, onlym, onlyx, tolerance):
+        self.compared = compared
+        self.onlym = onlym
+        self.onlyx = onlyx
+        self.tolerance = tolerance
+        
+        self.failures = []
+        """A list of all the file comparisons that failed or had similarities
+        below the threshold.
+        """
+        
+    @property
+    def has_data(self):
+        """Returns True if this result had actual data to compare (compared
+        to two empty sets of data).
+        """
+        return len(self.compared) > 0 or len(self.onlym) > 0 or len(self.onlyx) > 0
+    
+    @property
+    def percent_match(self):
+        """Returns a value indicating how similar the two variables are."""
+        total = sum([c.percent_match for c in self.compared if c.percent_match is not None])
+        if self.has_data:
+            return total/(len(self.compared) + len(self.onlym) + len(self.onlyx))
+        else:
+            return 0
+
+    @property
+    def common_match(self):
+        """Returns a value indicating how similar the overlapping entries
+        of the two dictionaries are."""
+        total = 0.
+        for cres in self.compared:
+            if cres is None or cres.common_match < self.tolerance:
+                failures.append(cres)
+            elif cres is not None:
+                total += cres.common_match
+
+        if self.has_data:
+            return total/(len(self.compared) + len(self.onlym) + len(self.onlyx))
+        else:
+            return 0
+
 class DictResult(object):
     """The result of a dictionary comparison between two dicts.
 
@@ -400,7 +454,6 @@ def print_list_result(result, label = "", verbose = False, ignored = False):
     signore = "(I) " if ignored else ""
 
     if len(result.list1) == 1 and len(result.list2) == 1:
-        print((result.list1, result.list2))
         if isinstance(result.list1[0], float):
             #Had to add this so that the compare report showed enough significant
             #figures for the human to understand the difference.

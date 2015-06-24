@@ -117,7 +117,7 @@ class ExecutableGenerator(object):
 
         return newstage
                 
-    def write(self, testid):
+    def write(self, testid, coderoot):
         """Writes the fortran program file for the executable specified.
 
         :arg testid: the identifier of the test to construct the executable for.
@@ -136,7 +136,7 @@ class ExecutableGenerator(object):
 
         #Next add the variable declarations and initializations and the calls
         #to execute the pre-req methods and the one we are trying to test.
-        lines.append(self.writer.lines(testid))
+        lines.append(self.writer.lines(testid, coderoot))
 
         lines.append("\nEND PROGRAM UNITTEST_{}".format(self.writer.finders[testid].executable.name))
 

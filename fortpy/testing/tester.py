@@ -131,9 +131,13 @@ class OutcomeTester(object):
 
             #The third entry in the tuple identifies it as an explicit value
             #comparison as opposed to a file comparison.
-            if isfile:
+            if isfile and not outvar.autoclass:
                 result = self._run_compare_file(exepath, outvar, self.codefolder, caseid)
                 if result is None or result.common_match < outvar.tolerance:
+                    self._add_failure(caseid, result, uresult)
+            elif outvar.autoclass:
+                result = self._run_compare_autoclass(exepath, outvar, self.codefolder, caseid)
+                if result.common_match < outvar.tolerance:
                     self._add_failure(caseid, result, uresult)
             else:
                 result = self._run_compare_var(exepath, outvar)
@@ -161,6 +165,74 @@ class OutcomeTester(object):
         """
         return ValueCompareResult(exepath, outvar.value)
 
+    def _run_compare_autoclass(self, exepath, outvar, coderoot, caseid):
+        """Compares an output *folder* from an executable (for a variable saved using
+        the autoclass feature) with its model output using settings in the doctag.
+
+        :arg exe: the full path to the output folder from the unit test.
+        :arg outvar: the TestOutput instance with testing specifications.
+        :arg coderoot: the full path to the folder that has all the code files.
+        :arg caseid: the identifier for the specific test case being tested.
+        """
+        #We need to get a list of all the files in the model and test folders
+        #for the variable and then compare each of them with _run_compare_file.
+        #Luckily, there are no nested folders, the files are saved linearly and
+        #the filenames contain the recursive complexity of the variable.
+        from os import walk, path, mkdir
+        modelpath = outvar.abspath(coderoot, caseid)
+        mfiles = []
+        xfiles = []
+        for (dirpath, dirnames, filenames) in walk(modelpath):
+            mfiles.extend(filenames)
+            break
+
+        for (dirpath, dirnames, filenames) in walk(exepath):
+            xfiles.extend(filenames)
+            break
+
+        #Create a directory for all the .compare files of the member variables
+        #in the auto-classed variable.
+        compath = exepath + ".compare"
+        if not path.isdir(compath):
+            mkdir(compath)
+
+        #Hopefully we get a one-to-one match, otherwise we have to record the
+        #set difference as failures.
+        onlym = []
+        mx = []
+        for m in mfiles:
+            if m[0] != "_":
+                #Ignore the files that don't follow the convention; otherwise the
+                #statistics will be messed up.
+                continue
+            if m in xfiles:
+                xpath = path.join(exepath, m)
+                mpath = path.join(modelpath, m)
+                mxres = self.comparer.compare(xpath, mpath, outvar.template, outvar.mode)
+                mx.append(mxres)
+
+                #Write a comparison report for this particular variable.
+                cpath = path.join(compath, m)
+                with open(cpath, "w") as f:
+                    if mxres is not None:
+                        f.write(print_compare_result(mxres, self.verbose))
+                    else:
+                        f.write("The result comparison failed. Check the unit test console output.")
+            else:
+                onlym.append(m)
+        onlyx = [f for f in xfiles if (f[0] == "_" and f not in mfiles)]
+
+        #Create a single file for each of the only lists that gives the set difference
+        if len(onlym) > 0:
+            with open(path.join(compath, "model_only"), 'w') as f:
+                f.write('\n'.join(onlym))
+        if len(onlyx) > 0:
+            with open(path.join(compath, "test_only"), 'w') as f:
+                f.write('\n'.join(onlyx))
+
+        from fortpy.testing.results import ACResult
+        return ACResult(mx, onlym, onlyx, outvar.actolerance)
+
     def _run_compare_file(self, exepath, outvar, coderoot, caseid):
         """Compares an output file from an executable with its model output using
         settings in the doctag.
@@ -179,7 +251,7 @@ class OutcomeTester(object):
         #a file that says so. The default file name is the output file name with
         #an extra extension of .compare
         resultpath = exepath + ".compare"
-        with open(resultpath, "w") as f:  
+        with open(resultpath, "w") as f:
             if result is not None:          
                 f.write(print_compare_result(result, self.verbose))
             else:
@@ -197,12 +269,6 @@ class OutcomeTester(object):
           the output files from the executable reside.
         :arg caseid: the identifier for the specific test case that ran.
         """
-        if target.name[0] == ".":
-            exe = path.join(exefolder, target.name[2::])
-        else:
-            #This is a variable, get the auto-generated filename
-            exe = path.join(exefolder, target.varfile)
-
         #In order to run the comparison, we must have an <output> tag to compare
         #the target to.
         if target.compareto in self.testspec.outputs:
@@ -211,11 +277,24 @@ class OutcomeTester(object):
             raise ValueError("Target's compareto='{}' ".format(target.compareto) + 
                              "does not match any <output> tag.")
 
+        if target.name[0] == ".":
+            exe = path.join(exefolder, target.name[2::])
+        elif outvar.autoclass:
+            exe = path.join(exefolder, target.varfile)
+        else:
+            #This is a variable, get the auto-generated filename
+            exe = path.join(exefolder, target.varfile)
+
         if outvar.filemode:
             abspath = outvar.abspath(self.codefolder, caseid)
-            exists = path.isfile(abspath)
+            exists = ((not outvar.autoclass and path.isfile(abspath)) or
+                      (outvar.autoclass and path.isdir(abspath)))
             if not exists:
-                msg.warn("Model output file {} does not exist for case {}".format(abspath, caseid))
+                if outvar.autoclass:
+                    msg.warn("Auto-class model output folder {} ".format(abspath) +
+                             "does not exist for case {}".format(caseid))
+                else:
+                    msg.warn("Model output file {} does not exist for case {}".format(abspath, caseid))
             return (exe, outvar, True, exists)
         else:
             return (exe, outvar, False, True)
@@ -383,7 +462,7 @@ class UnitTester(object):
         result = []
         #If the file doesn't exist yet, we don't try to find the version information.
         from os import path
-        if not path.isfile(fortpath):
+        if not path.isfile(fortpath) or path.splitext(fortpath)[1] in [".o", ".mod"]:
             if path.isfile(fortpath + '.v'):
                 return self.get_fortpy_version(fortpath + '.v', True)
             else:
@@ -554,7 +633,7 @@ class UnitTester(object):
             #Only return a test result if the checks were actually run.
             return result
 
-    def _compile_fortpyf90(self):
+    def _compile_fortpyf90(self, tversion):
         """Compiles a fortpy.mod and fortpy.o for the current compiler.
         """
         msg.info("Compiling fortpy.mod and fortpy.f90 for {}".format(self.compiler))
@@ -573,6 +652,11 @@ class UnitTester(object):
             nmpath = path.join(self.fortpy_templates, replace("fortpy.mod.[c]", self.compiler))
             move(opath, nopath)
             move(mpath, nmpath)
+            #Create the version files so we can keep track of the compiled versions.
+            vpaths = [nopath + ".v", nmpath + ".v"]
+            for vp in vpaths:
+                with open(vp, 'w') as f:
+                    f.write('#<fortpy version="{}" />'.format('.'.join(map(str, tversion))))
         else:
             msg.err("Unable to generate fortpy.o and fortpy.mod.")
         
@@ -599,8 +683,9 @@ class UnitTester(object):
             if not path.isfile(ftarget) or dversion != tversion:
                 from shutil import copy
                 source = path.join(self.fortpy_templates, fdfile)
-                if not path.isfile(source):
-                    self._compile_fortpyf90()
+                sversion = self.get_fortpy_version(source)
+                if not path.isfile(source) or sversion != tversion:
+                    self._compile_fortpyf90(tversion)
                     
                 msg.info("   COPY: {}".format(source))
                 copy(source, ftarget)
@@ -631,7 +716,7 @@ class UnitTester(object):
         waitpid(pcompile.pid, 0)
         
         if not self.quiet:
-            output = pcompile.stdout.readlines()
+            output = [x.decode('utf8') for x in pcompile.stdout.readlines()]
             msg.std(''.join(output))
         #else: #We don't need to get these lines since we are purposefully redirecting them.
         error = pcompile.stderr.readlines()
@@ -767,6 +852,13 @@ class UnitTester(object):
         #Clean the testing folder to remove any target variable output files
         #from any earlier test runs.
         testspec.clean(testpath)
+        testwriter.setup(testpath)
+
+        #If the testspec needs auto-class support, write the case to file.
+        if testspec.autoclass:
+            with open(path.join(testpath, "fpy_case"), 'w') as f:
+                f.write('"{}"'.format(case))
+        
         #Save the path to the folder for execution in the result.
         result.paths[caseid] = testpath
 

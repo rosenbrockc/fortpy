@@ -68,6 +68,16 @@ class GlobalDeclaration(object):
         """
         return "ignore" in self.attributes and self.attributes["ignore"] == "true"
 
+    def value_elem(self, module):
+        """Returns a fortpy.element.ValueElement to represent this GlobalDeclaration.
+        """
+        from fortpy.elements import ValueElement
+        a = self.attributes
+        default = None if "default" not in a else a["default"]
+        modifiers = [] if "modifiers" not in a else a["modifiers"]
+        return ValueElement(a["name"], modifiers, a["type"], self.kind,
+                            default, self.dimension, module, self.D)
+    
     def compare(self, element):
         """Determines whether the specified element defines the same variable
         type and name as this one.
@@ -155,7 +165,11 @@ class GlobalDeclaration(object):
             return self.element.attrib
 
     def definition(self):
-        """Returns the fortran declaration that defines a global variable."""
+        """Returns the fortran declaration that defines a global variable.
+
+        :arg altname: specifies an alternative name to use for this variable; all
+          other variable properties remain the same.
+        """
         if self.ignore:
             return "  ! Variable '{}' was set to be ignored.".format(self.attributes["name"])
         
@@ -167,7 +181,12 @@ class GlobalDeclaration(object):
 
         result.append(self.attributes["type"])
         if "kind" in self.attributes and self.attributes["kind"] is not None:
-            result.append("({})".format(self.attributes["kind"]))
+            if self.attributes["type"] == "character" and "len=*" in kind:
+                msg.warn("Assumed length character array defaulting to kind of 'len=100'. "
+                         "Use a <global> tag to override this default.")
+                result.append("(100)")
+            else:
+                result.append("({})".format(self.attributes["kind"]))
 
         if "modifiers" in self.attributes:
             mods = re.split(",\s*", self.attributes["modifiers"])
@@ -231,6 +250,434 @@ class GlobalDeclaration(object):
         else:
             return None
 
+class AutoClasser(object):
+    """Class for generating read/save calls in Fortran for complex
+    user-derived types. Ragged arrays are *not* supported.
+
+    :arg variable: an instance of ValueElement to auto-class.
+    :arg folder: the path to the *parent* folder that houses the 'varfile' folder with
+      the contents of the variable.
+    :arg varfile: the name of the folder to create (relative to 'folder') to contain
+      the files for the variable.
+    :arg testspec: the TestSpecification instance that has a list of the cases that
+      will run.
+    :arg coderoot: the full path to the code folder that houses that executable being
+      unit tested.
+    """
+    def __init__(self, variable, folder, varfile, testspec, coderoot=None):
+        self.variable = variable
+        self.folder = folder
+        self.varfile = varfile
+        self.testspec = testspec
+        self.coderoot = coderoot
+        self._ofolder = folder
+        """The original folder specification before it got overwritten with the
+        relative one in the fortran program.
+        """
+        
+        self._wcode = None
+        """The fortran code to *save* the variable to its folder."""
+        self._rcode = None
+        """The fortran code to *read* a variable from folder so long as the
+        files are named using the correct convention.
+        """
+        self._vars = []
+        """The variables needed to perform the read/write operations; essentially
+        the same list whether it is input/output.
+        """
+        self._is_vcoded = None
+        """Specifies whether this auto-classer has already output code to define
+        the variables (for cases where the same variable has its value read,
+        modified and then saved using auto-class)."""
+        self.tree_order = None
+        """The order in which the tree's dimensionalities will be saved in the
+        .fortpy.analysis file.
+        """
+        self._read_dims = None
+        """Has the actual file dimensionality for each variable in self.tree_order as
+        extracted from the first auto-class folder that gets scanned. There should be
+        consistency between the folders to match the strongly-typed variables."""
+
+    def set_folder(self, folder):
+        """Sets the folder for the auto-class relative to the *code root*.
+        """
+        if folder is None:
+            raise ValueError("Can't set folder to 'None'.")
+
+        self._ofolder = folder
+        from fortpy.tramp import coderelpath
+        relpath = coderelpath(self.coderoot, folder).format(r"'//trim(adjustl(fpy_case))//'")
+        if self.coderoot in relpath:
+            self.folder = relpath.replace(self.coderoot, "fpy_coderoot//'")
+        else:
+            self.folder = relpath
+        
+    @property
+    def acroot(self):
+        """The folder path to the auto-class target for read/write, *relative*
+        to 1) code directory for reads; 2) test directory for writes.
+        """
+        if self.varfile != "":
+            return "{}/{}/".format(self.folder, self.varfile)
+        else:
+            return self.folder + '/'
+
+    def abspath(self, root):
+        """Returns the absolute path to the auto-class folder relative to the root
+        directory specified: 1) code root for reads; 2) test execution directory
+        for writes.
+        """
+        from fortpy.tramp import coderelpath
+        return coderelpath(root, self.acroot)
+    
+    def _scan_folder(self, spath):
+        """Creates a tree representation of the specified folder under the assumption
+        that it contains file data for an auto-class read.
+
+        :arg spath: the full path to the source folder to scan.
+        """
+        from os import walk, path
+        import re
+        sources = []
+        for (dirpath, dirnames, filenames) in walk(spath):
+            sources.extend(filenames)
+            break
+            
+        tree = {}
+        for source in sources:
+            if source[0] != "_":
+                #Ignore files that don't match the convention.
+                continue
+
+            parts = source.split("-")
+            branch = None
+
+            for i, p in enumerate(parts):
+                if not re.match("[\d.]+", p):
+                    #This is a variable name, *not* a dimension specification
+                    if branch is None:
+                        if p not in tree:
+                            tree[p] = {"0": []}
+                        branch = tree[p]
+                    else:
+                        if p not in branch:
+                            branch[p] = {"0": []}
+                        branch = branch[p]
+                else:
+                    branch["0"].append(p)
+
+        return tree
+
+    def _prep_single(self, relpath):
+        """Performs an analysis and saves the necessary files for the folder
+        at the specified path.
+        """
+        tree = self._scan_folder(relpath)
+        _read_dims = self._analyze_tree(tree)
+        if self._read_dims is None:
+            self._read_dims = _read_dims
+        if self.tree_order is None:
+            #We only need to save the order for the first folder that we encounter.
+            self.tree_order = []
+            saveorder = True
+        else:
+            saveorder = False
+
+        def _write_val(f, value):
+            if isinstance(value, list):
+                f.write("{}\n".format(' '.join(map(str, value))))
+            else:
+                f.write("{}\n".format(value))
+            
+        anpath = path.join(relpath, ".fortpy.analysis")
+        with open(anpath, 'w') as f:
+            if saveorder:
+                for key, value in _read_dims.items():
+                    self.tree_order.append(key)
+                    _write_val(f, value)
+                with open(path.join(relpath, ".fortpy.tree"), 'w') as g:
+                    g.write('\n'.join(self.tree_order))    
+            else:
+                for key in self.tree_order:
+                    if key in _read_dims:
+                        _write_val(f, _read_dims[key])
+                    else:
+                        msg.warn("Folder '{}' is missing member variable data '{}'".format(relpath, key))
+                    
+    def prep_read(self):
+        """Sets this auto-classer up to handle reading-in from a folder
+        by analyzing the contents of the folder.
+        """
+        def _load_tree_order(relpath):
+            """Attempts to load the tree order from file for the specified auto-class
+            directory.
+            """
+            if self.tree_order is None:
+                trpath = path.join(relpath, ".fortpy.tree")
+                if path.isfile(trpath):
+                    with open(trpath) as f:
+                        self.tree_order = f.read().split('\n')
+
+        def _load_read_dims(relpath):
+            """Attempts to load the variable dimensionality from file for the specified
+            auto-class directory.
+            """
+            if self.tree_order is None:
+                return
+            
+            if self._read_dims is None:
+                anpath = path.join(relpath, ".fortpy.analysis")
+                if path.isfile(anpath):
+                    self._read_dims = {}
+                    with open(anpath) as f:
+                        lines = f.readlines()
+                    for itree, v in enumerate(self.tree_order):
+                        self._read_dims[v] = list(map(int, lines[itree].split()))
+                        if len(self._read_dims[v]) == 1 and self._read_dims[v][0] == 0:
+                            self._read_dims[v] = self._read_dims[v][0]
+                        
+        #For handling multiple cases, it gets a little more complex; we need to
+        #scan every folder that matches a case. All the folders need to use the
+        #same tree order for consistency with the fortran driver.
+        from fortpy.tramp import coderelpath
+        from os import path
+        if self.testspec.cases is not None and "{}" in self._ofolder:
+            proclist = []
+            for case in self.testspec.cases:
+                relpath = coderelpath(self.coderoot, self._ofolder.format(case))
+                if path.isdir(relpath):
+                    anpath = path.join(relpath, ".fortpy.analysis")
+                    if not path.isfile(anpath):
+                        proclist.append(relpath)
+
+                    #One of the folders will already have a tree order if we have ever
+                    #processed this variable's folders before.
+                    _load_tree_order(relpath)
+                    _load_read_dims(relpath)
+
+            for relpath in proclist:
+                self._prep_single(relpath)
+        else:
+            relpath = coderelpath(self.coderoot, self._ofolder)
+            _load_tree_order(relpath)
+            _load_read_dims(relpath)
+            self._prep_single(relpath)
+                    
+    def _analyze_tree(self, tree=None, prefix=""):
+        result = {}            
+        for key, value in tree.items():
+            if key != "0":
+                if prefix != "":
+                    xkey = "{}.{}".format(prefix, key)
+                else:
+                    xkey = key
+                result[xkey] = self._analyze_branch(key, value)
+                result.update(self._analyze_tree(value, xkey))
+
+        return result
+                
+    def _analyze_branch(self, memname, branch):
+        if len(branch["0"]) == 0:
+            return 0
+        else:
+            #Make sure that the dimensionality is consistent across the files.
+            bdim = None
+            D0 = None
+            for leaf in branch["0"]:
+                D = tuple(map(int, leaf.split('.')))
+                if bdim is None:
+                    bdim = [0]*len(D)
+                    D0 = D
+
+                if len(D0) != len(D):
+                    raise ValueError("Inconsistent dimensionality for member "
+                                     "'{}': {}".format(memname, branch["0"]))
+
+                #Now we just need to extract the maximum value in each dimension.
+                for i in range(len(D0)):
+                    if D[i] > bdim[i]:
+                        bdim[i] = D[i]
+
+            return bdim
+        
+    def code(self, lines, position, spacer, write=True):
+        """Appends the code required to save/read the value of this auto-class to
+        file-folder if the specified position is appropriate.
+        """
+        #We assume that whatever is calling the auto-classer has already figured
+        #out whether the position is correct for the read/write code.
+        #Since the procesing generates code for both the read/write *and* the vars, we
+        #need to run it irrespective.
+        if self._wcode is None and write:
+            self._process(spacer, True)
+        elif self._rcode is None and not write:
+            self._process(spacer, False)
+
+        if position not in ["vars", "init"]:
+            if write:
+                lines.extend(self._wcode)
+            else:
+                lines.extend(self._rcode)        
+
+        #For declaring the variables, we only do it once per application, even if we
+        #are performing both a read and a write.
+        if position == "vars":
+            if self._is_vcoded is None:
+                lines.append("{}!V: {} auto-class support variables".format(spacer, self.variable.name))
+                for v in self._vars:
+                    if "_acps" in v:
+                        lines.append("{}character(100) :: {}".format(spacer, v))
+                    else:
+                        lines.append("{}integer :: {}".format(spacer, v))
+                self._is_vcoded = []
+
+            if not write and "read" not in self._is_vcoded:
+                lines.append("{}integer :: ifpy_ac".format(spacer))
+                #Also append on the ragged-array for handling the dimensionality of
+                #the separate members in the auto-class folder.
+                lines.append("{}class(fpy_vararray), allocatable :: {}_fpy_acdims(:)".format(spacer, self.variable.name))
+                rootstr = "{}character({}), parameter :: fpy_coderoot = '{}'"
+                lines.append(rootstr.format(spacer, len(self.coderoot), self.coderoot))
+                self._is_vcoded.append("read")
+            if write:
+                self._is_vcoded.append("write")
+
+        if position == "init" and not write:
+            #Read in the contents of the fortpy analysis into the ragged array
+            fstr = "{}call autoclass_analyze('{}.fortpy.analysis', {}_fpy_acdims)"
+            lines.append(fstr.format(spacer, self.acroot, self.variable.name))
+        
+    def _process_autovar(self, variable, context, filecontext, treecontext, spacer, write, depth=0):
+        """Creates a system to recursively save the contents of a single variable
+        that is a user-derived type with multiple members.
+
+        :arg variable: an instance of ValueElement representing the type of the variable
+          to save.
+        :arg context: for nested derived types like 'type1%type2', variable would be 'type2'
+          and the context would be 'type1%'.
+        :arg vslice: if the derived type is part of an array, the slice of the array to
+          generate the pysave for. This will be a list of loop variables.
+        :arg filecontext: the context of the *filename* that the variable values are being
+          saved to.
+        :arg spacer: whitespace to prepend to each line of code generated.
+        """
+        result = []
+        spacing = spacer
+        #Find the effective dimension; since fortpy can save multi-D arrays for simple
+        #data types, those don't have any effective dimensions.
+        effD = variable.D if variable.is_custom else 0
+        prefix = context.replace("%", "_") + variable.name
+        loopvars = ["{}_ac{}".format(prefix, i+1) for i in range(effD)]
+        lslice = ', '.join(loopvars)
+        pslist = "{}_acps{}".format(prefix, depth+1)
+
+        if treecontext == "" and variable.name.lower() == self.variable.name.lower():
+            ntreecontext = "_"
+        else:
+            ntreecontext = "{}.{}".format(treecontext, variable.name.lower())
+
+        if not write:
+            #Next, we see which line in the analysis file has the dimensionality
+            #information for us to set the limits on the loops.
+            itree = self.tree_order.index(ntreecontext) + 1
+            limit = "{}_fpy_acdims({})%items({{}})".format(self.variable.name, itree)
+        else:
+            limit = "size({}{}, {})"
+
+        for i, loopvar in enumerate(loopvars):
+            if write:
+                limit = limit.format(context, variable.name, i+1)
+            else:
+                limit = limit.format(i+1)
+            result.append("{}do {}=1, {}".format(spacing, loopvar, limit))
+            spacing = spacing + '  '
+
+        if effD > 0:
+            indices = "(/ {} /)".format(lslice)
+            result.append("{}call fpy_period_join_indices({}, ".format(spacing, pslist) +
+                          "{}, {})".format(indices, effD))
+            loopvars.append(pslist)
+
+        #Since the folder that all the files gets saved in is already named with the
+        #highest-level variable's name, we don't need to add that to the path.
+        if variable.name.lower() == self.variable.name.lower():
+            filevarname = "_"
+        else:
+            filevarname = variable.name.lower()
+
+        if variable.is_custom:
+            custype = variable.customtype
+            for member in custype.members.values():
+                if effD > 0:
+                    ncontext = "{}{}({})%".format(context, variable.name, lslice)
+                    nfilecontext = "{}{}-'//adjustl(trim({}))//'-".format(filecontext, filevarname, pslist)
+                else:
+                    ncontext = "{}{}%".format(context, variable.name)
+                    nfilecontext = "{}{}-".format(filecontext, filevarname)
+
+                icode, ivars = self._process_autovar(member, ncontext, nfilecontext, ntreecontext,
+                                                     spacing, write, depth+1)
+                result.extend(icode)
+                loopvars.extend(ivars)
+        else:
+            #Yay, we are finally down to the standard type level! Just call it with pysave
+            if effD > 0:
+                varname = "{}{}({})".format(context, variable.name, ','.join(lslice))
+                filename = "{}{}-'//trim(adjustl({}))".format(filecontext, filevarname, pslist)
+            else:
+                varname = "{}{}".format(context, variable.name)
+                filename = "{}{}'".format(filecontext, filevarname)
+
+            if write:
+                fstr = "{}call pysave({}, {})"
+                result.append(fstr.format(spacer, varname, filename))
+            else:
+                #We need to see whether we have allocatable, pointer or fixed dimension variable
+                #and call the relevant interface.
+                fstr = "{}call fpy_read{}({}, '#', {})"
+                if "pointer" in variable.modifiers:
+                    result.append(fstr.format(spacer, "_p", filename, varname))
+                elif "allocatable" not in variable.modifiers and variable.D > 0:
+                    result.append(fstr.format(spacer, "_f", filename, varname))
+                else:
+                    result.append(fstr.format(spacer, "", filename, varname))                                
+
+        for i in range(effD):
+            spacing = spacing[0:-2]
+            result.append("{}end do".format(spacing))
+        return (result, loopvars)
+                
+    def _process(self, spacer, write):
+        """Processes a single variable as an auto-class for reading/writing with a single
+        folder full of files for its members.
+        """
+        if not write and self.tree_order is None:
+            self.prep_read()
+
+        icode, ivars = self._process_autovar(self.variable, "", "'" + self.acroot, "", spacer, write)
+        if write:
+            self._wcode = icode
+        else:
+            self._rcode = []
+            #We need to handle all the allocations for the members based on the actual size of the data
+            #unless they are standard types that will be allocated by the fortpy interfaces.
+            flines = []
+            acdims = "{}_fpy_acdims".format(self.variable.name)
+            flines.append("do ifpy_ac=1, size({}, 1)".format(acdims))
+            for itree, v in enumerate(self.tree_order):
+                if isinstance(self._read_dims[v], list):
+                    varname = v.replace("_", self.variable.name).replace('.', '%')
+                    dslice = ','.join(["{}(ifpy_ac)%items({})".format(acdims, i+1)
+                                       for i in range(len(self._read_dims[v]))])
+                    alloc = "{}({})".format(varname, dslice)
+                    flines.append("  if ({}(ifpy_ac)%items(1) .ne. 0) allocate({})".format(acdims, alloc))
+            flines.append("end do")
+            self._rcode.extend([spacer + l for l in flines])
+            self._rcode.extend(icode)
+            
+        if len(self._vars) == 0 and len(ivars) > 0:
+            self._vars = ivars
+        
 class AssignmentValue(object):
     """Represents a value that can be assigned to the variable represented
     by an Assignment instance.
@@ -277,6 +724,17 @@ class AssignmentValue(object):
         self.dtype = None
         self.kind = None
         self.commentchar = "#"
+        self.member = None
+        """If this value should be assigned to the member of a derived type,
+        then this is the name of that member.
+        """
+        self.suffix = None
+        """Overrides the default period joined list of loop variables for <part>
+        or ragged assignment from files.
+        """
+        self.autoclass = False
+        """Specifies whether the value comes from an auto-class structured folder.
+        """
 
         self._derived_type = None
         self._codes = {
@@ -302,7 +760,7 @@ class AssignmentValue(object):
             return self.rename
         else:
             return self.filename
- 
+        
     def copy(self, coderoot, testroot, case, compiler):
         """Copies the input files needed for this value to set a variable.
 
@@ -312,7 +770,7 @@ class AssignmentValue(object):
         :arg compiler: the name of the compiler being used for the unit tests.
         """
         #We only want to do the copy if we are assigning a value from a file.
-        if self.folder is not None:
+        if self.folder is not None and not self.autoclass:
             from fortpy.tramp import coderelpath
             from fortpy.testing.compilers import replace
             relpath = coderelpath(coderoot, self.folder)
@@ -346,7 +804,7 @@ class AssignmentValue(object):
             var = self.parent.variable
             target = var.kind
             module = finder.module
-            self._derived_type, typemod = self.parent.parser.tree_find(target, module, "types")
+            self._derived_type, typemod = self.parent.parser.tree_find(target.lower(), module, "types")
 
             if self._derived_type is None:
                 raise ValueError("The type for embedded method {} cannot be found.".format(self.embedded))
@@ -364,7 +822,7 @@ class AssignmentValue(object):
                 else:
                     finder.add_prereq(key, self.parent.element, self.prereqs)
  
-    def code(self, lines, position, spacer, slices=None):
+    def code(self, lines, position, spacer, slices=None, first=False):
         """Appends the code lines to initialize the parent variable.
 
         :arg lines: the list of strings to append to.
@@ -372,30 +830,54 @@ class AssignmentValue(object):
           where in the fortran program the code will be appended.
         :arg slices: for array value assignments, the specific indices to assign values
           to. Tuple of (slice string, [loopvars]).
+        :arg first: if multiple value tags are being executed by the calling parent, this
+          should be true only for the *first* <value> tag processed in the list.
         """
         if self.parent.variable is not None:
-            self._codes[position](lines, spacer, slices)
+            if position in ["before", "assign"]:
+                self._codes[position](lines, spacer, slices, first)
+            else:
+                self._codes[position](lines, spacer, slices)
         else:
             raise ValueError("Trying to assign a value to an unknown variable {}.".format(self.iid))
 
-    def _code_before(self, lines, spacer, slices):
+    def _code_before(self, lines, spacer, slices, first):
         """Calls _code_setvar() if we *are* in repeat mode."""
         if self.repeats:
-            self._code_setvar(lines, spacer, slices)
+            self._code_setvar(lines, spacer, slices, first)
 
-    def _code_assign(self, lines, spacer, slices):
+    def _code_assign(self, lines, spacer, slices, first):
         """Calls _code_setvar() if we are *not* in repeat mode."""
         if not self.repeats:
-            self._code_setvar(lines, spacer, slices)
+            self._code_setvar(lines, spacer, slices, first)
 
-    def _code_setvar(self, lines, spacer, slices):
+    def _check_autoclass(self):
+        """Makes sure that the autoclass for implementing this variable assignment
+        exists in the parent test specification.
+        """
+        varkey = self.parent.name.lower()
+        acdict = self.parent.testspec.autoclasses
+        if varkey not in acdict:
+            acdict[varkey] = AutoClasser(self.parent.variable, self.folder, "",
+                                         self.parent.testspec, self.parent.group.coderoot)
+        else:
+            acdict[varkey].varfile = ""
+        acdict[varkey].set_folder(self.folder)
+        return acdict[varkey]
+            
+    def _code_setvar(self, lines, spacer, slices, first):
         """Appends code for assigning the value of the parent variable using
         this value specification.
 
         :arg slices: for array value assignments, the specific indices to assign values
           to.
+        :arg first: if multiple value tags are being executed by the calling parent, this
+          should be true only for the *first* <value> tag processed in the list.
         """
-        if self.filename is None:
+        if self.autoclass:
+            aclass = self._check_autoclass()
+            aclass.code(lines, "assign", spacer, False)
+        elif self.filename is None:
             #We handle these each individually when no file assignment is present.
             #The file assigner may handle the embedded and function calls at the right
             #spot when parts are being assigned.
@@ -406,15 +888,19 @@ class AssignmentValue(object):
             elif self.embedded is not None:
                 self._code_embedded(lines, spacer, slices)
         else:
-            self._code_file(lines, spacer, slices)
+            self._code_file(lines, spacer, slices, first)
 
     def _code_setvar_value(self, lines, spacer, value, slices=None):
         """Sets the value of the variable primitively to the specified value."""
-        if slices is None:
-            lines.append("{}{} = {}".format(spacer, self.parent.name, value))
+        if self.member is None:
+            varname = self.parent.name
         else:
-            lines.append("{}{}({}) = {}".format(spacer, self.parent.name, 
-                                                slices[0], value))
+            varname = "{}%{}".format(self.parent.name, self.member)
+            
+        if slices is None:
+            lines.append("{}{} = {}".format(spacer, varname, value))
+        else:
+            lines.append("{}{}({}) = {}".format(spacer, varname, slices[0], value))
     
     def _code_embedded(self, lines, spacer, slices=None, varname=None):
         """Appends code for calling an embedded method in a derived type,
@@ -457,6 +943,7 @@ class AssignmentValue(object):
                     #The developer is using some existing array and wants the loop variable
                     #names substituted for some of the paramaters.
                     params = params.replace("${}".format(i), slices[1][i])
+                    i += 1
 
                 #Handle the embedded via file possibility.
                 if varname is not None:
@@ -467,9 +954,12 @@ class AssignmentValue(object):
         #if it does have pre-reqs, they will be handled by the method writer and we
         #don't have to worry about it.
 
-    def _code_file(self, lines, spacer, slices):
+    def _code_file(self, lines, spacer, slices, first):
         """Appends code for initializing the value of a variable that is a
         scalar, vector or 2D matrix from a file.
+
+        :arg first: specifies that this file assignment is the first of a list
+          of <value> tags that are siblings in the same context.
         """
         if self.filename is not None:
             flines = []
@@ -477,15 +967,27 @@ class AssignmentValue(object):
             #of files that match a wildcard pattern. They will all have been copied
             #into the test directory. However, we need to replace the wildcard in
             #the filename at *runtime* with the current value of the loop variable.
-            if "*" in self.xname:
-                indices = "(/ {} /)".format(', '.join(slices[1]))
+            if "*" in self.xname and self.suffix != False:
+                if self.suffix is None:
+                    lslice = slices[1]
+                else:
+                    lslice = []
+                    for i in range(len(slices[1])):
+                        if "${}".format(i+1) in self.suffix:
+                            lslice.append(slices[1][i])
+                            
+                indices = "(/ {} /)".format(', '.join(lslice))
                 flines.append("call fpy_period_join_indices(" +
-                              "{}_pslist, {}, {})".format(self.iid, indices, len(slices[1])))
-                rtlen = "len({}_pslist, 1) + {}".format(self.iid, len(self.xname)-1)
-                rtname = '"{}"//{}_pslist'.format(self.xname[:len(self.xname)-1], self.iid)
+                              "{}_pslist, {}, {})".format(self.iid, indices, len(lslice)))
+                if self.xname[-1] != "*":
+                    #This makes sure that if the wildcard is in the middle of the filename
+                    #we still get it right.
+                    pre, post = self.xname.split("*")
+                    rtname = '"{}"//{}_pslist//"{}"'.format(pre, self.iid, post)
+                else:
+                    rtname = '"{}"//{}_pslist'.format(self.xname[:len(self.xname)-1], self.iid)
             else:
                 rtname = "'{}'".format(self.xname)
-                rtlen = len(self.xname)
 
             #There is also the case where we want to use a single file, but with ragged data
             #lengths on each line.
@@ -504,8 +1006,13 @@ class AssignmentValue(object):
                                          "a spare dimension on the array to assign the ragged "
                                          "file values to.")
 
-            if slices is not None:
+            if slices is not None and self.member is None:
                 varname = "{}_fvar".format(self.iid)
+            elif self.member is not None:
+                if slices is not None:
+                    varname = "{}({})%{}".format(self.parent.name, ','.join(slices[1]), self.member)
+                else:
+                    varname = "{}%{}".format(self.parent.name, self.member)
             else:
                 varname = self.parent.name
 
@@ -527,13 +1034,28 @@ class AssignmentValue(object):
                 flines.append("  read({}_funit, *) {}".format(self.iid, varname))
                     
             #Now handle the case where the input file fills a 2D variable.
-            if (self.D in [0, 1, 2]) and not self.ragged:
+            if not self.ragged:
                 fmtstr = "call fpy_read{}({}, '{}', {})"
-                if ("pointer" in self.parent.global_attr("modifiers", []) and
-                    "fvar" not in varname):
+                if self.member is None:
+                    modifiers = self.parent.global_attr("modifiers", [])
+                    D = self.D
+                elif type(self.parent.variable).__name__  == "ValueElement":
+                    #We need to get the code element of the *member* variable and look
+                    #at its modifiers instead of the parent.
+                    custype = self.parent.variable.customtype
+                    if custype is not None and self.member.lower() in custype.members:
+                        memvar = custype.members[self.member.lower()]
+                        modifiers = memvar.modifiers
+                        D = memvar.D
+                    else:
+                        raise ValueError("The member '{}' is not part of user-derived".format(self.member) +
+                                         " type '{}'.".format(self.parent.variable.kind))
+                else:
+                    raise ValueError("The variable '{}' is not a user-derived type.".format(self.parent.name))
+                    
+                if ("pointer" in modifiers and "fvar" not in varname):
                     flines.append(fmtstr.format("_p", rtname, self.commentchar, varname))
-                elif ("allocatable" not in self.parent.global_attr("modifiers", []) and
-                      "fvar" not in varname and self.D > 0):
+                elif ("allocatable" not in modifiers and "fvar" not in varname and D > 0):
                     flines.append(fmtstr.format("_f", rtname, self.commentchar, varname))
                 else:
                     flines.append(fmtstr.format("", rtname, self.commentchar, varname))
@@ -556,7 +1078,6 @@ class AssignmentValue(object):
             #Deallocate the variable for concatenating the loop ids to form the file name
             #if "*" in self.xname:
             #    flines.append("deallocate({0}_pslist)".format(self.iid))
-
             lines.extend([ spacer + l for l in flines])
 
     def _code_after(self, lines, spacer, slices=None):
@@ -572,16 +1093,27 @@ class AssignmentValue(object):
         """Appends code to initialize any variables we need for assignment
         operations later on.
         """
+        if self.autoclass:
+            #We need to analyze the contents of the folder that the variable
+            #is getting its value from and write them to the .fortpy.analysis
+            #file if it doesn't already exist. The fortran program will suck
+            #that file's contents to see the sizes for allocating the arrays.
+            aclass = self._check_autoclass()
+            aclass.code(lines, "init", spacer, False)
 
     def _code_vars(self, lines, spacer, slices=None):
         """Appends lines to declare any variables we need for file read
         operations later on.
         """
-        if self.filename is not None:
-            if "*" in self.xname or self.ragged:
+        if self.autoclass:
+            aclass = self._check_autoclass()
+            aclass.code(lines, "vars", spacer, False)
+        elif self.filename is not None:
+            if ("*" in self.xname or self.ragged) and self.member is None:
                 if self.dtype is None:
                     raise ValueError("Wildcard file names and ragged array inputs both require "
-                                     "attribute 'dtype' to be specified.")
+                                     "attribute 'dtype' to be specified when attribute 'member' "
+                                     "is not present.")
                 if self.kind is None:
                     skind = ""
                 else:
@@ -595,6 +1127,9 @@ class AssignmentValue(object):
                              " :: {}_fvar({})".format(self.iid, ','.join(fdim)))
 
             if "*" in self.xname:
+                #This hard-coded 100 assumes that if we have 7 dimensional array and each array
+                #dimension has the maximum size of 4.2 billion for an integer, we would have
+                #(10 characters (4.2 billion) + 1 (period))*7 = 77
                 lines.append("{}character(100) :: {}_pslist".format(spacer, self.iid))
             if self.ragged:
                 lines.append("{0}integer :: {1}_nlines, {1}_nvalues, {1}_funit".format(spacer, self.iid))
@@ -620,6 +1155,8 @@ class AssignmentValue(object):
             self.identifier = self.xml.attrib["identifier"]
         else:
             raise ValueError("'identifier' is a required attribute of <value> tags.")
+        if "member" in self.xml.attrib:
+            self.member = self.xml.attrib["member"]
 
         if "folder" in self.xml.attrib:
             self.folder = self.xml.attrib["folder"]
@@ -651,6 +1188,15 @@ class AssignmentValue(object):
         if "kind" in self.xml.attrib:
             self.kind = self.xml.attrib["kind"]
 
+        if "suffix" in self.xml.attrib:
+            if "$" in self.xml.attrib["suffix"]:
+                self.suffix = self.xml.attrib["suffix"].split(".")
+            elif self.xml.attrib["suffix"].lower() == "false":
+                self.suffix = False
+
+        if "autoclass" in self.xml.attrib:
+            self.autoclass = self.xml.attrib["autoclass"].lower() == "true"        
+
 class Condition(object):
     """Represents a single if, elseif or else block to execute."""
     def __init__(self, xmltag, parent):
@@ -668,11 +1214,22 @@ class Condition(object):
                              " <elseif> tags.")
 
         if "value" in self.xml.attrib:
-            self.value = self.xml.attrib["value"]
+            self.value = re.split(",\s*", self.xml.attrib["value"].lower())
         else:
             raise ValueError("'value' is a required attribute of <if>, <elseif>"
                              " and <else> tags.")
 
+    @property
+    def repeats(self):
+        """Returns true if any of the values this conditional references have
+        the repeat attribute set to true.
+        """
+        for v in self.value:
+            if v in self.parent.values and self.parent.values[v].repeats:
+                return True
+        else:
+            return False  
+        
     def code(self, lines, spacer):
         """Appends the code for this condition and its variable assignment."""
         if self.tag in ["if", "elseif"]:
@@ -682,11 +1239,12 @@ class Condition(object):
 
         #Append the value assignment. To do this we have to look it up in the
         #grand-parents list of possible value assignments.
-        if self.value in self.parent.values:
-            valobj = self.parent.values[self.value]
-            valobj.code(lines, "assign", spacer + "  ")
-        else:
-            raise ValueError("Could not find value '{}' for condition.".format(self.value))
+        for v in self.value:
+            if v in self.parent.values:
+                valobj = self.parent.values[v]
+                valobj.code(lines, "assign", spacer + "  ")
+            else:
+                raise ValueError("Could not find value '{}' for condition.".format(v))
         
 class AssignmentConditional(object):
     """Represents a series of logical tests to perform, each of which results
@@ -715,7 +1273,7 @@ class AssignmentConditional(object):
         repeatable. In that case, the entire block needs to be repeated."""
         if self._repeats is None:
             for c in self.conditions:
-                if c.value in self.values and self.values[c.value].repeats:
+                if c.repeats:
                     self._repeats = True
                     break
             else:
@@ -808,7 +1366,8 @@ class Part(object):
         lines.append("{}integer :: {}".format(spacer, self.loopid))
 
     def code(self, lines, position, spacer):
-        """Adds the code to make this part specification (and loop) work."""
+        """Adds the code to make this part specification (and loop) work.
+        """
         if position == "vars":
             self._code_vars(lines, spacer)
         elif position in ["before", "assign"]:
@@ -822,31 +1381,46 @@ class Part(object):
         """
         #Before we can assign a value, we need to make sure the value identifier is valid
         #if it exists.
-        if self.value is not None and self.value.lower() not in self.assignment.values:
-            raise ValueError("{} in part {} is not ".format(self.value, self.identifier) + 
-                             "a valid identifier.")
+        for valueid in self.value:
+            if valueid is not None and valueid.lower() not in self.assignment.values:
+                raise ValueError("{} in part {} is not ".format(valueid, self.identifier) + 
+                                 "a valid identifier.")
             
         #Before we attempt to assign values, we need to make sure that the variable is allocated
         #For non-file allocations, the Assignment instance handles allocation; for file types,
         #usually the AssignmentValue instance handles it, except when <part> tags are used.
-        if self.assignment.values[self.value].filename is not None:
+        #However, if the tag has multiple <value> references, we only need to allocate *once* for
+        #the variable referenced by the <assignment> tag.
+        hasfile = any([self.assignment.values[v].filename is not None for v in self.value])
+        if hasfile:
             if self.assignment.allocate:
                 if self.assignment.allocate == True:
-                    lines.append("{}allocate({})".format(spacer, self.assignment.name))
+                    if self.assignment.variable.D == 0:
+                        lines.append("{}allocate({})".format(spacer, self.assignment.name))
+                    else:
+                        raise ValueError('Using allocate="true" for a <part> tag is not valid '
+                                         'for multi-dimensional arrays; specify the dimensionality '
+                                         'explicitly: e.g. allocate="size(N, 1)" or allocate="10,5".')
                 else:
                     lines.append("{}allocate({}({}))".format(spacer, self.assignment.name,
                                                              self.assignment.allocate))            
 
         if self.isloop:
             lines.append("{}do {}={}, {}".format(spacer, self.loopid, self.limits[0], self.limits[1]))
-            self.assignment.values[self.value].code(lines, position, spacer + '  ', 
-                                                    (self.slices, self.slice_list))
+            i = 0
+            for valueid in self.value:
+                i += 1
+                self.assignment.values[valueid].code(lines, position, spacer + '  ', 
+                                                     (self.slices, self.slice_list), first=i==1)
         else:
             #We need to repeat the assignment for each of the part values
             for ipart in self.limits:
                 slices = self.slices.format(ipart)
-                self.assignment.values[self.value].code(lines, position, spacer + '  ', 
-                                                        (slices, self.slice_list))
+                i = 0
+                for valueid in self.value:
+                    i += 1
+                    self.assignment.values[valueid].code(lines, position, spacer + '  ', 
+                                                         (slices, self.slice_list), first=i==1)
 
         if self.isloop:
             lines.append("{}end do".format(spacer))
@@ -874,7 +1448,7 @@ class Part(object):
         if "start" in self.xml.attrib:
             self.start = int(self.xml.attrib["start"])-1
         if "value" in self.xml.attrib:
-            self.value = self.xml.attrib["value"]
+            self.value = re.split(",\s*", self.xml.attrib["value"].lower())
         if "limits" in self.xml.attrib:
             if ":" in self.xml.attrib["limits"]:
                 self.isloop = True
@@ -955,6 +1529,20 @@ class Assignment(object):
         self._parse_xml()
 
     @property
+    def autoclass(self):
+        """Returns True if any of the assignment values in an autoclass.
+        """
+        return any(v.autoclass for v in self.values.values())
+        
+    @property
+    def testspec(self):
+        """The currently active test specification for which this Assignment instance
+        is being coded.
+        """
+        if self.group.finder is not None:
+            return self.group.finder.test
+        
+    @property
     def parser(self):
         """Returns this Assignment's parent's CodeParser instance."""
         return self.group.element.module.parent
@@ -980,7 +1568,7 @@ class Assignment(object):
             vars = self.group.finder.test.variables
         if vars is None:
             vars = self.group.variables
-            
+
         if self.name.lower() in vars:
             return vars[self.name.lower()]
         else:
@@ -995,7 +1583,8 @@ class Assignment(object):
             if self.name.lower() in self.group.element.parameters:
                 self._variable = self.group.element.parameters[self.name.lower()]
             if self._variable is None and self.globaldecl is not None:
-                self._variable = self.globaldecl
+                module = self.group.element.module
+                self._variable = self.globaldecl.value_elem(module)
 
         return self._variable
     
@@ -1081,7 +1670,7 @@ class Assignment(object):
             #<value> or <part> tag, because of nested parts we probably still need to do
             #the initializations.
             for v in self.values:
-                self.values[v].code(lines, position, spacer)
+                self.values[v].code(lines, position, spacer, False)
             for p in self.parts:
                 self.parts[p].code(lines, position, spacer)
         elif position in ["assign", "before"]:
@@ -1109,22 +1698,30 @@ class Assignment(object):
                 for c in self.conditionals:
                     c.code(lines, position, spacer)
             elif self.value is not None:
-                if self.value in self.values:
-                    self.values[self.value].code(lines, position, spacer)
-                elif self.value in self.parts:
-                    self.parts[self.value].code(lines, position, spacer)
-                else:
-                    raise ValueError("Value identifier {} not found.".format(self.value))
+                #We allow multiple <values> to be assigned in the context of the current
+                #coding. They go in the order they showed up in the list.
+                i = 0
+                for v in self.value:
+                    i += 1
+                    if v in self.values:
+                        self.values[v].code(lines, position, spacer, first=i==1)
+                    elif v in self.parts:
+                        self.parts[v].code(lines, position, spacer)
+                    else:
+                        raise ValueError("Value identifier {} not found.".format(v))
         
     def _parse_xml(self):
         """Parses attributes and child tags from the XML element."""
         if "name" in self.attributes:
-            self.name = self.attributes["name"]
+            if self.attributes["name"] == "[default]":
+                self.name = self.group.element.name + "_fpy"
+            else:
+                self.name = self.attributes["name"]
         else:
             raise ValueError("'name' is a required attribute for <assignment> tags.")
 
         if "value" in self.attributes:
-            self.value = self.attributes["value"]
+            self.value = re.split(",\s*", self.attributes["value"].lower())
         if "constant" in self.attributes:
             #We want to manually create an AssignmentValue object for the constant and
             #add it to the child list.
@@ -1132,7 +1729,10 @@ class Assignment(object):
             val.identifier = "constant"
             val.constant = self.attributes["constant"]
             self.values["constant"] = val
-            self.value = "constant"
+            if self.value is None:
+                self.value = ["constant"]
+            else:
+                self.value.append("constant")
         if "allocate" in self.attributes:
             if self.attributes["allocate"] in ["false", "true"]:
                 self.allocate = self.attributes["allocate"] == "true"
@@ -1145,7 +1745,7 @@ class Assignment(object):
         for child in kids:
             if child.tag == "value":
                 val = AssignmentValue(child, self)
-                self.values[val.identifier] = val
+                self.values[val.identifier.lower()] = val
             elif child.tag == "part":
                 p = Part(child, self)
                 self.parts[p.identifier.lower()] = p
@@ -1157,7 +1757,7 @@ class Assignment(object):
         if len(self.parts) > 0:
             self.writekey += "({})".format(list(self.parts.keys())[0])
         if self.value is not None:
-            self.writekey += "_{}".format(self.value)
+            self.writekey += "_{}".format('|'.join(self.value))
          
 class TestInput(object):
     """Represents information for a single input source as part of a unit test.
@@ -1346,6 +1946,14 @@ class TestOutput(object):
         self.value = None
         self.tolerance = None
         self.position = "before"
+        self.autoclass = False
+        """Specifies whether the output is running in auto-class mode where entire
+        arrays of user-defined objects can be compared using a single tag.
+        """
+        self.actolerance = None
+        """Specifies the individual tolerance limit for any single file comparison
+        in the auto-class comparision.
+        """
 
         self._parse_attributes()
 
@@ -1369,9 +1977,15 @@ class TestOutput(object):
 
         if caseid != "":
             case = caseid.split(".")[-1]
-            return path.join(relpath, self.filename.format(case))
+            if self.autoclass:
+                return relpath.format(case)
+            else:
+                return path.join(relpath, self.filename.format(case))
         else:
-            return path.join(relpath, self.filename)
+            if self.autoclass:
+                return relpath
+            else:
+                return path.join(relpath, self.filename)
 
     def _parse_attributes(self):
         """Extracts output comparsion related attributes from the xml tag."""
@@ -1392,9 +2006,16 @@ class TestOutput(object):
         if "tolerance" in self.xml.attrib:
             self.tolerance = float(self.xml.attrib["tolerance"])
         else:
-            self.tolerance = 1
+            self.tolerance = 1.
+        if "actolerance" in self.xml.attrib:
+            self.actolerance = float(self.xml.attrib["actolerance"])
+        else:
+            self.actolerance = 1.
+
         if "position" in self.xml.attrib:
             self.position = self.xml.attrib["position"]
+        if "autoclass" in self.xml.attrib:
+            self.autoclass = self.xml.attrib["autoclass"].lower()=="true"    
         
 class TestTarget(object):
     """Represents a specification to save the state of a variable at the end
@@ -1427,8 +2048,13 @@ class TestTarget(object):
         self.testspec = testspec
         self.member = None
         self.position = "before"
+        self.autoclass = False
+        """Specifies whether the output is running in auto-class mode where entire
+        arrays of user-defined objects can be compared using a single tag.
+        """
 
         self._code = None
+        """The code to *save* the variable referenced by this target to file."""
         self._parse_attributes()
 
     def code(self, lines, variables, position, spacer):
@@ -1439,21 +2065,84 @@ class TestTarget(object):
         #model output file, then it must start with a dot. In that case
         #we don't generate any code since we assume that the file is being
         #created by the method being unit tested.
-        if position in self.when and self.name[0] != ".":
-            if self._code is None:
-                self._process(variables, spacer)
-                
-            lines.append(self._code)
+        if self._code is None:
+            self._process(variables, spacer)
 
+        if position in self.when and self.name[0] != ".":
+            lines.append(self._code)
+        elif position == "vars" and self.autoclass:
+            varkey = self._check_autoclass(self.testspec.executable)
+            self.testspec.autoclasses[varkey].code(lines, "vars", spacer)
+
+    def init(self, testroot):
+        """Creates any directories that this test target needs to function correctly.
+        """
+        if self.autoclass:
+            from os import mkdir
+            vardir = path.join(testroot, self.varfile)
+            if not path.isdir(vardir):
+                mkdir(vardir)
+                    
     def clean(self, testroot):
         """Removes the output file for saving the variable's value from the
         testing folder."""
         if self.varfile is not None:
             target = path.join(testroot, self.varfile)
-            if path.isfile(target):
-                remove(target)
+            if self.autoclass:
+                from shutil import rmtree
+                if path.isdir(target):
+                    rmtree(target)
+            else:
+                target = path.join(testroot, self.varfile)
+                if path.isfile(target):
+                    remove(target)
 
     def _process(self, variables, spacer):
+        """Processes the code to generate the output of the unit test.
+        """
+        if self.autoclass:
+            self._process_autoclass(variables, spacer)
+        else:
+            self._process_simple(variables, spacer)
+
+    def _check_autoclass(self, variable):
+        """Makes sure that the autoclass for implementing this variable assignment
+        exists in the parent test specification.
+        """
+        varkey = self.name.lower()
+        acdict = self.testspec.autoclasses
+        if varkey not in acdict:
+            acdict[varkey] = AutoClasser(variable, ".", self.varfile, self.testspec,
+                                         self.testspec.testgroup.coderoot)
+        else:
+            acdict[varkey].folder = "."
+            acdict[varkey].varfile = self.varfile
+
+        return varkey
+            
+    def _process_autoclass(self, variables, spacer):
+        """Processes the test target using an AutoClasser().
+        """
+        #See the comments in _process_simple about these logic trees.
+        if self.name == "[default]":
+            varkey = self._check_autoclass(self.testspec.executable)
+        elif self.name in variables:
+            glob = variables[self.name]
+            if isinstance(glob, GlobalDeclaration):
+                finder = self.testspec.testgroup.finder
+                variable = glob.value_elem(finder.module)
+            elif type(glob).__name__ == "ValueElement":
+                variable = glob
+            varkey = self._check_autoclass(variable)
+        else:
+            raise ValueError("Output target auto-class '{}' has not".format(self.name) +
+                             " been initialized with a <global> tag or regular=true parameter doc tag.")
+
+        icode = []
+        self.testspec.autoclasses[varkey].code(icode, "save", spacer)
+        self._code = '\n'.join(icode)
+            
+    def _process_simple(self, variables, spacer):
         """Processes a single outcome involving a variable value comparison.
 
         :arg variables: a list of the GlobalDeclarations made for the unit test.
@@ -1471,7 +2160,13 @@ class TestTarget(object):
             #to create a file that can be compared later by python. This means
             #that we need to know the type and kind of the variable whose value
             #needs to be compared
-            if self.name in variables:
+            if self.name == "[default]":
+                #We need to save the value that was generated by the main *function* being
+                #unit tested. The variable defined in the fortpy program is the function
+                #name with a suffix of "_fpy".
+                self._code = "{}call pysave({}_fpy, '{}')".format(spacer, self.testspec.executable.name,
+                                                                  self.varfile)
+            elif self.name in variables:
                 glob = variables[self.name]
                 dtype = glob.attributes["type"]
                 if dtype == "class" or dtype == "type":
@@ -1484,16 +2179,9 @@ class TestTarget(object):
                     #pysave is an interface in the fortpy module that can accept variables
                     #of different types and write them to file in a deterministic way
                     self._code = "{}call pysave({}, '{}')".format(spacer, self.name, self.varfile)
-            elif self.name == "[default]":
-                #We need to save the value that was generated by the main *function* being
-                #unit tested. The variable defined in the fortpy program is the function
-                #name with a suffix of "_fpy".
-                self._code = "{}call pysave({}_fpy, '{}')".format(spacer, self.testspec.executable.name,
-                                                                  self.varfile)
             else:
-                raise ValueError("Variable {} has not been initialized with ".format(self.name) +
+                raise ValueError("Output target var {} has not been initialized with ".format(self.name) +
                                  "a <global> tag or regular=true parameter doc tag.")
-                
 
     def _parse_attributes(self):
         """Extracts implemented attributes from the test target."""
@@ -1504,7 +2192,7 @@ class TestTarget(object):
         if "varfile" in self.xml.attrib:
             self.varfile = self.xml.attrib["varfile"]
         else:
-            self.varfile = "{}.fortpy".format(self.name.replace("%", "."))
+            self.varfile = "{}".format(self.name.replace("%", "."))
         if "when" in self.xml.attrib:
             self.when = re.split(",\s*", self.xml.attrib["when"])
         else:
@@ -1517,6 +2205,8 @@ class TestTarget(object):
             self.member = self.xml.attrib["member"]
         if "position" in self.xml.attrib:
             self.position = self.xml.attrib["position"]
+        if "autoclass" in self.xml.attrib:
+            self.autoclass = self.xml.attrib["autoclass"].lower()=="true"
 
 class TestSpecification(object):
     """Represents a single test that needs to be performed. Each test compiles
@@ -1566,6 +2256,12 @@ class TestSpecification(object):
         self.variables = {}
         """A set of *local* variable declarations for this test."""
         self._variable_order = []
+        self.autoclasses = {}
+        """A dict of AutoClasser() instances for generating read/write blocks
+        for user-derived type variables that are complex. We only need to write
+        the variable declarations once per test specification, which is why we
+        put them here.
+        """
 
         self.testgroup = testgroup
 
@@ -1595,6 +2291,13 @@ class TestSpecification(object):
         specification making it testable."""
         return len(self.outputs) > 0
 
+    @property
+    def autoclass(self):
+        """Returns True if any of the assignments in the test specification require
+        auto-class support.
+        """
+        return any([a.autoclass for a in self.methods if isinstance(a, Assignment)])
+    
     @property
     def constant(self):
         """Returns a value indicating whether any of the inputs in this test
@@ -1679,6 +2382,14 @@ class TestSpecification(object):
           the program to be used by any methods being run."""
         for i in self.inputs:
             i.code_vars(lines, spacer)
+        for t in self.targets:
+            t.code(lines, self.variables, "vars", spacer)
+
+        #We need access to the test case locally for reading value with auto-class.
+        for a in self.methods:
+            if isinstance(a, Assignment) and a.autoclass:
+                lines.append("{}character(10) :: fpy_case".format(spacer))
+                break
 
     def code_init(self, lines, spacer):
         """Appends all code required to initialize all the constant-mode input
@@ -1693,6 +2404,11 @@ class TestSpecification(object):
 
         for t in self.targets:
             t.code(lines, self.variables, "begin", spacer)
+
+        for a in self.methods:
+            if isinstance(a, Assignment) and a.autoclass:
+                lines.append("{}call fpy_read('fpy_case', '#', fpy_case)".format(spacer))
+                break
 
     def code_before(self, lines, spacer):
         """Appends all code required to read the next values from a file into
@@ -1937,6 +2653,9 @@ class TestingGroup(object):
         to create the executable driver for a specific testid."""
         self.variable_order = []
         """The order in which the global declarations appear in the group."""
+        self.coderoot = None
+        """The absolute path to the code folder where the module file resides
+        for the unit test being run."""
         self._codes = {}
         self._find_children()
         self._parse_xml()
@@ -1953,7 +2672,7 @@ class TestingGroup(object):
     def name(self):
         """Returns the name of the underlying DocGroup."""
         return self.group.name
-
+    
     def set_finder(self, finder):
         """Sets the currently active MethodFinder instance being used by the MethodWriter
         to create the executable driver for a specific testid."""
@@ -2003,7 +2722,7 @@ class TestingGroup(object):
         if self.staging is None and "staging" in self.group.xml.attrib:
             self.staging = self.group.xml.attrib["staging"]
 
-        for child in self.children:            
+        for child in self.children:
             if child.doctype == "test":
                 test = TestSpecification(child.xml, self)
                 self.tests[test.identifier] = test
@@ -2025,9 +2744,12 @@ class TestingGroup(object):
                 self.outputs[outvar.identifier] = outvar
             elif child.doctype == "target":
                 self.targets.append(TestTarget(child.xml, self))
+            elif child.doctype == "global":
+                self._parse_childvar(child)
 
         self._parse_mappings()
-        self._parse_variables()
+        if type(self.element).__name__ in ["Subroutine", "Function"]:
+            self._get_param_globals()
 
         #Now that the testing group has all its children parsed, we can
         #let the tests parse. This is because some of the global tags in the
@@ -2035,15 +2757,15 @@ class TestingGroup(object):
         for test in self.tests:
             self.tests[test].parse()
 
-    def _parse_variables(self):
-        """Searches for <global> tags and adds them to the variables dict."""
-        for child in self.children:
-            if (child.doctype == "global" and "name" in child.attributes):
-                TestingGroup.global_add(self.variables, self.variable_order,
-                                       child.attributes["name"].lower(), child)
-
-        if type(self.element).__name__ in ["Subroutine", "Function"]:
-            self._get_param_globals()
+    def _parse_childvar(self, child):
+        """Adds a <global> tag to the variables dict."""
+        if (child.doctype == "global" and "name" in child.attributes):
+            #Handle the special case of an override definition for the functions
+            #output variable that holds its return value.
+            if child.attributes["name"].lower() == "[default]":
+                child.attributes["name"] = self.element.name.lower() + "_fpy"
+            TestingGroup.global_add(self.variables, self.variable_order,
+                                    child.attributes["name"].lower(), child)
 
     def _get_param_globals(self):
         """Extracts global declarations from the parameter regular="true" attribute
@@ -2064,7 +2786,7 @@ class TestingGroup(object):
                 #Check the docstrings for a regular="true" attribute.
                 for doc in param.docstring:
                     if doc.doctype == "parameter" and \
-                       "regular" in doc.attributes and doc.attributes["regular"] == "true":
+                       "regular" in doc.attributes and doc.attributes["regular"].lower() == "true":
                         glob = self._global_from_param(name)
                         if glob is not None:
                             TestingGroup.global_add(self.variables, self.variable_order, name, glob)
@@ -2125,7 +2847,9 @@ class TestingGroup(object):
         elif (hasattr(variables[name].element, "doctype") and
               variables[name].element.doctype == "AUTOPARAM"):
             #We can override the existing variable declaration because it was from a
-            #parent test group and a global tag takes precedence.
+            #parent test group and a global tag takes precedence. AUTOPARAMS are only
+            #generated from regular="true" tags, so the [default] <globals> would never
+            #be handled in this section.
             variables[name] = GlobalDeclaration(doc)
             order.append(name)            
         else:
@@ -2336,7 +3060,8 @@ class MethodFinder(object):
         """
         #This method only gets called if we are the main executable being tested.
         if type(self.executable).__name__ == "Function":
-            lines.append("{}{}".format(spacer, self.executable.definition("_fpy")))
+            if (self.executable.name + "_fpy").lower() not in self.variables:
+                lines.append("{}{}".format(spacer, self.executable.definition("_fpy")))
 
         if self.timed(testid):
             lines.append("{}real(fdp) :: fpy_start, fpy_end, fpy_elapsed = 0".format(spacer))
