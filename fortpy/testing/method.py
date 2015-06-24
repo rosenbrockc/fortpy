@@ -69,12 +69,13 @@ class MethodWriter(object):
             self.globals[testid] = {}
             self.ordered_globals[testid] = []
 
-    def reset(self, testid):
+    def reset(self, testid, coderoot):
         """Resets the executable writer to work with the new testid under the same
         unit test identifier.
         """
         self.method = self.finders[testid]
         self.method.group.set_finder(self.method)
+        self.method.group.coderoot = coderoot
 
     def copy(self, coderoot, testroot, case, testid, compiler):
         """Performs the copy operation on any assignments that derive their values
@@ -91,14 +92,23 @@ class MethodWriter(object):
             method = self.method_dicts[testid][methodk]
             if isinstance(method, Assignment):
                 method.copy(coderoot, testroot, case, compiler)
+
+    def setup(self, testroot):
+        """Creates any folders for auto-class variables that are needed to save
+        output to.
+        """
+        #With the auto-class system, we also need to make sure that the test targets
+        #get to create their directories for complex variables.
+        for target in self.method.test.targets:
+            target.init(testroot)
         
-    def lines(self, testid):
+    def lines(self, testid, coderoot):
         """Writes all the lines needed to declare and initialize variables and
         call the methods etc. to test the executable.
 
         :arg testid: the identifier of the test to run.
         """
-        self.reset(testid)
+        self.reset(testid, coderoot)
         result = []
         result.append("")
         self._code_vars(result, "  ", testid)

@@ -32,7 +32,7 @@ def detect_compiler(exepath):
     if len(output) == 0:
         raise ValueError("Unable to determine the family of compiler at {}.".format(exepath))
 
-    if "gnu" in output[0].lower():
+    if "gnu" in output[0].decode("UTF-8").lower():
         return "gfortran"
     else:
         return "ifort"

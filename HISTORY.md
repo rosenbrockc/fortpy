@@ -1,5 +1,17 @@
 # FORTPY: Revision History
 
+## Revision 1.6.1
+
+- Actually, the fix to issue #44 was not committed last revision; but is included now.
+- Fixed a bug limiting the reading in of variables greater than 2D, which were not supported before revision 1.6.0.
+- Fixed a bug for python3 with `Popen` instances returning `stdout` as byte arrays that need to be decoded.
+- With the pre-compilation of `fortpy.f90` included in Revision 1.6.0, `tester.py` was attempting to read the lines in `fortpy.o` and `fortpy.mod` for version information; error raised with UTF-8 decoding.
+- In connection with issue #59:
+  - Added _member_ and _suffix_ attributes to the `<value>` tags.
+  - Allowed multiple values to be comma-separated for the _value_ attribute of both `<assignment>` and `<part>` tags.
+  - Added _autoclass_ attribute (to both `<target>` and `<output>`) that generates a folder for a user-derived type and automatically saves the variable's contents recursively in that folder. For `<output>` it tells fortpy to check the _folders_ against each other to determine if the variables are identical.
+  - Added _autoclass_ attribute to the `<value>` tag for variable assignments. A complex-typed user variable (even one including arrays of user-derived type variables) can be loaded automatically from a folder as long as it matches the file naming conventions.
+
 ## Revision 1.6.0
 
 - As a follow up to issue #35, added more lines of the XML file in which the error occurred and also the file path to the source.

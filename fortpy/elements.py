@@ -322,7 +322,14 @@ class ValueElement(CodeElement):
             dimension = "({})".format(customdim)
         else:
             dimension = "({})".format(self.dimension) if self.dimension is not None else ""
-        default = " = {}".format(self.default) if self.default is not None else ""
+
+        if self.default is None:
+            default = ""
+        else:
+            if ">" in self.default: #We have a pointer, don't add an extra space.
+                default = " ={}".format(self.default) if self.default is not None else ""
+            else:
+                default = " = {}".format(self.default) if self.default is not None else ""
         name = "{}{}".format(self.name, suffix)
         stype = self.dtype if ctype is None else ctype
         return "{}{}{}:: {}{}{}".format(stype, kind, mods, name, dimension, default)
@@ -459,8 +466,8 @@ class ValueElement(CodeElement):
         if self._kind_module is not None:
             #We have already done this search at some point.
             return self._kind_module.name
-        
-        if (self.kind is not None and "len" not in self.kind.lower()
+
+        if (self.kind is not None and "len=" not in self.kind.lower()
             and not match("\d", self.kind[0])):
             #Find the module that declares this kind as:
             # 1) derived type
@@ -475,7 +482,22 @@ class ValueElement(CodeElement):
             self._kind_module = foundmod #At worst this will be None again
             if found is not None:
                 return foundmod.name
-        
+
+    @property
+    def customtype(self):
+        """If this variable is a user-derivedy type, return the CustomType instance that
+        is its kind.
+        """
+        result = None
+        if self.is_custom:
+            #Look for the module that declares this variable's kind in its public list.
+            self.dependency()
+            if self._kind_module is not None:
+                if self.kind.lower() in self._kind_module.types:
+                    result = self._kind_module.types[self.kind.lower()]
+
+        return result
+            
     @property
     def is_custom(self):
         """Returns a value indicating whether this value element is of a derived type."""

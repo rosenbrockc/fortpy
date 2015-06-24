@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fortpy mode="docstring">
+  <decorates name="autoclass.do_nothing">
+    <group name="complex_types" purpose="testing" staging="../staging/">
+      <test identifier="challenge" description="UT setup of complex user-derived types."
+	    cases="1,2" timed="true">
+	<output folder="../model/autoclass/c.{}"
+		autoclass="true"
+		identifier="ac.out" />
+	<target name="c" autoclass="true"
+		compareto="ac.out" when="each"/>
+      </test>
+      <assignment name="c" value="auto">
+      	<value identifier="auto" autoclass="true"
+      	       folder="../model/autoclass/c.{}" />
+      </assignment>
+    </group>
+  </decorates>
+</fortpy>

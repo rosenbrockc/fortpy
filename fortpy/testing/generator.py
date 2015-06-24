@@ -80,9 +80,9 @@ class TestGenerator(object):
             #same code folder as the one being executed by the unit tester.
             module = self.parser.modules[mkey]
             if lcoderoot in module.filepath.lower():
-                self._write_module(module)
+                self._write_module(module, codefolder)
         
-    def _write_module(self, module):
+    def _write_module(self, module, coderoot):
         """Generates the fortran programs for all executables in the module
         code element specified."""      
         for execkey in module.executables:
@@ -96,7 +96,7 @@ class TestGenerator(object):
             #in its parent module (either via a public modifier or via the public
             #keyword in the module).
             if anexec.test_group is not None:
-                self._write_executable(module, anexec)
+                self._write_executable(module, anexec, coderoot)
                 
     def get_module_target(self, module):
         """Gets the full path to the file that houses the specified module."""
@@ -105,7 +105,7 @@ class TestGenerator(object):
         else:
             return os.path.join(self.xgenerator.folder, self.parser.mappings[module])        
 
-    def _write_executable(self, module, executable):
+    def _write_executable(self, module, executable, coderoot):
         """Generates the fortran program for the specified executable code
         element."""
         #Each test written needs separated from the others
@@ -196,7 +196,7 @@ class TestGenerator(object):
             #being unit tested. We need to write a *.f90 PROGRAM file for each
             #test scenario *and* a separate makefile for the executable.
             for testid in self.xgenerator.writer.tests:
-                self.xgenerator.write(testid)
+                self.xgenerator.write(testid, coderoot)
                 self.xgenerator.makefile(testid)
                 self._changed.append("{}|{}".format(identifier, testid))
                 self.xtests[identifier] = self.xgenerator.writer.tests

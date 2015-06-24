@@ -484,13 +484,15 @@ class FileComparer(object):
         will be compared.
         """
         
-    def compare(self, source, target, template=None, mode="default"):
+    def compare(self, source, target, template=None, mode="default", reps=False):
         """Compares the two files using an XML template if one exists.
 
         :arg source: the path to the first file to compare.
         :arg target: the path to the other file to compare.
         :arg template: the name of XML file to use as template for the files.
         :arg mode: the comparison mode to use defined in the template.
+        :arg reps: when True, the file representations used in the comparison are 
+          also returned from the function.
         """
         #Try to load the template specified by the testspec.
         self._load_from_xml(template)
@@ -500,7 +502,11 @@ class FileComparer(object):
 
         #We can't compare representations that don't exist...
         if svalues is not None and tvalues is not None:
-            return compare_representations(svalues, tvalues, mode)
+            result = compare_representations(svalues, tvalues, mode)
+            if not reps:
+                return result
+            else:
+                return (result, svalues, tvalues)            
 
     def get_representation(self, path, template=None):
         """Creates a file representation for the specified file path.
