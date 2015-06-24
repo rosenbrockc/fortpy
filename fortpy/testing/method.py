@@ -187,10 +187,11 @@ class MethodWriter(object):
                 #members and type definitions in the module.
                 insert = True
                 for line in contents[module.public_linenum[0]::]:
-                    if anexec.name in line:
+                    lline = line.lower()
+                    if anexec.name.lower() in lline:
                         insert = False
                         break
-                    if ("type" in line or "::" in line or "interface" in line):
+                    if ("type" in lline or "::" in lline or "interface" in lline):
                         break
 
                 if insert:

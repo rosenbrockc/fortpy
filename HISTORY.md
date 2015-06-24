@@ -1,5 +1,10 @@
 # FORTPY: Revision History
 
+## Revision 1.6.2
+
+- Fixed the bug where the version number of `fortpy.f90` was not updated with Revision 1.6.1. It is now included in the packaging script for `PyPI` so that it won't happen again.
+- Fixed issue #56
+
 ## Revision 1.6.1
 
 - Actually, the fix to issue #44 was not committed last revision; but is included now.
