@@ -181,7 +181,7 @@ class GlobalDeclaration(object):
 
         result.append(self.attributes["type"])
         if "kind" in self.attributes and self.attributes["kind"] is not None:
-            if self.attributes["type"] == "character" and "len=*" in kind:
+            if self.attributes["type"] == "character" and "len=*" in self.attributes["kind"]:
                 msg.warn("Assumed length character array defaulting to kind of 'len=100'. "
                          "Use a <global> tag to override this default.")
                 result.append("(100)")
@@ -259,20 +259,23 @@ class AutoClasser(object):
       the contents of the variable.
     :arg varfile: the name of the folder to create (relative to 'folder') to contain
       the files for the variable.
-    :arg testspec: the TestSpecification instance that has a list of the cases that
-      will run.
+    :arg cases: the TestSpecification instance's cases that will run.
     :arg coderoot: the full path to the code folder that houses that executable being
       unit tested.
     """
-    def __init__(self, variable, folder, varfile, testspec, coderoot=None):
+    def __init__(self, variable, folder, varfile, cases, coderoot=None, generic=False):
         self.variable = variable
         self.folder = folder
         self.varfile = varfile
-        self.testspec = testspec
+        self.cases = cases
         self.coderoot = coderoot
         self._ofolder = folder
         """The original folder specification before it got overwritten with the
         relative one in the fortran program.
+        """
+        self.generic = generic
+        """When true, instead of outputing the specific variable name for save and read
+        operations, the generic 'variable' will be used as the name.
         """
         
         self._wcode = None
@@ -329,6 +332,24 @@ class AutoClasser(object):
         """
         from fortpy.tramp import coderelpath
         return coderelpath(root, self.acroot)
+
+    def xcode(self, lines, position, spacer, write=True, first=True):
+        """Generates the code to save/read a variable from its auto-class folder.
+        This version uses the `auxsave` and `auxread` interfaces from `fpy_auxiliary`
+        instead of generating all the save and read statements directly.
+        """
+        #Everything is handled internally by the auxiliary module. We don't have
+        #any additional variables/initialization outside of the ones handled
+        #globally by the <assignment> and <target> objects.
+        if position == "vars" and "fpy_coderoot" in self.acroot:
+            rootstr = "{}character({}), parameter :: fpy_coderoot = '{}'"
+            lines.append(rootstr.format(spacer, len(self.coderoot), self.coderoot))
+        if position == "save" and write:
+            fstr = "{}call auxsave({}, '{}')"
+            lines.append(fstr.format(spacer, self.variable.name, self.acroot))
+        elif position == "assign" and not write:
+            fstr = "{}call auxread({}, '{}')"
+            lines.append(fstr.format(spacer, self.variable.name, self.acroot))            
     
     def _scan_folder(self, spath):
         """Creates a tree representation of the specified folder under the assumption
@@ -441,9 +462,9 @@ class AutoClasser(object):
         #same tree order for consistency with the fortran driver.
         from fortpy.tramp import coderelpath
         from os import path
-        if self.testspec.cases is not None and "{}" in self._ofolder:
+        if self.cases is not None and "{}" in self._ofolder:
             proclist = []
-            for case in self.testspec.cases:
+            for case in self.cases:
                 relpath = coderelpath(self.coderoot, self._ofolder.format(case))
                 if path.isdir(relpath):
                     anpath = path.join(relpath, ".fortpy.analysis")
@@ -500,7 +521,7 @@ class AutoClasser(object):
 
             return bdim
         
-    def code(self, lines, position, spacer, write=True):
+    def code(self, lines, position, spacer, write=True, first=True):
         """Appends the code required to save/read the value of this auto-class to
         file-folder if the specified position is appropriate.
         """
@@ -532,22 +553,25 @@ class AutoClasser(object):
                 self._is_vcoded = []
 
             if not write and "read" not in self._is_vcoded:
-                lines.append("{}integer :: ifpy_ac".format(spacer))
                 #Also append on the ragged-array for handling the dimensionality of
                 #the separate members in the auto-class folder.
                 lines.append("{}class(fpy_vararray), allocatable :: {}_fpy_acdims(:)".format(spacer, self.variable.name))
-                rootstr = "{}character({}), parameter :: fpy_coderoot = '{}'"
-                lines.append(rootstr.format(spacer, len(self.coderoot), self.coderoot))
+                if first:
+                    lines.append("{}integer :: ifpy_ac".format(spacer))
+                    rootstr = "{}character({}), parameter :: fpy_coderoot = '{}'"
+                    lines.append(rootstr.format(spacer, len(self.coderoot), self.coderoot))
                 self._is_vcoded.append("read")
             if write:
                 self._is_vcoded.append("write")
 
         if position == "init" and not write:
             #Read in the contents of the fortpy analysis into the ragged array
-            fstr = "{}call autoclass_analyze('{}.fortpy.analysis', {}_fpy_acdims)"
-            lines.append(fstr.format(spacer, self.acroot, self.variable.name))
+            quote = "'" if "fpy_coderoot" not in self.acroot else ""
+            fstr = "{}call autoclass_analyze({}{}.fortpy.analysis', {}_fpy_acdims)"
+            lines.append(fstr.format(spacer, quote, self.acroot, self.variable.name))
         
-    def _process_autovar(self, variable, context, filecontext, treecontext, spacer, write, depth=0):
+    def _process_autovar(self, variable, context, filecontext, treecontext, spacer,
+                         write, depth=0):
         """Creates a system to recursively save the contents of a single variable
         that is a user-derived type with multiple members.
 
@@ -564,7 +588,7 @@ class AutoClasser(object):
         result = []
         spacing = spacer
         #Find the effective dimension; since fortpy can save multi-D arrays for simple
-        #data types, those don't have any effective dimensions.
+        #data types, those don't have any effective dimensions. 
         effD = variable.D if variable.is_custom else 0
         prefix = context.replace("%", "_") + variable.name
         loopvars = ["{}_ac{}".format(prefix, i+1) for i in range(effD)]
@@ -579,8 +603,11 @@ class AutoClasser(object):
         if not write:
             #Next, we see which line in the analysis file has the dimensionality
             #information for us to set the limits on the loops.
-            itree = self.tree_order.index(ntreecontext) + 1
-            limit = "{}_fpy_acdims({})%items({{}})".format(self.variable.name, itree)
+            if ntreecontext in self.tree_order:
+                itree = self.tree_order.index(ntreecontext) + 1
+                limit = "{}_fpy_acdims({})%items({{}})".format(self.variable.name, itree)
+            else:
+                limit = "0"
         else:
             limit = "size({}{}, {})"
 
@@ -600,21 +627,29 @@ class AutoClasser(object):
 
         #Since the folder that all the files gets saved in is already named with the
         #highest-level variable's name, we don't need to add that to the path.
-        if variable.name.lower() == self.variable.name.lower():
+        if self.generic and variable.name.lower() == self.variable.name.lower():
+            filevarname = "'"
+        elif variable.name.lower() == self.variable.name.lower():
             filevarname = "_"
         else:
             filevarname = variable.name.lower()
 
-        if variable.is_custom:
+        if (variable.is_custom and depth==0):
             custype = variable.customtype
             for member in custype.members.values():
                 if effD > 0:
-                    ncontext = "{}{}({})%".format(context, variable.name, lslice)
+                    if self.generic:
+                        ncontext = "{}variable({})%".format(context, lslice)
+                    else:
+                        ncontext = "{}{}({})%".format(context, variable.name, lslice)
                     nfilecontext = "{}{}-'//adjustl(trim({}))//'-".format(filecontext, filevarname, pslist)
                 else:
-                    ncontext = "{}{}%".format(context, variable.name)
+                    if self.generic:
+                        ncontext = "{}variable%".format(context)
+                    else:
+                        ncontext = "{}{}%".format(context, variable.name)
                     nfilecontext = "{}{}-".format(filecontext, filevarname)
-
+ 
                 icode, ivars = self._process_autovar(member, ncontext, nfilecontext, ntreecontext,
                                                      spacing, write, depth+1)
                 result.extend(icode)
@@ -622,25 +657,44 @@ class AutoClasser(object):
         else:
             #Yay, we are finally down to the standard type level! Just call it with pysave
             if effD > 0:
-                varname = "{}{}({})".format(context, variable.name, ','.join(lslice))
+                varname = "{}{}({})".format(context, variable.name, lslice)
                 filename = "{}{}-'//trim(adjustl({}))".format(filecontext, filevarname, pslist)
             else:
                 varname = "{}{}".format(context, variable.name)
                 filename = "{}{}'".format(filecontext, filevarname)
 
             if write:
-                fstr = "{}call pysave({}, {})"
-                result.append(fstr.format(spacer, varname, filename))
+                if "allocatable" in variable.modifiers:
+                    result.append("{}if (allocated({}{})) then".format(spacing, context, variable.name))
+                    spacing += "  "
+                if "pointer" in variable.modifiers:
+                    result.append("{}if (associated({}{})) then".format(spacing, context, variable.name))
+                    spacing += "  "
+                if (variable.is_custom and 
+                    self.variable.customtype.name.lower() == variable.kind.lower()):
+                    rl = []
+                    rl.append("nprefix = {}".format(filename))
+                    rl.append("call auxsave_{}0d_({}, nprefix, stack)".format(self.variable.customtype.name,
+                                                                                 varname))
+                    result.extend([spacing + l for l in rl])
+                elif variable.is_custom:
+                    result.append("{}call auxsave({}, {}, .true.)".format(spacing, varname, filename))
+                else:
+                    result.append("{}call pysave({}, {})".format(spacing, varname, filename))
+
+                if "allocatable" in variable.modifiers or "pointer" in variable.modifiers:
+                    spacing = spacing[0:-2]
+                    result.append("{}end if".format(spacing))
             else:
                 #We need to see whether we have allocatable, pointer or fixed dimension variable
                 #and call the relevant interface.
                 fstr = "{}call fpy_read{}({}, '#', {})"
                 if "pointer" in variable.modifiers:
-                    result.append(fstr.format(spacer, "_p", filename, varname))
+                    result.append(fstr.format(spacing, "_p", filename, varname))
                 elif "allocatable" not in variable.modifiers and variable.D > 0:
-                    result.append(fstr.format(spacer, "_f", filename, varname))
+                    result.append(fstr.format(spacing, "_f", filename, varname))
                 else:
-                    result.append(fstr.format(spacer, "", filename, varname))                                
+                    result.append(fstr.format(spacing, "", filename, varname))                                
 
         for i in range(effD):
             spacing = spacing[0:-2]
@@ -654,7 +708,10 @@ class AutoClasser(object):
         if not write and self.tree_order is None:
             self.prep_read()
 
-        icode, ivars = self._process_autovar(self.variable, "", "'" + self.acroot, "", spacer, write)
+        quote = "'" if "fpy_coderoot" not in self.acroot and not self.generic else ""
+        root = (self.acroot if not self.generic else
+                ("prefix//" if self.variable.customtype.recursive else "folder//"))
+        icode, ivars = self._process_autovar(self.variable, "", quote + root, "", spacer, write)
         if write:
             self._wcode = icode
         else:
@@ -859,7 +916,7 @@ class AssignmentValue(object):
         acdict = self.parent.testspec.autoclasses
         if varkey not in acdict:
             acdict[varkey] = AutoClasser(self.parent.variable, self.folder, "",
-                                         self.parent.testspec, self.parent.group.coderoot)
+                                         self.parent.testspec.cases, self.parent.group.coderoot)
         else:
             acdict[varkey].varfile = ""
         acdict[varkey].set_folder(self.folder)
@@ -876,7 +933,7 @@ class AssignmentValue(object):
         """
         if self.autoclass:
             aclass = self._check_autoclass()
-            aclass.code(lines, "assign", spacer, False)
+            aclass.xcode(lines, "assign", spacer, False, first)
         elif self.filename is None:
             #We handle these each individually when no file assignment is present.
             #The file assigner may handle the embedded and function calls at the right
@@ -1080,7 +1137,7 @@ class AssignmentValue(object):
             #    flines.append("deallocate({0}_pslist)".format(self.iid))
             lines.extend([ spacer + l for l in flines])
 
-    def _code_after(self, lines, spacer, slices=None):
+    def _code_after(self, lines, spacer, slices=None, first=True):
         """Appends code for deallocating a variable that was assigned a value.
         This is useful so that we can reallocate it again in repeat mode.
         """
@@ -1089,7 +1146,7 @@ class AssignmentValue(object):
              "pointer" in self.parent.variable.modifiers)):
             lines.append("{}deallocate({})".format(spacer, self.parent.name))
 
-    def _code_init(self, lines, spacer, slices=None):
+    def _code_init(self, lines, spacer, slices=None, first=True):
         """Appends code to initialize any variables we need for assignment
         operations later on.
         """
@@ -1099,15 +1156,15 @@ class AssignmentValue(object):
             #file if it doesn't already exist. The fortran program will suck
             #that file's contents to see the sizes for allocating the arrays.
             aclass = self._check_autoclass()
-            aclass.code(lines, "init", spacer, False)
+            aclass.xcode(lines, "init", spacer, False)
 
-    def _code_vars(self, lines, spacer, slices=None):
+    def _code_vars(self, lines, spacer, slices=None, first=True):
         """Appends lines to declare any variables we need for file read
         operations later on.
         """
         if self.autoclass:
             aclass = self._check_autoclass()
-            aclass.code(lines, "vars", spacer, False)
+            aclass.xcode(lines, "vars", spacer, False, first)
         elif self.filename is not None:
             if ("*" in self.xname or self.ragged) and self.member is None:
                 if self.dtype is None:
@@ -1642,13 +1699,8 @@ class Assignment(object):
 
         variable = self.variable if self.globaldecl is None else self.globaldecl
         if (variable.dimension is not None and
-            self.allocatable and variable.D == 1):
+            self.allocatable and variable.D >= 1):
             lines.append("{}allocate({}({}))".format(spacer, self.name, self.allocate))
-                    
-        if (variable.dimension is not None and
-            variable.D == 2 and self.allocatable):                  
-            allocstr = "{2}allocate({0}({1}))"
-            lines.append(allocstr.format(self.name, self.allocate, spacer))
 
         if ("pointer" in self.global_attr("modifiers", "") and
             ("class" in self.global_attr("type", "") or "type" in self.global_attr("type", ""))):
@@ -1669,8 +1721,10 @@ class Assignment(object):
             #Recognizing that even though the main <assignment> may reference only a single
             #<value> or <part> tag, because of nested parts we probably still need to do
             #the initializations.
+            i = 0
             for v in self.values:
-                self.values[v].code(lines, position, spacer, False)
+                self.values[v].code(lines, position, spacer, False, i==0)
+                i+=1
             for p in self.parts:
                 self.parts[p].code(lines, position, spacer)
         elif position in ["assign", "before"]:
@@ -2057,7 +2111,7 @@ class TestTarget(object):
         """The code to *save* the variable referenced by this target to file."""
         self._parse_attributes()
 
-    def code(self, lines, variables, position, spacer):
+    def code(self, lines, variables, position, spacer, first=True):
         """Appends the code required to save the value of this target to
         file if the specified position is appropriate.
         """
@@ -2072,7 +2126,7 @@ class TestTarget(object):
             lines.append(self._code)
         elif position == "vars" and self.autoclass:
             varkey = self._check_autoclass(self.testspec.executable)
-            self.testspec.autoclasses[varkey].code(lines, "vars", spacer)
+            self.testspec.autoclasses[varkey].xcode(lines, "vars", spacer, first=first)
 
     def init(self, testroot):
         """Creates any directories that this test target needs to function correctly.
@@ -2112,7 +2166,7 @@ class TestTarget(object):
         varkey = self.name.lower()
         acdict = self.testspec.autoclasses
         if varkey not in acdict:
-            acdict[varkey] = AutoClasser(variable, ".", self.varfile, self.testspec,
+            acdict[varkey] = AutoClasser(variable, ".", self.varfile, self.testspec.cases,
                                          self.testspec.testgroup.coderoot)
         else:
             acdict[varkey].folder = "."
@@ -2139,7 +2193,7 @@ class TestTarget(object):
                              " been initialized with a <global> tag or regular=true parameter doc tag.")
 
         icode = []
-        self.testspec.autoclasses[varkey].code(icode, "save", spacer)
+        self.testspec.autoclasses[varkey].xcode(icode, "save", spacer)
         self._code = '\n'.join(icode)
             
     def _process_simple(self, variables, spacer):
@@ -2382,8 +2436,11 @@ class TestSpecification(object):
           the program to be used by any methods being run."""
         for i in self.inputs:
             i.code_vars(lines, spacer)
+            
+        count=0
         for t in self.targets:
-            t.code(lines, self.variables, "vars", spacer)
+            t.code(lines, self.variables, "vars", spacer, count==0)
+            count+=1
 
         #We need access to the test case locally for reading value with auto-class.
         for a in self.methods:

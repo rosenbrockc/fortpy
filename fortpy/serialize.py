@@ -15,7 +15,7 @@ class Serializer(object):
     """Serializes parsed module contents to optimizie loading for modules
     whose contents don't change very often."""
     
-    version = 28
+    version = 29
     """
     Version number (integer) for file system cache.
 
@@ -147,7 +147,7 @@ class Serializer(object):
     def _cache_directory(self):
         """Returns the full path to the cache directory as specified in settings.
         """
-        if settings.unit_testing_mode:
+        if settings.unit_testing_mode or settings.use_test_cache:
             return os.path.join(settings.cache_directory.replace("Fortpy", "Fortpy_Testing"), self.py_tag)
         else:
             return os.path.join(settings.cache_directory, self.py_tag)

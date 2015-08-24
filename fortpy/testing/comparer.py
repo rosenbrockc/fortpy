@@ -329,7 +329,7 @@ def _compare_block(rep1, rep2, thisb, thatb, mode, bkey = None, index = None, is
                 loop = min([len(thisv), len(thatv)])
                 msg.warn("line values extracted for key" + 
                          " '{}' in the two files have different".format(key) + 
-                         " numbers of elements: {} vs. {}.".format(len(thisv), len(thatv)))
+                         " numbers of elements: {} vs. {}.".format(len(thisv), len(thatv)), 2)
             else:
                 loop = len(thisv)
 
@@ -581,11 +581,11 @@ class FileComparer(object):
                 else:
                     return None
             except ET.ParseError as err:
-                msg.warn(err.msg)
-                msg.warn("no version information found in the file. Assuming version 1.")
+                msg.warn(err.msg, 2)
+                msg.warn("no version information found in the file. Assuming version 1.", 2)
                 return None
         else:
-            msg.warn("no version information found in the file. Assuming version 1.")
+            msg.warn("no version information found in the file. Assuming version 1.", 2)
             return None
 
     def _get_file_version(self, fortpyxml):

@@ -21,7 +21,7 @@ class VariableParser(object):
         """Parses all the value code elements from the specified string."""
         result = {}
         for member in self.RE_MEMBERS.finditer(string):
-            mems = self._process_member(member, parent)
+            mems = self._process_member(member, parent, string)
             #The regex match could contain multiple members that were defined
             #on the same line in the code file.
             for onemem in mems:
@@ -29,7 +29,7 @@ class VariableParser(object):
                 
         return result
 
-    def _process_member(self, member, parent):
+    def _process_member(self, member, parent, string):
         """Extracts all the member info from the regex match; returns a ValueElements."""
         #The modifiers regex is very greedy so we have some cleaning up to do
         #to extract the mods.
@@ -61,7 +61,13 @@ class VariableParser(object):
         result = []
 
         #They might have defined multiple vars on the same line
-        ready = self._separate_multiple_def(re.sub(",\s*", ", ", names.strip()))
+        refstring = string[member.start():member.end()].strip()
+        if parent is not None:
+            refline = parent.module.linenum(member.start())
+        else:
+            refline = "?"
+        ready = self._separate_multiple_def(re.sub(",\s*", ", ", names.strip()), parent, refstring, refline)
+        
         for name, ldimension, default, D in self._clean_multiple_def(ready):
             #Now construct the element and set all the values, then add it in the results list.
             udim = ldimension if ldimension is not None else dimension
@@ -69,14 +75,21 @@ class VariableParser(object):
 
         return result
 
-    def _separate_multiple_def(self, defstring):
+    def _separate_multiple_def(self, defstring, parent, refstring, refline):
         """Separates the text after '::' in a variable definition to extract all the variables,
         their dimensions and default values.
         """
         import pyparsing
         nester = pyparsing.nestedExpr('(', ')')
-        #parsed = nester.parseString("(" + defstring.replace("=", " = ") + ")").asList()[0]
-        parsed = nester.parseString("(" + re.sub("=(>?)", " =\\1 ", defstring) + ")").asList()[0]
+        try:
+            parsed = nester.parseString("(" + re.sub("=(>?)", " =\\1 ", defstring) + ")").asList()[0]
+        except pyparsing.ParseException as err:
+            from fortpy import msg
+            repl = (parent.name, refline[0], refstring,
+                    defstring, ''.join(['-']*(err.loc-1))+'^', err.msg)
+            msg.err("parsing variable from '{}:{} >> {}': \n'{}'\n{} {}.".format(*repl))
+            raise
+        
         i = 0
         clean = []
         while i < len(parsed):

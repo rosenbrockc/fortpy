@@ -35,57 +35,9 @@ class ExecutableGenerator(object):
         """Returns a list of all the modules that this executable needs to
         run correctly."""
         if self._needs is None:
-            self._needs = self._calc_needs()
+            from fortpy.code import order_module_dependencies
+            self._needs = order_module_dependencies(self.writer.uses(), self.parser)
         return self._needs
-
-    def _calc_needs(self):
-        """Calculates a list of all the modules that this executable needs to
-        run correctly."""
-        result = []        
-        for modk in self.writer.uses():
-            if modk not in result:
-                result.append(modk)
-
-        #We also need to look up the dependencies of each of these modules
-        recursed = list(result)
-        for i in range(len(result)):
-            module = result[i]
-            self._process_module_needs(module, i, recursed)
-
-        return recursed
-
-    def _process_module_needs(self, module, i, result):
-        """Adds the module and its dependencies to the result list."""
-        #Some code might decide to use the fortpy module methods for general
-        #development, ignore it since we know it will be present in the end.
-        if module == "fortpy":
-            return
-
-        #See if the parser has alread loaded this module.
-        if module not in self.parser.modules:
-            self.parser.load_dependency(module, True, True, False)
-
-        #It is possible that the parser couldn't find it, if so
-        #we can't create the executable!
-        if module in self.parser.modules:
-            modneeds = self.parser.modules[module].needs
-            for modn in modneeds:
-                if modn not in result:
-                    #Since this module depends on the other, insert the other
-                    #above it in the list.
-                    result.insert(i, modn)
-                else:
-                    x = result.index(modn)
-                    if x > i:
-                        #We need to move this module higher up in the food chain
-                        #because it is needed sooner.
-                        result.remove(modn)
-                        result.insert(i, modn)
-
-                newi = result.index(modn)
-                self._process_module_needs(modn, newi, result)
-        else:
-            raise ValueError("unable to find module {}.".format(module))
 
     def reset(self, identifier, coderoot):
         """Resets the writer to work with a new executable."""        
@@ -150,16 +102,20 @@ class ExecutableGenerator(object):
         :arg identifier: the id of the test that this executable should be made for.
         """
         allneeds = self.needs()
+
         #We need to see whether to include the pre-compiler directive or not.
         precompile = False
         for needed in allneeds:
+            if needed=="fortpy" or needed=="fpy_auxiliary":
+                continue
             if self.parser.modules[needed].precompile:
                 precompile = True
                 break
 
         lines = []
         makepath = path.join(self.folder, "Makefile.{}".format(identifier))
-        makefile(identifier, allneeds, makepath, self.identifier, precompile, parser=self.parser)
+        makefile(identifier, allneeds, makepath, self.identifier, precompile,
+                 parser=self.parser, inclfpyaux=self.writer.autoclass)
         
     def _get_uses(self, testid):
         """Gets a list of use statements to add to the program code."""
@@ -170,6 +126,8 @@ class ExecutableGenerator(object):
         for module in alluses:
             if module == self.writer.finders[testid].module.name:
                 uselist.append("use {}".format(module))
+            elif module == "fpy_auxiliary":
+                uselist.append("use fpy_auxiliary")
             else:
                 uselist.append("use {}, only: {}".format(module, ", ".join(alluses[module])))
 

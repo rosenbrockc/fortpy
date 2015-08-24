@@ -110,28 +110,32 @@ def fpy_read(D, dtype, kind, suffix=None):
         lines = ["if ((nvalues .gt. 1) .or. (nlines /= 1)) then",
                  "  write(*,*) \"Cannot read a single value from \", filename",
                  "  write(*,*) \"Found \", nlines, \" lines and \", nvalues, \" values\"",
-                 "  stop",
+                 "  if (present(success_)) success_ = .false.",
+                 "  if (strict) stop",
                  "end if\n"]
         common["warning"] = '    '+'\n    '.join(lines)
     elif D==1:
         lines = ["if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then",
                  '  write(*,*) "Cannot read a vector value from ", filename',
                  '  write(*,*) "Found ", nlines, " lines and ", nvalues, " values"',
-                 "  stop",
+                 "  if (present(success_)) success_ = .false.",
+                 "  if (strict) stop",
                  "end if\n"]
         if suffix == "_f":
             lines.extend(["",
                           "if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then",
                           "  write(*,*) \"File data dimensions don't match fixed variable shape \", shape(variable)",
                           "  write(*,*) \"Fortpy sees data dimensions in '\", filename, \"' as \", nlines, nvalues",
-                          "  stop",
+                          "  if (present(success_)) success_ = .false.",
+                          "  if (strict) stop",
                           "end if\n"])
         common["warning"] = '    '+'\n    '.join(lines)
     elif D==2 and suffix == "_f":
         lines = ["if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 2))) then",
                  "  write(*,*) \"File data dimensions don't match fixed variable shape \", shape(variable)",
                  "  write(*,*) \"Fortpy sees data dimensions in '\", filename, \"' as \", nlines, nvalues",
-                 "  stop",
+                 "  if (present(success_)) success_ = .false.",
+                 "  if (strict) stop",
                  "end if\n"]
         common["warning"] = '    '+'\n    '.join(lines)
     else:
@@ -148,6 +152,8 @@ def fpy_read(D, dtype, kind, suffix=None):
     elif D==2 and suffix in [None, "_p"]:
         common["allocate"] = ("    allocate(variable(nlines, nvalues))\n"
                               "    variable = {default}\n".format(**common))
+    elif D==0:
+        common["allocate"] = "    variable = {}\n".format(common["default"])
     else:
         common["allocate"] = ""
 
@@ -219,18 +225,37 @@ def fpy_read(D, dtype, kind, suffix=None):
         common["xname"] = "fpy_read_{dtype}_{D}d{suffix}".format(**common)
     else:
         common["xname"] = "fpy_read_{dtype}{skind}_{D}d{suffix}".format(**common)
+
+    if suffix != "_f":
+        common["noexist"] = "if (.not. exists) return"
+    else:
+        common["noexist"] = "if (.not. exists) then\n      variable = {}\n      return\n    end if".format(common["default"])
         
-    template = """  subroutine {xname}(filename, commentchar, variable)
+    template = """  subroutine {xname}(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     {dtype}{kind}{modify}, intent(inout) :: variable{Dx}
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     {vars}
     character({maxlen:d}) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    {noexist}
+
 {dealloc}{analyze}{warning}{allocate}
+
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then{initial}
       do
@@ -246,6 +271,7 @@ def fpy_read(D, dtype, kind, suffix=None):
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine {xname}
     """
     return (common["xname"], template.format(**common))

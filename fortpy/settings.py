@@ -57,6 +57,7 @@ Testing
 ~~~~~~~
 
 .. autodata:: unit_testing_mode
+.. autodata:: use_test_cache
 
 """
 import os
@@ -177,4 +178,9 @@ unit_testing_mode = False
 """Specifies that the parsers should run in unit test mode, which means that
 the config.xml file is not loaded by the code parser. It makes the parsers
 function more like they would on a regular system that hasn't been configured yet.
+"""
+
+use_test_cache = False
+"""Use the cache in Fortpy_Testing so that we don't have competition with the
+live caches during development when the serializer version may be incremented.
 """

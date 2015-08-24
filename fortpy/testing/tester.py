@@ -200,6 +200,7 @@ class OutcomeTester(object):
         #set difference as failures.
         onlym = []
         mx = []
+        summary = {}
         for m in mfiles:
             if m[0] != "_":
                 #Ignore the files that don't follow the convention; otherwise the
@@ -210,6 +211,7 @@ class OutcomeTester(object):
                 mpath = path.join(modelpath, m)
                 mxres = self.comparer.compare(xpath, mpath, outvar.template, outvar.mode)
                 mx.append(mxres)
+                summary[m] = (mxres.percent_match, mxres.common_match)
 
                 #Write a comparison report for this particular variable.
                 cpath = path.join(compath, m)
@@ -222,16 +224,35 @@ class OutcomeTester(object):
                 onlym.append(m)
         onlyx = [f for f in xfiles if (f[0] == "_" and f not in mfiles)]
 
-        #Create a single file for each of the only lists that gives the set difference
-        if len(onlym) > 0:
-            with open(path.join(compath, "model_only"), 'w') as f:
-                f.write('\n'.join(onlym))
-        if len(onlyx) > 0:
-            with open(path.join(compath, "test_only"), 'w') as f:
-                f.write('\n'.join(onlyx))
-
+        #It turns out to be useful to have a summary file that lists the percentage
+        #for each file comparison. Otherwise, it is hard to track down where the errors
+        #have occurred.
         from fortpy.testing.results import ACResult
-        return ACResult(mx, onlym, onlyx, outvar.actolerance)
+        reltot = len(summary) + len(onlyx) + len(onlym)
+        result = ACResult(mx, onlym, onlyx, outvar.actolerance)
+        slines = ["{0:.2%} success ({1:.2%} common) TOTAL MATCH".format(result.percent_match, result.common_match),
+                  "",
+                  "OUTPUT : {}".format(exepath),
+                  "MODEL  : {}".format(modelpath),
+                  "",
+                  "Files in both MODEL and TEST directories ({}/{}):".format(len(summary), reltot)]
+        for mfile, match in summary.items():
+            slines.append("{0} => {1:.2%} success ({2:.2%} common)".format(mfile, match[0], match[1]))
+
+        if len(onlym) > 0:
+            slines.append("")
+            slines.append("Files only present in the MODEL output ({}/{}):".format(len(onlym), reltot))
+            slines.extend(onlym)
+        if len(onlyx) > 0:
+            slines.append("")
+            slines.append("Files only present in the TEST output ({}/{}):".format(len(onlyx), reltot))
+            slines.extend(onlyx)
+
+        sfile = path.join(compath, "summary")
+        with open(sfile, 'w') as f:
+            f.write('\n'.join(slines))
+
+        return result
 
     def _run_compare_file(self, exepath, outvar, coderoot, caseid):
         """Compares an output file from an executable with its model output using
@@ -422,7 +443,7 @@ class UnitTester(object):
     """
     def __init__(self, libraryroot=None, verbose=False, compare_templates=None,
                  fortpy_templates=None, rerun=None , compiler=None,
-                 debug=False, profile=False, quiet=False):
+                 debug=False, profile=False, quiet=False, strict=False):
         self.parser = CodeParser()
         self.parser.verbose = verbose
         from fortpy.utility import set_fortpy_templates
@@ -435,6 +456,8 @@ class UnitTester(object):
         """Specifies whether the tester should run in quiet mode, which only prints
         essential information for the unit tests to stdout.
         """
+        self.strict = strict
+        """Specifies whether to compile files with *all* warnings enabled."""
         self.debug = debug == True
         self.set_compiler(compiler)
         self.profile = self._profiler_exists(profile)
@@ -444,49 +467,11 @@ class UnitTester(object):
         self._written = False
         #The user's raw value for the compare_templates directory
         self._compare_templates = compare_templates
-        self._templatev = {}
-        """Holds the version number of the fortpy.f90 file."""
-        
-    def template_version(self, filename):
-        """Returns the version number of the latest fortpy.f90 file."""
-        if filename not in self._templatev:
-            from os import path
-            from fortpy.utility import get_fortpy_templates_dir
-            tempath = path.join(get_fortpy_templates_dir(), filename)
-            self._templatev[filename] = self.get_fortpy_version(tempath)
 
-        return self._templatev[filename]
-
-    def get_fortpy_version(self, fortpath, recursed=False):
+    def get_fortpy_version(self, fortpath):
         """Gets the fortpy version number from the first line of the specified file."""
-        result = []
-        #If the file doesn't exist yet, we don't try to find the version information.
-        from os import path
-        if not path.isfile(fortpath) or path.splitext(fortpath)[1] in [".o", ".mod"]:
-            if path.isfile(fortpath + '.v'):
-                return self.get_fortpy_version(fortpath + '.v', True)
-            else:
-                return result
-
-        with open(fortpath) as f:
-            for line in f:
-                try:
-                    lt = line.index("<")
-                    vxml = "<doc>{}</doc>".format(line[lt::])
-                except ValueError:
-                    vxml = ""
-                break
-            
-        if "<fortpy" in vxml:
-            import xml.etree.ElementTree as ET
-            x = list(ET.XML(vxml))
-            if len(x) > 0:
-                result = list(map(int, x[0].attrib["version"].split(".")))
-
-        if len(result) == 0 and not recursed:
-            return self.get_fortpy_version(fortpath + '.v', True)
-        else:
-            return result
+        from fortpy.testing.compilers import get_fortpy_version
+        return get_fortpy_version(self.compiler, fortpath) 
 
     def tests(self, identifier):
         """Returns a dictionary of all the tests that need to be run for the
@@ -605,13 +590,31 @@ class UnitTester(object):
 
         if self._written:
             self.set_compiler(compiler)
-                
+
+            from fortpy.testing.compilers import replace
+            from fortpy.testing.auxiliary import generate
+            from fortpy.utility import copy
+
             #Run them each individually and return a dictionary of all the
             #test results
             result = {}
+            fpyauxs= []            
             for composite_id in self.tgenerator.tests_to_run:
                 identifier, testid = composite_id.split("|")
-                oneresult = self._run_single(identifier, testid)
+                #Compile and copy fpy_auxiliary if it isn't in the identifiers directory yet.
+                source = path.join(self.libraryroot(identifier), identifier)
+                target = replace(source + ".[c]", self.compiler)
+                if self.writer(identifier).autoclass and identifier not in fpyauxs:
+                    code, success, fpytarget = generate(self.parser, self._codefolder,
+                                                        self.libraryroot(identifier), self.compiler,
+                                                        self.debug, self.profile, self.strict)
+                    opath = path.join(fpytarget, "fpy_auxiliary.o")
+                    mpath = path.join(fpytarget, "fpy_auxiliary.mod")
+                    copy(opath, target)
+                    copy(mpath, target)
+                    fpyauxs.append(identifier)
+                
+                oneresult = self._run_single(identifier, testid, source)
                 if oneresult is not None:
                     result[composite_id] = oneresult
 
@@ -620,133 +623,34 @@ class UnitTester(object):
             msg.warn("you can't run tests until the executables have been written. Exiting.")
             return None
        
-    def _run_single(self, identifier, testid):
+    def _run_single(self, identifier, testid, staging):
         """Runs all unit test cases for the specified identifier."""
         #Just initialize a result object and populate its properties
         #using the various _run_* methods.
         result = TestResult(identifier, testid)
-        result.compiled, result.target = self._run_compile(identifier, testid)
+        result.compiled, result.target = self._run_compile(identifier, testid, staging)
         if result.compiled:
             self._run_exec(identifier, testid, result)
 
         if self.tests(identifier)[testid].runchecks:
             #Only return a test result if the checks were actually run.
             return result
-
-    def _compile_fortpyf90(self, tversion):
-        """Compiles a fortpy.mod and fortpy.o for the current compiler.
-        """
-        msg.info("Compiling fortpy.mod and fortpy.f90 for {}".format(self.compiler))
-        from os import waitpid, path
-        from subprocess import Popen, PIPE
-        from fortpy.testing.compilers import executor, replace
-        command = "cd {0}; {1} fortpy.f90; {1} -c fortpy.f90".format(self.fortpy_templates, executor(self.compiler))
-        pcompile = Popen(command, shell=True, executable="/bin/bash", stdout=PIPE, stderr=PIPE)
-        waitpid(pcompile.pid, 0)
-
-        opath = path.join(self.fortpy_templates, "fortpy.o")
-        mpath = path.join(self.fortpy_templates, "fortpy.mod")
-        if path.isfile(opath) and path.isfile(mpath):
-            from shutil import move
-            nopath = path.join(self.fortpy_templates, replace("fortpy.o.[c]", self.compiler))
-            nmpath = path.join(self.fortpy_templates, replace("fortpy.mod.[c]", self.compiler))
-            move(opath, nopath)
-            move(mpath, nmpath)
-            #Create the version files so we can keep track of the compiled versions.
-            vpaths = [nopath + ".v", nmpath + ".v"]
-            for vp in vpaths:
-                with open(vp, 'w') as f:
-                    f.write('#<fortpy version="{}" />'.format('.'.join(map(str, tversion))))
-        else:
-            msg.err("Unable to generate fortpy.o and fortpy.mod.")
         
-    def _run_compile(self, identifier, testid):
+    def _run_compile(self, identifier, testid, staging):
         """Compiles the executable that was created for the specified identifier,
         returns True if the compile was successful."""
-        #Because we often run the tests for multiple compiler versions, we need
-        #a copy of the execution directory that was setup for the testing.
-        from fortpy.testing.compilers import replace, executor, family
-        from fortpy.utility import copytree
+        #We need to make sure that the fpy_auxiliary .mod and .o files are available
+        #if the test uses auto-class functionality.
         from os import path
-        source = path.join(self.libraryroot(identifier), identifier)        
-        target = replace(source + ".[c]", self.compiler)
-        copytree(source, target)
-
-        #Before we compile, we need to make sure we have the fortpy.o and fortpy.mod
-        #files for the specific compiler.
-        tversion = self.template_version("fortpy.f90")
-        for sdfile in ["fortpy.o", "fortpy.mod"]:
-            fdfile = replace(sdfile + ".[c]", self.compiler)
-            ftarget = path.join(target, sdfile)
-            dversion = self.get_fortpy_version(ftarget)
-                
-            if not path.isfile(ftarget) or dversion != tversion:
-                from shutil import copy
-                source = path.join(self.fortpy_templates, fdfile)
-                sversion = self.get_fortpy_version(source)
-                if not path.isfile(source) or sversion != tversion:
-                    self._compile_fortpyf90(tversion)
-                    
-                msg.info("   COPY: {}".format(source))
-                copy(source, ftarget)
-                #If the file is a binary, we need to save a .v with version
-                #information as well for the next time we want to copy it.
-                pre, ext = path.splitext(ftarget)
-                if ext in [".o", ".so", ".mod"]:
-                    with open(ftarget + '.v', 'w') as f:
-                        f.write("# <fortpy version=\"{}\" />".format('.'.join(map(str, tversion))))
-        
-        #Find the target folder that has the executables etc then run
-        #make and check the exit code.
+        from fortpy.testing.compilers import compile_general          
         msg.blank()
-        options = ""
-        if self.debug:
-            options += " DEBUG=true"
-        if self.profile:
-            options += " GPROF=true"
+        code, success, target = compile_general(staging, self.compiler, testid, self.debug,
+                                                self.profile, self.quiet, strict=self.strict)
 
-        codestr = "cd {}; make -f 'Makefile.{}' F90='{}' FAM='{}'" + options
-        #If we are running in quiet mode, we don't want the compile information
-        #to post to stdout; only errors should be redirected. This means we need
-        #to wrap the execution in a subprocess and redirect the std* to PIPE
-        from os import waitpid
-        from subprocess import Popen, PIPE
-        command = codestr.format(target, testid, executor(self.compiler), family(self.compiler))
-        pcompile = Popen(command, shell=True, executable="/bin/bash", stdout=PIPE, stderr=PIPE)
-        waitpid(pcompile.pid, 0)
-        
-        if not self.quiet:
-            output = [x.decode('utf8') for x in pcompile.stdout.readlines()]
-            msg.std(''.join(output))
-        #else: #We don't need to get these lines since we are purposefully redirecting them.
-        error = pcompile.stderr.readlines()
-        code = len(error)
-        if code != 0:
-            msg.err(''.join(error))
-
-        #It turns out that the compiler still returns a code of zero, even if the compile
-        #failed because the actual compiler didn't fail; it did its job properly. We need to
-        #check for the existence of errors in the 'compile.log' file.
-        lcount = 0
-        errors = []
-        log = path.join(target, "compile.log")
-        with open(log) as f:
-            for line in f:
-                lcount += 1
-                if lcount > 21 and lcount < 32:
-                    errors.append(line)
-                elif lcount > 21:
-                    break
-
-        if len(errors) > 0:
+        if not success:
             #There are 21 lines in the compile.log file when everything runs correctly
             #Overwrite code with a bad exit value since we have some other problems.
             code = 1
-            #We want to write the first couple of errors to the console and give them the
-            #option to still execute if the compile only generated warnings.
-            msg.warn("compile generated some errors or warnings:")
-            msg.blank()
-            msg.info(''.join(errors))
 
             #If the executable exists, we could still prompt them to run it (in case the
             #additional lines were just warnings).
@@ -852,7 +756,7 @@ class UnitTester(object):
         #Clean the testing folder to remove any target variable output files
         #from any earlier test runs.
         testspec.clean(testpath)
-        testwriter.setup(testpath)
+        testwriter.setup(testspec.identifier, testpath)
 
         #If the testspec needs auto-class support, write the case to file.
         if testspec.autoclass:

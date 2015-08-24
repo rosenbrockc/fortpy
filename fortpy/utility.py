@@ -14,22 +14,66 @@ def get_attrib(xml, name, tag=None, cast=str, default=None):
     elif tag is not None:
         raise ValueError("'{}' is a required attribute of <{}> tag.".format(name, tag))
 
+def copyfile(src, dst):
+    """Copies the specified source file to destination *file* if it is newer
+    or does not yet exist.
+    """
+    from os import waitpid
+    from subprocess import Popen, PIPE
+    prsync = Popen("rsync -t -u {} {}".format(src, dst),
+                   shell=True, executable="/bin/bash", stdout=PIPE, stderr=PIPE)
+    waitpid(prsync.pid, 0)
+    
+    #Redirect the output and errors so that we don't pollute stdout.
+    error = prsync.stderr.readlines()
+
+    if len(error) > 0:
+        from fortpy.msg import warn
+        warn("Error while copying {} using rsync.\n\n{}".format(src, '\n'.join(error)))
+        
+    
+def copy(src, dst):
+    """Copies the specified source file to destination directory if it is newer
+    or does not yet exist.
+    """
+    from os import waitpid, path
+    from subprocess import Popen, PIPE
+    desti = path.join(dst, "")
+    if not path.isdir(desti):
+        from os import mkdir
+        mkdir(desti)
+
+    prsync = Popen("rsync -t -u {} {}".format(src, desti),
+                   shell=True, executable="/bin/bash", stdout=PIPE, stderr=PIPE)
+    waitpid(prsync.pid, 0)
+    
+    #Redirect the output and errors so that we don't pollute stdout.
+    #output = prsync.stdout.readlines()
+    error = prsync.stderr.readlines()
+
+    if len(error) > 0:
+        from fortpy.msg import warn
+        warn("Error while copying {} using rsync.\n\n{}".format(src, '\n'.join(error)))
+    
 def copytree(src, dst):
     """Recursively copies the source directory to the destination
     only if the files are newer or modified by using rsync.
     """
-    from os import path
-    from os import waitpid
+    from os import path, waitpid
     from subprocess import Popen, PIPE
 
     #Append any trailing / that we need to get rsync to work correctly.
     source = path.join(src, "")
+    desti = path.join(dst, "")
+    if not path.isdir(desti):
+        from os import mkdir
+        mkdir(desti)
     
-    prsync = Popen("rsync -t -u -r {} {}".format(source, dst),
+    prsync = Popen("rsync -t -u -r {} {}".format(source, desti),
                     shell=True, executable="/bin/bash", stdout=PIPE, stderr=PIPE)
     waitpid(prsync.pid, 0)
     #Redirect the output and errors so that we don't pollute stdout.
-    output = prsync.stdout.readlines()
+    #output = prsync.stdout.readlines()
     error = prsync.stderr.readlines()
 
     if len(error) > 0:

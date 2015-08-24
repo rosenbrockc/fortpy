@@ -93,13 +93,13 @@ class MethodWriter(object):
             if isinstance(method, Assignment):
                 method.copy(coderoot, testroot, case, compiler)
 
-    def setup(self, testroot):
+    def setup(self, testid, testroot):
         """Creates any folders for auto-class variables that are needed to save
         output to.
         """
         #With the auto-class system, we also need to make sure that the test targets
         #get to create their directories for complex variables.
-        for target in self.method.test.targets:
+        for target in self.finders[testid].test.targets:
             target.init(testroot)
         
     def lines(self, testid, coderoot):
@@ -287,12 +287,23 @@ class MethodWriter(object):
             if isinstance(method, Assignment):
                 method.code(lines, position, spacer)
 
+    @property
+    def autoclass(self):
+        """Returns True if any of the test specifications requires auto-class support.
+        """
+        return any([t.autoclass for t in self.tests.values()])
+            
     def uses(self):
         """Gets a list of module.executable dependencies that need to appear in the
         uses clauses of the fortran program."""
         #This dictionary has module names as keys and a list of module executables
         #as the value.
         if len(list(self._uses.keys())) == 0:
+            #Check if any of the tests requires the fpy auxiliary module. If so, add
+            #it in.
+            if self.autoclass:
+                self._uses["fpy_auxiliary"] = []
+            
             for testid in self.finders:
                 for methodk in self.method_dicts[testid]:
                     if not isinstance(self.method_dicts[testid][methodk], Assignment):

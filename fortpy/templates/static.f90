@@ -1,4 +1,4 @@
-!!<fortpy version="__version__" />
+!!<fortpy codeversion="__version__" />
 !!<summary>Provides an interface for saving the values of multiple variable
 !!types using a single call. Used as part of the FORTPY unit testing framework.</summary>
 module fortpy
@@ -255,7 +255,7 @@ contains
     end if
 
     if (ioerr /= 0) then
-       print *, "ERROR opening file for pysave in fortpy", ioerr
+       print *, "ERROR opening file ", filename, " for pysave in fortpy", ioerr
     end if
   end subroutine file_open
 
@@ -452,7 +452,7 @@ contains
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
     character(150000) :: line
-    logical :: ischar_
+    logical :: ischar_, exists
 
     if (present(ischar)) then
        ischar_ = ischar
@@ -464,6 +464,10 @@ contains
     !end the loop. It can be caused by badly formatted data or the EOF marker.
     nlines = 0
     nvalues = 0
+    inquire(file=filename, exist=exists)
+    if (.not. exists) then
+       write(*,*) "The file ", filename, " does not exist."
+    end if
     
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then

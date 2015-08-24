@@ -1,5 +1,28 @@
 # FORTPY: Revision History
 
+## Revision 1.7.0
+
+- Fixed a bug in looking up the fortpy version of files. If binary files were queried (e.g. `.o` or `.mod` files), then it would die in python3 because of the encoding differences. Added compiler suffix checking to the existing checks so that those files wouldn't trigger the exception.
+- Fixed a bug for arrays with `D > 2` not being allocated even when `allocate` was included in the `<assignment>` tag.
+- Fixed an auto-class bug where folders were only being created for `<targets>` in the _first_ `<test>` tag of the testing group.
+- Fixed an auto-class bug with `fpy_coderoot` substitution where an extra `'` was being included and throwing off the string escaping.
+- Fixed a bug where if the XML file had a later modified date, a reparse of the module would be triggered every time code ran because the _module's_ datetime was being used for comparison.
+- Fixed a bug where auto-generated Makefiles were not valid if no global includes are specified in `config.xml`.
+- Added `-strict` option that turns on _all_ warnings for the compiler.
+- Fixed a bug in the type parser for recoginizing if the contents are private.
+- Changed the auto-class feature to use the new `fpy_auxiliary` module with the `auxsave` and `auxread` interfaces when possible. For variables that have private members, we can't use `fpy_auxiliary` since the `fpy_read` and `fpy_save` can't access the private components from outside of the module that declares those types.
+- Added a `summary` file to the file comparison for auto-class `variable.compare` folders. It shows the matches for each file in the directory and which files existed only in the test or model directories, but not both. Useful for tracking down which variables are not matching.
+
+### `fpy_auxiliary.f90` Feature Added
+
+As part of the unit testing and development support, `runtests.py` now supports a new option `-auxiliary` that will generate a library-specific module called `fpy_auxiliary.f90`. The module has two interfaces `auxsave` and `auxread` that work in a similar fashion to `fortpy`'s `pysave` and `fpy_read` interfaces. The module procedures for each interface include subroutines to save and re-load _any_ of the user-derived types that are ever declared anywhere in the code library.
+
+For user-derived types that have `pointer` references to instances of the same type within themselves, the `fpy_auxiliary` maintains a global table of pointer addresses and only saves each instance to file once. When the variable is read back from file, the pointers have their targets restored as they were before they were saved. This does _not_ work for mixed custom types. That is, the table is maintained only for pointers to members of the same type as the custom-type being saved to disk.
+
+In order to avoid compilation loops, it is best to define the user-derived types in a separate module from the code that uses them. Then any modules needing the types can also import `fpy_auxiliary` and provide access to `auxsave` and `auxread`. These are useful for generating model input/output from existing codes. For complicated user types, you can add an `auxsave` at any location in the code where the type has been initialized and generate a directory to initialize the variables from for any future unit tests.
+
+Because of the reliance on `c_ptr` from `iso_c_binding`, the code has to be compiled with the 2008 standard, where an array of objects with `pointer` can have any of its elements passed to a subroutine that requires a `pointer` parameter. This modification was made to the `Makefile.*` files that ship with `fortpy`.
+
 ## Revision 1.6.2
 
 - Fixed the bug where the version number of `fortpy.f90` was not updated with Revision 1.6.1. It is now included in the packaging script for `PyPI` so that it won't happen again.

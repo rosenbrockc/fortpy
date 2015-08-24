@@ -3,7 +3,7 @@
 #--------------------------------------------------------------------------------
 
 # Standard flags (produce optimised code)
-FFLAGS  =  -O3 -ffree-line-length-none -std=f2003
+FFLAGS  =  -O3 -ffree-line-length-none -std=f2008 -fall-intrinsics
 LDFLAGS = 
 
 # For automatic reallocation of LHS: -assume realloc_lhs
@@ -12,11 +12,15 @@ LDFLAGS =
 
 # Debug flag
 ifeq ($(DEBUG),true)
-    FFLAGS  =  -g -fbacktrace -fbounds-check -ffree-line-length-none -ftrapv
+    FFLAGS  +=  -g -fbacktrace -fbounds-check -ffree-line-length-none -ftrapv
 #    FFLAGS += -Wall -Wextra -Wconversion -std=f2003
 #   FFLAGS  =  -g -fbacktrace -fbounds-check -Wall -ffree-line-length-none 
 #   FFLAGS  =  -g -ffree-line-length-none 
    LDFLAGS = 
+endif
+
+ifeq ($(STRICT),true)
+     FFLAGS  += -Wall
 endif
 
 ifeq ($(GPROF),true)

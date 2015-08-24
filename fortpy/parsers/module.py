@@ -276,7 +276,7 @@ class ModuleParser(object):
             if module.types[t].start < lowest:
                 lowest = module.types[t].start
 
-        module.members.update(self.vparser.parse(contents[:lowest], module))
+        module.members.update(self.vparser.parse(contents[:lowest-(module.start + 10 + len(module.name))], module))
 
         #The docstrings for these members will appear as member tags in the same
         #preamble text. We can't use the entire preamble for this because member
