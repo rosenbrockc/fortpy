@@ -361,7 +361,8 @@ def pysave(D, dtype, kind, suffix=None):
 
     if D > 0:
         lines = ["dims = shape(variable)",
-                 "write(FMT, *) dims({})".format(D)]
+                 "write(FMT, *) dims({})".format(D),
+                 "if (dims({}) .eq. 0) return".format(D)]
         common["initial"] = '\n    '.join(lines)
     else:
         common["initial"] = "write(FMT, *) 1"

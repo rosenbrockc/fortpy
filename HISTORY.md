@@ -1,5 +1,9 @@
 # FORTPY: Revision History
 
+## Revision 1.7.1
+
+- Fixed #66 by adding a conditional check for `pysave` to make sure that an array actually has size before we try to save it.
+
 ## Revision 1.7.0
 
 - Fixed a bug in looking up the fortpy version of files. If binary files were queried (e.g. `.o` or `.mod` files), then it would die in python3 because of the encoding differences. Added compiler suffix checking to the existing checks so that those files wouldn't trigger the exception.

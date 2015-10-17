@@ -448,8 +448,9 @@ def _generate_single(classers, write=True):
     modcode = []
     scalars = {}
     for c in classers:
-        if "private contents" in c.variable.customtype.modifiers:
-            msg.warn("User type {} skipped because members are private.".format(c.variable.kind), 0)
+        if "private contents" in c.variable.customtype.modifiers and c.variable.customtype.recursive:
+            msg.warn("Recursive user type {} skipped ".format(c.variable.kind) +
+                     "because members are private.", 0)
             continue
 
         if write:

@@ -13800,6 +13800,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(1)
+    if (dims(1) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, *) variable(:)
@@ -13814,6 +13815,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(2)
+    if (dims(2) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     do i1=1, dims(1)
@@ -13830,6 +13832,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(3)
+    if (dims(3) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 3i15)") "## ", dims
@@ -13850,6 +13853,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(4)
+    if (dims(4) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 4i15)") "## ", dims
@@ -13872,6 +13876,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(5)
+    if (dims(5) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 5i15)") "## ", dims
@@ -13896,6 +13901,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(6)
+    if (dims(6) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 6i15)") "## ", dims
@@ -13922,6 +13928,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(7)
+    if (dims(7) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 7i15)") "## ", dims
@@ -13961,6 +13968,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(1)
+    if (dims(1) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, *) variable(:)
@@ -13975,6 +13983,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(2)
+    if (dims(2) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     do i1=1, dims(1)
@@ -13991,6 +14000,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(3)
+    if (dims(3) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 3i15)") "## ", dims
@@ -14011,6 +14021,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(4)
+    if (dims(4) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 4i15)") "## ", dims
@@ -14033,6 +14044,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(5)
+    if (dims(5) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 5i15)") "## ", dims
@@ -14057,6 +14069,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(6)
+    if (dims(6) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 6i15)") "## ", dims
@@ -14083,6 +14096,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(7)
+    if (dims(7) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 7i15)") "## ", dims
@@ -14123,6 +14137,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(1)
+    if (dims(1) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, '('// adjustl(FMT) // 'i25)') variable(:)
@@ -14137,6 +14152,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(2)
+    if (dims(2) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     do i1=1, dims(1)
@@ -14153,6 +14169,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(3)
+    if (dims(3) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 3i15)") "## ", dims
@@ -14173,6 +14190,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(4)
+    if (dims(4) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 4i15)") "## ", dims
@@ -14195,6 +14213,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(5)
+    if (dims(5) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 5i15)") "## ", dims
@@ -14219,6 +14238,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(6)
+    if (dims(6) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 6i15)") "## ", dims
@@ -14245,6 +14265,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(7)
+    if (dims(7) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 7i15)") "## ", dims
@@ -14284,6 +14305,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(1)
+    if (dims(1) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, '('// adjustl(FMT) // 'i5)') variable(:)
@@ -14298,6 +14320,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(2)
+    if (dims(2) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     do i1=1, dims(1)
@@ -14314,6 +14337,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(3)
+    if (dims(3) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 3i15)") "## ", dims
@@ -14334,6 +14358,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(4)
+    if (dims(4) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 4i15)") "## ", dims
@@ -14356,6 +14381,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(5)
+    if (dims(5) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 5i15)") "## ", dims
@@ -14380,6 +14406,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(6)
+    if (dims(6) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 6i15)") "## ", dims
@@ -14406,6 +14433,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(7)
+    if (dims(7) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 7i15)") "## ", dims
@@ -14445,6 +14473,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(1)
+    if (dims(1) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, '('// adjustl(FMT) // 'i50)') variable(:)
@@ -14459,6 +14488,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(2)
+    if (dims(2) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     do i1=1, dims(1)
@@ -14475,6 +14505,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(3)
+    if (dims(3) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 3i15)") "## ", dims
@@ -14495,6 +14526,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(4)
+    if (dims(4) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 4i15)") "## ", dims
@@ -14517,6 +14549,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(5)
+    if (dims(5) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 5i15)") "## ", dims
@@ -14541,6 +14574,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(6)
+    if (dims(6) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 6i15)") "## ", dims
@@ -14567,6 +14601,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(7)
+    if (dims(7) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 7i15)") "## ", dims
@@ -14607,6 +14642,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(1)
+    if (dims(1) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(:)
@@ -14621,6 +14657,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(2)
+    if (dims(2) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     do i1=1, dims(1)
@@ -14637,6 +14674,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(3)
+    if (dims(3) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 3i15)") "## ", dims
@@ -14657,6 +14695,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(4)
+    if (dims(4) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 4i15)") "## ", dims
@@ -14679,6 +14718,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(5)
+    if (dims(5) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 5i15)") "## ", dims
@@ -14703,6 +14743,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(6)
+    if (dims(6) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 6i15)") "## ", dims
@@ -14729,6 +14770,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(7)
+    if (dims(7) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 7i15)") "## ", dims
@@ -14768,6 +14810,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(1)
+    if (dims(1) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(:)
@@ -14782,6 +14825,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(2)
+    if (dims(2) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     do i1=1, dims(1)
@@ -14798,6 +14842,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(3)
+    if (dims(3) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 3i15)") "## ", dims
@@ -14818,6 +14863,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(4)
+    if (dims(4) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 4i15)") "## ", dims
@@ -14840,6 +14886,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(5)
+    if (dims(5) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 5i15)") "## ", dims
@@ -14864,6 +14911,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(6)
+    if (dims(6) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 6i15)") "## ", dims
@@ -14890,6 +14938,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(7)
+    if (dims(7) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 7i15)") "## ", dims
@@ -14930,6 +14979,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(1)
+    if (dims(1) .eq. 0) return
 
     call file_open(filename, len(filename), 'character')
     call char_write_trimmed(variable(:))
@@ -14944,6 +14994,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(2)
+    if (dims(2) .eq. 0) return
 
     call file_open(filename, len(filename), 'character')
     do i1=1, dims(1)
@@ -14960,6 +15011,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(3)
+    if (dims(3) .eq. 0) return
 
     call file_open(filename, len(filename), 'character')
     write(fileunit, "(A, 3i15)") "## ", dims
@@ -14980,6 +15032,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(4)
+    if (dims(4) .eq. 0) return
 
     call file_open(filename, len(filename), 'character')
     write(fileunit, "(A, 4i15)") "## ", dims
@@ -15002,6 +15055,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(5)
+    if (dims(5) .eq. 0) return
 
     call file_open(filename, len(filename), 'character')
     write(fileunit, "(A, 5i15)") "## ", dims
@@ -15026,6 +15080,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(6)
+    if (dims(6) .eq. 0) return
 
     call file_open(filename, len(filename), 'character')
     write(fileunit, "(A, 6i15)") "## ", dims
@@ -15052,6 +15107,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(7)
+    if (dims(7) .eq. 0) return
 
     call file_open(filename, len(filename), 'character')
     write(fileunit, "(A, 7i15)") "## ", dims
@@ -15092,6 +15148,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(1)
+    if (dims(1) .eq. 0) return
 
     call file_open(filename, len(filename), 'logical')
     write(fileunit, *) variable(:)
@@ -15106,6 +15163,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(2)
+    if (dims(2) .eq. 0) return
 
     call file_open(filename, len(filename), 'logical')
     do i1=1, dims(1)
@@ -15122,6 +15180,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(3)
+    if (dims(3) .eq. 0) return
 
     call file_open(filename, len(filename), 'logical')
     write(fileunit, "(A, 3i15)") "## ", dims
@@ -15142,6 +15201,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(4)
+    if (dims(4) .eq. 0) return
 
     call file_open(filename, len(filename), 'logical')
     write(fileunit, "(A, 4i15)") "## ", dims
@@ -15164,6 +15224,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(5)
+    if (dims(5) .eq. 0) return
 
     call file_open(filename, len(filename), 'logical')
     write(fileunit, "(A, 5i15)") "## ", dims
@@ -15188,6 +15249,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(6)
+    if (dims(6) .eq. 0) return
 
     call file_open(filename, len(filename), 'logical')
     write(fileunit, "(A, 6i15)") "## ", dims
@@ -15214,6 +15276,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(7)
+    if (dims(7) .eq. 0) return
 
     call file_open(filename, len(filename), 'logical')
     write(fileunit, "(A, 7i15)") "## ", dims
