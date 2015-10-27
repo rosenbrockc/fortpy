@@ -32,7 +32,7 @@ def get_completion_tests(key= "monte"):
         "monte": [["in_function_call", 189, 30],["completions", 121, 12],
                   ["bracket_complete", 133, 25], ["in_function_call", 141, 9],
                   ["bracket_complete", 122, 12], ["bracket_complete", 191, 9],
-                  ["bracket_complete", 311, 16], ["in_function_call", 312, 29],
+                  ["bracket_complete", 311, 16], ["in_function_call", 312, 28],
                   ["completions", 313, 11], ["in_function_call", 314, 19],
                   ["in_function_call", 315, 13], ["completions", 316, 14],
                   ["goto_definitions", 103, 24], ["completions", 317, 9],

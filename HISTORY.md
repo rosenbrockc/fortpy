@@ -1,8 +1,20 @@
 # FORTPY: Revision History
 
+## Revision 1.7.2
+
+- Refined filtering for user-types that get skipped in the `fpy_auxiliary` module generation.
+- Fixed a file naming error in the auxiliary module, auto-generated names for array elements were not being trimmed, producing file names with ~100 spaces!
+- Improved the search directive for finding the code element corresponding to a user-derived type of a variable.
+- Fixed the auxiliary recursion algorithm, which was messing up the recursion context for file name and variable name.
+- Added the path to `fortpy.f90` in `code.py` so that the parser can find the source code for fortpy from the distribution directory.
+- Fixed issue #64.
+- Updated the isense unit tests to allow for auto-parsing of the *latest* version of `fortpy.f90` right from the distribution's `templates` directory. Since the test was written, the signature of `pysave` was updated. This uncovered a bug that could show up: if a person tries to type in more arguments than a function will actually accept, instead of ignoring the error, it would just die.
+- Added a best-practices analyzer (`fortpy/stats/bp.py`) and accompanying script (`fortpy/scripts/bestprac.py`) to test for the problems highlighted in enhancement request #68.
+
 ## Revision 1.7.1
 
 - Fixed #66 by adding a conditional check for `pysave` to make sure that an array actually has size before we try to save it.
+- Fixed #51.
 
 ## Revision 1.7.0
 

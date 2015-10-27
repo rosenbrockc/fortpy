@@ -1,4 +1,4 @@
-!!<fortpy codeversion="1.7.0" />
+!!<fortpy codeversion="1.7.2" />
 !!<summary>Provides an interface for saving the values of multiple variable
 !!types using a single call. Used as part of the FORTPY unit testing framework.</summary>
 module fortpy

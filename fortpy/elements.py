@@ -533,6 +533,7 @@ class Dependency(object):
         self.isSubroutine = isSubroutine
         
         self._module = None
+        self._target = None
 
     def __str__(self):
         if self.isSubroutine:
@@ -545,6 +546,13 @@ class Dependency(object):
         """Sets the parent pointer references for the type executable."""
         self.parent = parent
 
+    @property
+    def argnames(self):
+        """Returns a list of the variable names being passed to the dependency
+        as arguments.
+        """
+        return [re.split("[(]", a)[0].lower() for a in self.argslist]
+        
     @property
     def operator(self):
         """Returns true if this dependency is to an operator interface."""
@@ -564,8 +572,29 @@ class Dependency(object):
     def external_name(self):
         """Returns the modulename.executable string that uniquely identifies
         the executable that this dependency points to."""
-        return "{}.{}".format(self.module.name.lower(), self.name)
+        target = self.target
+        if target is not None:
+            return "{}.{}".format(target.name.lower(), self.name)
+        else:
+            return "{}.{}".format(self.module.name.lower(), self.name)
 
+    @property
+    def target(self):
+        """Returns the executable code element that this dependency points to
+        if it can be found.
+        """
+        if self._target is None:
+            found, foundmod = self.module.parent.tree_find(self.name, self.module, "executables")
+            if found is not None:
+                self._target = found
+            else:
+                self._target = False
+
+        if isinstance(self._target, Executable):
+            return self._target
+        else:
+            return None
+    
     @property
     def module(self):
         """Returns the module that this code element belongs to."""
@@ -767,7 +796,10 @@ class Executable(ValueElement, Decoratable):
             checked = []
 
         if myname not in checked:
-            if self._get_assignments_in(self._parameters, symbol) == True:
+            matches = self._get_assignments_in(self._parameters, symbol)
+            if (matches is not None and
+                (isinstance(matches, bool) and matches == True) or
+                (isinstance(matches, list) and len(matches) > 0)):
                 return myname
             else:
                 #Make sure we don't check any executable twice.
@@ -779,9 +811,14 @@ class Executable(ValueElement, Decoratable):
                         if dependency.operator:
                             continue
 
-                        iexec = self.module.parent.get_executable(dependency.external_name)
-                        if iexec is not None and iexec.changed(symbol, checked) != "":
-                            return dependency.external_name
+                        if symbol in dependency.argnames:
+                            pindex = dependency.argnames.index(symbol)
+                            iexec = dependency.target
+                            pname = iexec.ordered_parameters[pindex].name.lower()
+                            if iexec is not None and iexec.changed(pname, checked) != "":
+                                return iexec.full_name
+                            else:
+                                checked.append(dependency.external_name)
                         else:
                             checked.append(dependency.external_name)
         else:

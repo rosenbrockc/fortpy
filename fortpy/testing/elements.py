@@ -1,6 +1,6 @@
 from .. import msg
 from fortpy.testing.templates import FileLine
-from fortpy.docelements import DocElement
+from fortpy.docelements import DocElement, DocGroup
 from fortpy.printing.formatting import present_params
 from os import path, remove
 from shutil import copyfile
@@ -627,9 +627,13 @@ class AutoClasser(object):
 
         #Since the folder that all the files gets saved in is already named with the
         #highest-level variable's name, we don't need to add that to the path.
-        if self.generic and variable.name.lower() == self.variable.name.lower():
-            filevarname = "'"
-        elif variable.name.lower() == self.variable.name.lower():
+        if self.generic and variable.name.lower() == self.variable.name.lower() and depth==0:
+            if (variable.kind is not None and self.variable.kind is not None and
+                variable.kind.lower() == self.variable.kind.lower()):
+                filevarname = ""
+            else:
+                filevarname = "'"
+        elif variable.name.lower() == self.variable.name.lower() and depth==0:
             filevarname = "_"
         else:
             filevarname = variable.name.lower()
@@ -649,7 +653,7 @@ class AutoClasser(object):
                     else:
                         ncontext = "{}{}%".format(context, variable.name)
                     nfilecontext = "{}{}-".format(filecontext, filevarname)
- 
+
                 icode, ivars = self._process_autovar(member, ncontext, nfilecontext, ntreecontext,
                                                      spacing, write, depth+1)
                 result.extend(icode)
@@ -678,8 +682,11 @@ class AutoClasser(object):
                                                                                  varname))
                     result.extend([spacing + l for l in rl])
                 elif variable.is_custom:
-                    result.append("{}call auxsave({}, {}, .true.)".format(spacing, varname, filename))
+                    if "private contents" not in variable.customtype.modifiers:
+                        result.append("{}call auxsave({}, {}, .true.)".format(spacing, varname, filename))
                 else:
+                    if filename[-2]=="'":
+                        print(filename, filecontext, filevarname)
                     result.append("{}call pysave({}, {})".format(spacing, varname, filename))
 
                 if "allocatable" in variable.modifiers or "pointer" in variable.modifiers:
@@ -710,7 +717,7 @@ class AutoClasser(object):
 
         quote = "'" if "fpy_coderoot" not in self.acroot and not self.generic else ""
         root = (self.acroot if not self.generic else
-                ("prefix//" if self.variable.customtype.recursive else "folder//"))
+                ("prefix//'" if self.variable.customtype.recursive else "folder//'"))
         icode, ivars = self._process_autovar(self.variable, "", quote + root, "", spacer, write)
         if write:
             self._wcode = icode
@@ -2119,10 +2126,13 @@ class TestTarget(object):
         #model output file, then it must start with a dot. In that case
         #we don't generate any code since we assume that the file is being
         #created by the method being unit tested.
+        if self.name[0] == '.':
+            return
+        
         if self._code is None:
             self._process(variables, spacer)
 
-        if position in self.when and self.name[0] != ".":
+        if position in self.when:
             lines.append(self._code)
         elif position == "vars" and self.autoclass:
             varkey = self._check_autoclass(self.testspec.executable)
@@ -2768,7 +2778,7 @@ class TestingGroup(object):
         for docel in self.element.docstring:
             if docel.group is not None:
                 if ((isinstance(docel.group, str) and docel.group == self.group.name) or
-                    docel.group.name == self.group.name):
+                    (isinstance(docel.group, DocGroup) and docel.group.name == self.group.name)):
                     self.children.append(docel)
 
     def _parse_xml(self):

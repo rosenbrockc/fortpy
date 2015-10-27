@@ -17,7 +17,7 @@ except ImportError:
     read_md = lambda f: open(f, 'r').read()
 
 setup(name='Fortpy',
-      version='1.7.1',
+      version='1.7.2',
       description='Fortran Parsing, Unit Testing and Intellisense',
       long_description=read_md('README.md'),
       author='Conrad W Rosenbrock',
@@ -36,9 +36,10 @@ setup(name='Fortpy',
       ],
       packages=['fortpy', 'fortpy.parsers', 'fortpy.isense', 'fortpy.testing',
                 'fortpy.templates', 'fortpy.interop',
-                'fortpy.printing' ],
+                'fortpy.printing', 'fortpy.stats' ],
       scripts=['fortpy/scripts/compare.py', 'fortpy/scripts/convert.py', 'fortpy/scripts/runtests.py',
-               'fortpy/scripts/analyze.py', 'fortpy/scripts/parse.py', 'fortpy/scripts/ftypes.py'],
+               'fortpy/scripts/analyze.py', 'fortpy/scripts/parse.py', 'fortpy/scripts/ftypes.py',
+               'fortpy/scripts/bestprac.py'],
       package_data={'fortpy': ['isense/builtin.xml']},
       include_package_data=True,
       classifiers=[

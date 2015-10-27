@@ -3,7 +3,7 @@
 !!instances of user-derived types.</summary>
 module fpy_auxiliary
   use fortpy
-  use iso_c_binding, only: c_ptr, c_associated, c_loc
+  use iso_c_binding, only: c_ptr, c_associated, c_loc, c_null_ptr
 __aux_uses__
   implicit none
   private
@@ -204,6 +204,7 @@ __fxauxread__
        allocate(stack(size(savelist)))
        do i=1, size(savelist)
           stack(i)%prefix = savelist(i)
+          stack(i)%address = c_null_ptr
        end do
     end if
   end subroutine fpy_read_address

@@ -3,17 +3,47 @@ any user-derived type variables (or arrays of those variables) using the
 auto-class functionality of the unit tests.
 """
 from fortpy import msg
+
+warnings = {}
+"""Keeps track of the user types that have already produced warnings."""
+
+def _append_member(member, result):
+    """Appends the element to the result list *only* if it can actually be
+    handled by the auxiliary module.
+    """
+    global warnings
+        
+    if "private contents" in member.customtype.modifiers:
+        if member.kind.lower() not in warnings:
+            msg.warn("User type {} skipped ".format(member.kind) +
+                     "because members are private.", 0)
+            warnings[member.kind.lower()] = 1
+        else:
+            warnings[member.kind.lower()] += 1
+        return
+
+    if member.customtype.name.lower() not in member.customtype.module.publics:
+        if member.kind.lower() not in warnings:
+            msg.warn("Skipping user type {} ".format(member.kind) +
+                     "because it is not marked as public in its module.")
+            warnings[member.kind.lower()] = 1
+        else:
+            warnings[member.kind.lower()] += 1
+        return
+
+    result.append(member)
+
 def _el_members(element, result):
     """In connection with _find_members() searches a single code element for
     user-derived type variable declarations.
     """
     for memkey, member in element.members.items():
         if member.customtype is not None and not any([r.matched(member) for r in result]):
-            result.append(member)
+            _append_member(member, result)
     if hasattr(element, "parameters"):
         for memkey, member in element.parameters.items():
             if member.customtype is not None and not any([r.matched(member) for r in result]):
-                result.append(member)
+                _append_member(member, result)
 
     #Handle modules that have executables and the nested executables
     #inside of subroutines.
@@ -21,14 +51,15 @@ def _el_members(element, result):
         for nested in element.executables.values():
             _el_members(nested, result)
     
-def _find_members(parser):
+def _find_members(parser, coderoot):
     """Searches the list of modules in the CodeParser instance to find all
     user-derived variable declarations. Filters the list to find the unique
     ones for which saving subroutines should be generated.
     """
     result = []
     for modname, module in parser.modules.items():
-        if modname not in ["fortpy", "fpy_auxiliary"]:
+        if (modname not in ["fortpy", "fpy_auxiliary"] and
+            coderoot.lower() in module.filepath.lower()):
             _el_members(module, result)
             for utype in module.types.values():
                 _el_members(utype, result)
@@ -88,7 +119,7 @@ def _get_rsubroutine_recursive(classer, common):
         else:
             lines.append("call fpy_read{1}(prefix//'-{0}', '#', variable%{0})".format(memname, _get_suffix(member)))
     common["read"] = '\n    '.join(lines)
-    common["vars"] = "integer :: {}".format(', '.join(varnames))
+    common["vars"] = "integer :: {}".format(', '.join(varnames)) if len(varnames) > 0 else ""
     common["init"] = '\n    '.join(["{} = 0".format(v) for v in varnames])
 
     template = """  recursive subroutine {xname}_(var_iloc, stack, pointer_stack, prefix)
@@ -238,13 +269,17 @@ def _get_rsubroutine_flat(classer, common):
     lines = []
     for memname, member in variable.customtype.members.items():
         if member.is_custom:
+            if member.customtype is None:
+                msg.err("Unable to find Type instance for : {}".format(member.definition()))
+                continue
             if "allocatable" in member.modifiers:
                 d0 = ', '.join(['0' for i in range(member.D)])
                 lines.append("allocate(variable%{}({}))".format(memname, d0))
-            xr = "call auxread_{varname}{D}d(variable%{memname}, lfolder//'-{memname}')"
+            xr = "call auxread_{varname}{D}d{suffix}(variable%{memname}, lfolder//'-{memname}')"
             lines.append(xr.format(**{"varname": member.customtype.name,
-                                    "D": member.D,
-                                    "memname": memname}))
+                                      "D": member.D,
+                                      "memname": memname,
+                                      "suffix": _get_suffix(member)}))
         else:
             lines.append("call fpy_read{1}(lfolder//'-{0}', '#', variable%{0})".format(memname, _get_suffix(member)))
     common["read"] = '\n    '.join(lines)
@@ -365,7 +400,7 @@ def _get_wsubroutine_nested(classer, common):
         nname = "auxsave_{varname}0d".format(**common)
         lines.append("{}call fpy_period_join_indices(pslist".format(spacing) +
                      ", (/ {} /), {})".format(vsplice, member.D))
-        lines.append("{}call {}(variable({}), folder//'-'//pslist, .true.)".format(spacing, nname, vsplice))
+        lines.append("{}call {}(variable({}), folder//'-'//trim(adjustl(pslist)), .true.)".format(spacing, nname, vsplice))
 
         for i in range(member.D, 0, -1):
             spacing = spacing[:-2]
@@ -400,7 +435,7 @@ def _get_wsubroutine_nested(classer, common):
     call {xname}_p(lvar, folder)
   end subroutine {xname}
 """
-        return ((common["xname"],), template.format(**common))
+        return ((common["xname"], common["xname"]+"_p"), template.format(**common))
     
 def _get_wsubroutine_flat(classer, common):
     """Gets the *non* recursive code subroutine for saving a variable with members
@@ -447,12 +482,8 @@ def _generate_single(classers, write=True):
     modules = []
     modcode = []
     scalars = {}
-    for c in classers:
-        if "private contents" in c.variable.customtype.modifiers and c.variable.customtype.recursive:
-            msg.warn("Recursive user type {} skipped ".format(c.variable.kind) +
-                     "because members are private.", 0)
-            continue
-
+    
+    for c in classers:        
         if write:
             txname, code = _get_wsubroutine(c)
         else:
@@ -579,7 +610,7 @@ def generate(parser, coderoot, stagedir, compiler=None, debug=False, profile=Fal
     from fortpy.utility import get_fortpy_templates_dir
     from fortpy.testing.elements import AutoClasser
     
-    members = _find_members(parser)
+    members = _find_members(parser, coderoot)
     folder = "filename"
     classers = [AutoClasser(m, folder, m.name, [], coderoot, True) for m in members]
     

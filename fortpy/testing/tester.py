@@ -656,7 +656,7 @@ class UnitTester(object):
             #additional lines were just warnings).
             exe = path.join(target, "{}.x".format(testid))
             if path.isfile(exe):
-                choice = input("\nWould you still like to run the executable? ").lower()
+                choice = raw_input("\nWould you still like to run the executable? ").lower()
                 code = 0 if "y" in choice else code
                 if "n" in choice:
                     msg.err("Unit testing terminated by user.")

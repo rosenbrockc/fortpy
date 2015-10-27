@@ -258,7 +258,7 @@ class Evaluator(object):
             elif isinstance(param, list) and len(param) > 0:
                 act_type = []
                 for iparam in param:
-                    if iparam.strtype not in act_type:
+                    if iparam is not None and iparam.strtype not in act_type:
                         act_type.append(iparam.strtype)
 
                 act_text = ', '.join(act_type)

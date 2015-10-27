@@ -314,12 +314,21 @@ class CodeParser(object):
         """Rescans the base paths to find new code files."""
         self._pathfiles = {}
         for path in self.basepaths:
-                self.scan_path(path)
+            self.scan_path(path)
 
     def load_dependency(self, module_name, dependencies, recursive, greedy, ismapping = False):
         """Loads the module with the specified name if it isn't already loaded."""
         key = module_name.lower()
         if key not in self.modules:
+            if key == "fortpy":
+                #Manually specify the correct path to the fortpy.f90 that shipped with
+                #the distribution
+                from fortpy.utility import get_fortpy_templates_dir
+                from os import path
+                fpy_path = path.join(get_fortpy_templates_dir(), "fortpy.f90")
+                self.parse(fpy_path, False, False)
+                return
+            
             fkey = key + ".f90"
             if fkey in self._pathfiles:
                 self.parse(self._pathfiles[fkey], dependencies, recursive)
@@ -334,7 +343,7 @@ class CodeParser(object):
                     msg.info("MAPPING: using {} as the file".format(self.mappings[key]) + 
                              " name for module {}".format(key))
                 self.parse(self._pathfiles[self.mappings[key]], dependencies, recursive)
-            elif key not in ["mkl_vsl_type", "mkl_vsl", "iso_c_binding", "fortpy"]:
+            elif key not in ["mkl_vsl_type", "mkl_vsl", "iso_c_binding"]:
                 #The parsing can't continue without the necessary dependency modules.
                 msg.err(("could not find module {}. Enable greedy search or"
                        " add a module filename mapping.".format(key)))
@@ -426,6 +435,7 @@ class CodeParser(object):
         #well get a pointer to it.
         oattr = origin.collection(attribute)
         base = None
+        lorigin = None
         if symbol in oattr:
             base = oattr[symbol]
             lorigin = origin
