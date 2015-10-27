@@ -9,6 +9,8 @@ tests/staging/
 *.bak
 *fortpy.mod.*
 *fortpy.o.*
+fortpy.o
+fortpy.mod
 
 # C extensions
 *.so

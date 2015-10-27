@@ -19,7 +19,7 @@ class TypeParser(object):
         self.RE_SIG = re.compile(self._RX_SIG, re.I)
 
         #Regex for finding if the type is private
-        self._RX_PRIV = "private.+?contains"
+        self._RX_PRIV = "private.+?(contains)?"
         self.RE_PRIV = re.compile(self._RX_PRIV, re.DOTALL | re.I)
         #Regex for finding methods buried in a type declaration.
         self._RX_EXEC = r"^\s*(?P<modifiers>[^:]+)\s+::\s+(?P<name>[A-Za-z0-9_]+)" + \
@@ -135,7 +135,7 @@ class TypeParser(object):
         #First, we need to see if the types children are private.
         if self.RE_PRIV.search(contents):
             modifiers.append("private contents")
-        
+
         #Next, we need to parse out all the members of the type and their docstrings
         members = self.vparser.parse(contents, None)
         

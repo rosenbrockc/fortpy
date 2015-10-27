@@ -1,4 +1,4 @@
-!!<fortpy version="1.6.0" />
+!!<fortpy codeversion="1.7.2" />
 !!<summary>Provides an interface for saving the values of multiple variable
 !!types using a single call. Used as part of the FORTPY unit testing framework.</summary>
 module fortpy
@@ -210,22 +210,38 @@ contains
     end if
   end subroutine vararray_init
 
-    subroutine fpy_read_realsp_0d(filename, commentchar, variable)
+    subroutine fpy_read_realsp_0d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fsp), intent(inout) :: variable
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nvalues .gt. 1) .or. (nlines /= 1)) then
       write(*,*) "Cannot read a single value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
+    variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -244,24 +260,39 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realsp_0d
     
-  subroutine fpy_read_realsp_1d(filename, commentchar, variable)
+  subroutine fpy_read_realsp_1d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fsp), allocatable, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (allocated(variable)) deallocate(variable)
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
     if (nlines .gt. 1) then
       allocate(variable(nlines))
@@ -269,6 +300,7 @@ contains
       allocate(variable(nvalues))
     end if
     variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -293,22 +325,37 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realsp_1d
     
-  subroutine fpy_read_realsp_2d(filename, commentchar, variable)
+  subroutine fpy_read_realsp_2d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fsp), allocatable, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (allocated(variable)) deallocate(variable)
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     allocate(variable(nlines, nvalues))
     variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -329,19 +376,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realsp_2d
     
-  subroutine fpy_read_realsp_3d(filename, commentchar, variable)
+  subroutine fpy_read_realsp_3d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fsp), allocatable, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -384,19 +446,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realsp_3d
     
-  subroutine fpy_read_realsp_4d(filename, commentchar, variable)
+  subroutine fpy_read_realsp_4d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fsp), allocatable, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -440,19 +517,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realsp_4d
     
-  subroutine fpy_read_realsp_5d(filename, commentchar, variable)
+  subroutine fpy_read_realsp_5d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fsp), allocatable, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -497,19 +589,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realsp_5d
     
-  subroutine fpy_read_realsp_6d(filename, commentchar, variable)
+  subroutine fpy_read_realsp_6d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fsp), allocatable, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -555,19 +662,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realsp_6d
     
-  subroutine fpy_read_realsp_7d(filename, commentchar, variable)
+  subroutine fpy_read_realsp_7d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fsp), allocatable, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -614,23 +736,40 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realsp_7d
-      subroutine fpy_read_realdp_0d(filename, commentchar, variable)
+      subroutine fpy_read_realdp_0d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fdp), intent(inout) :: variable
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nvalues .gt. 1) .or. (nlines /= 1)) then
       write(*,*) "Cannot read a single value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
+    variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -649,24 +788,39 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realdp_0d
     
-  subroutine fpy_read_realdp_1d(filename, commentchar, variable)
+  subroutine fpy_read_realdp_1d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fdp), allocatable, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (allocated(variable)) deallocate(variable)
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
     if (nlines .gt. 1) then
       allocate(variable(nlines))
@@ -674,6 +828,7 @@ contains
       allocate(variable(nvalues))
     end if
     variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -698,22 +853,37 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realdp_1d
     
-  subroutine fpy_read_realdp_2d(filename, commentchar, variable)
+  subroutine fpy_read_realdp_2d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fdp), allocatable, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (allocated(variable)) deallocate(variable)
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     allocate(variable(nlines, nvalues))
     variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -734,19 +904,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realdp_2d
     
-  subroutine fpy_read_realdp_3d(filename, commentchar, variable)
+  subroutine fpy_read_realdp_3d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fdp), allocatable, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -789,19 +974,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realdp_3d
     
-  subroutine fpy_read_realdp_4d(filename, commentchar, variable)
+  subroutine fpy_read_realdp_4d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fdp), allocatable, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -845,19 +1045,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realdp_4d
     
-  subroutine fpy_read_realdp_5d(filename, commentchar, variable)
+  subroutine fpy_read_realdp_5d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fdp), allocatable, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -902,19 +1117,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realdp_5d
     
-  subroutine fpy_read_realdp_6d(filename, commentchar, variable)
+  subroutine fpy_read_realdp_6d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fdp), allocatable, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -960,19 +1190,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realdp_6d
     
-  subroutine fpy_read_realdp_7d(filename, commentchar, variable)
+  subroutine fpy_read_realdp_7d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fdp), allocatable, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -1019,24 +1264,41 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realdp_7d
     
-  subroutine fpy_read_integer_0d(filename, commentchar, variable)
+  subroutine fpy_read_integer_0d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer, intent(inout) :: variable
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nvalues .gt. 1) .or. (nlines /= 1)) then
       write(*,*) "Cannot read a single value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
+    variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -1055,24 +1317,39 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integer_0d
     
-  subroutine fpy_read_integer_1d(filename, commentchar, variable)
+  subroutine fpy_read_integer_1d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer, allocatable, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (allocated(variable)) deallocate(variable)
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
     if (nlines .gt. 1) then
       allocate(variable(nlines))
@@ -1080,6 +1357,7 @@ contains
       allocate(variable(nvalues))
     end if
     variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -1104,22 +1382,37 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integer_1d
     
-  subroutine fpy_read_integer_2d(filename, commentchar, variable)
+  subroutine fpy_read_integer_2d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer, allocatable, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (allocated(variable)) deallocate(variable)
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     allocate(variable(nlines, nvalues))
     variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -1140,19 +1433,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integer_2d
     
-  subroutine fpy_read_integer_3d(filename, commentchar, variable)
+  subroutine fpy_read_integer_3d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer, allocatable, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -1195,19 +1503,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integer_3d
     
-  subroutine fpy_read_integer_4d(filename, commentchar, variable)
+  subroutine fpy_read_integer_4d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer, allocatable, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -1251,19 +1574,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integer_4d
     
-  subroutine fpy_read_integer_5d(filename, commentchar, variable)
+  subroutine fpy_read_integer_5d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer, allocatable, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -1308,19 +1646,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integer_5d
     
-  subroutine fpy_read_integer_6d(filename, commentchar, variable)
+  subroutine fpy_read_integer_6d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer, allocatable, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -1366,19 +1719,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integer_6d
     
-  subroutine fpy_read_integer_7d(filename, commentchar, variable)
+  subroutine fpy_read_integer_7d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer, allocatable, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -1425,23 +1793,40 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integer_7d
-      subroutine fpy_read_integersp_0d(filename, commentchar, variable)
+      subroutine fpy_read_integersp_0d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fsi), intent(inout) :: variable
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nvalues .gt. 1) .or. (nlines /= 1)) then
       write(*,*) "Cannot read a single value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
+    variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -1460,24 +1845,39 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integersp_0d
     
-  subroutine fpy_read_integersp_1d(filename, commentchar, variable)
+  subroutine fpy_read_integersp_1d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fsi), allocatable, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (allocated(variable)) deallocate(variable)
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
     if (nlines .gt. 1) then
       allocate(variable(nlines))
@@ -1485,6 +1885,7 @@ contains
       allocate(variable(nvalues))
     end if
     variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -1509,22 +1910,37 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integersp_1d
     
-  subroutine fpy_read_integersp_2d(filename, commentchar, variable)
+  subroutine fpy_read_integersp_2d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fsi), allocatable, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (allocated(variable)) deallocate(variable)
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     allocate(variable(nlines, nvalues))
     variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -1545,19 +1961,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integersp_2d
     
-  subroutine fpy_read_integersp_3d(filename, commentchar, variable)
+  subroutine fpy_read_integersp_3d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fsi), allocatable, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -1600,19 +2031,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integersp_3d
     
-  subroutine fpy_read_integersp_4d(filename, commentchar, variable)
+  subroutine fpy_read_integersp_4d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fsi), allocatable, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -1656,19 +2102,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integersp_4d
     
-  subroutine fpy_read_integersp_5d(filename, commentchar, variable)
+  subroutine fpy_read_integersp_5d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fsi), allocatable, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -1713,19 +2174,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integersp_5d
     
-  subroutine fpy_read_integersp_6d(filename, commentchar, variable)
+  subroutine fpy_read_integersp_6d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fsi), allocatable, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -1771,19 +2247,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integersp_6d
     
-  subroutine fpy_read_integersp_7d(filename, commentchar, variable)
+  subroutine fpy_read_integersp_7d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fsi), allocatable, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -1830,23 +2321,40 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integersp_7d
-      subroutine fpy_read_integerdp_0d(filename, commentchar, variable)
+      subroutine fpy_read_integerdp_0d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fli), intent(inout) :: variable
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nvalues .gt. 1) .or. (nlines /= 1)) then
       write(*,*) "Cannot read a single value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
+    variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -1865,24 +2373,39 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integerdp_0d
     
-  subroutine fpy_read_integerdp_1d(filename, commentchar, variable)
+  subroutine fpy_read_integerdp_1d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fli), allocatable, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (allocated(variable)) deallocate(variable)
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
     if (nlines .gt. 1) then
       allocate(variable(nlines))
@@ -1890,6 +2413,7 @@ contains
       allocate(variable(nvalues))
     end if
     variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -1914,22 +2438,37 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integerdp_1d
     
-  subroutine fpy_read_integerdp_2d(filename, commentchar, variable)
+  subroutine fpy_read_integerdp_2d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fli), allocatable, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (allocated(variable)) deallocate(variable)
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     allocate(variable(nlines, nvalues))
     variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -1950,19 +2489,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integerdp_2d
     
-  subroutine fpy_read_integerdp_3d(filename, commentchar, variable)
+  subroutine fpy_read_integerdp_3d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fli), allocatable, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -2005,19 +2559,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integerdp_3d
     
-  subroutine fpy_read_integerdp_4d(filename, commentchar, variable)
+  subroutine fpy_read_integerdp_4d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fli), allocatable, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -2061,19 +2630,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integerdp_4d
     
-  subroutine fpy_read_integerdp_5d(filename, commentchar, variable)
+  subroutine fpy_read_integerdp_5d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fli), allocatable, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -2118,19 +2702,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integerdp_5d
     
-  subroutine fpy_read_integerdp_6d(filename, commentchar, variable)
+  subroutine fpy_read_integerdp_6d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fli), allocatable, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -2176,19 +2775,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integerdp_6d
     
-  subroutine fpy_read_integerdp_7d(filename, commentchar, variable)
+  subroutine fpy_read_integerdp_7d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fli), allocatable, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -2235,24 +2849,41 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integerdp_7d
     
-  subroutine fpy_read_complexsp_0d(filename, commentchar, variable)
+  subroutine fpy_read_complexsp_0d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fsp), intent(inout) :: variable
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nvalues .gt. 1) .or. (nlines /= 1)) then
       write(*,*) "Cannot read a single value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
+    variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -2271,24 +2902,39 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexsp_0d
     
-  subroutine fpy_read_complexsp_1d(filename, commentchar, variable)
+  subroutine fpy_read_complexsp_1d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fsp), allocatable, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (allocated(variable)) deallocate(variable)
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
     if (nlines .gt. 1) then
       allocate(variable(nlines))
@@ -2296,6 +2942,7 @@ contains
       allocate(variable(nvalues))
     end if
     variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -2320,22 +2967,37 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexsp_1d
     
-  subroutine fpy_read_complexsp_2d(filename, commentchar, variable)
+  subroutine fpy_read_complexsp_2d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fsp), allocatable, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (allocated(variable)) deallocate(variable)
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     allocate(variable(nlines, nvalues))
     variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -2356,19 +3018,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexsp_2d
     
-  subroutine fpy_read_complexsp_3d(filename, commentchar, variable)
+  subroutine fpy_read_complexsp_3d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fsp), allocatable, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -2411,19 +3088,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexsp_3d
     
-  subroutine fpy_read_complexsp_4d(filename, commentchar, variable)
+  subroutine fpy_read_complexsp_4d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fsp), allocatable, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -2467,19 +3159,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexsp_4d
     
-  subroutine fpy_read_complexsp_5d(filename, commentchar, variable)
+  subroutine fpy_read_complexsp_5d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fsp), allocatable, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -2524,19 +3231,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexsp_5d
     
-  subroutine fpy_read_complexsp_6d(filename, commentchar, variable)
+  subroutine fpy_read_complexsp_6d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fsp), allocatable, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -2582,19 +3304,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexsp_6d
     
-  subroutine fpy_read_complexsp_7d(filename, commentchar, variable)
+  subroutine fpy_read_complexsp_7d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fsp), allocatable, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -2641,23 +3378,40 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexsp_7d
-      subroutine fpy_read_complexdp_0d(filename, commentchar, variable)
+      subroutine fpy_read_complexdp_0d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fdp), intent(inout) :: variable
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nvalues .gt. 1) .or. (nlines /= 1)) then
       write(*,*) "Cannot read a single value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
+    variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -2676,24 +3430,39 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexdp_0d
     
-  subroutine fpy_read_complexdp_1d(filename, commentchar, variable)
+  subroutine fpy_read_complexdp_1d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fdp), allocatable, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (allocated(variable)) deallocate(variable)
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
     if (nlines .gt. 1) then
       allocate(variable(nlines))
@@ -2701,6 +3470,7 @@ contains
       allocate(variable(nvalues))
     end if
     variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -2725,22 +3495,37 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexdp_1d
     
-  subroutine fpy_read_complexdp_2d(filename, commentchar, variable)
+  subroutine fpy_read_complexdp_2d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fdp), allocatable, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (allocated(variable)) deallocate(variable)
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     allocate(variable(nlines, nvalues))
     variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -2761,19 +3546,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexdp_2d
     
-  subroutine fpy_read_complexdp_3d(filename, commentchar, variable)
+  subroutine fpy_read_complexdp_3d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fdp), allocatable, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -2816,19 +3616,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexdp_3d
     
-  subroutine fpy_read_complexdp_4d(filename, commentchar, variable)
+  subroutine fpy_read_complexdp_4d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fdp), allocatable, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -2872,19 +3687,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexdp_4d
     
-  subroutine fpy_read_complexdp_5d(filename, commentchar, variable)
+  subroutine fpy_read_complexdp_5d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fdp), allocatable, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -2929,19 +3759,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexdp_5d
     
-  subroutine fpy_read_complexdp_6d(filename, commentchar, variable)
+  subroutine fpy_read_complexdp_6d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fdp), allocatable, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -2987,19 +3832,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexdp_6d
     
-  subroutine fpy_read_complexdp_7d(filename, commentchar, variable)
+  subroutine fpy_read_complexdp_7d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fdp), allocatable, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -3046,24 +3906,41 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexdp_7d
     
-  subroutine fpy_read_character_0d(filename, commentchar, variable)
+  subroutine fpy_read_character_0d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     character(len=*), intent(inout) :: variable
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues, .true.)
     if ((nvalues .gt. 1) .or. (nlines /= 1)) then
       write(*,*) "Cannot read a single value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
+    variable = ''
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -3082,24 +3959,39 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_character_0d
     
-  subroutine fpy_read_character_1d(filename, commentchar, variable)
+  subroutine fpy_read_character_1d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     character(len=*), allocatable, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (allocated(variable)) deallocate(variable)
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues, .true.)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
     if (nlines .gt. 1) then
       allocate(variable(nlines))
@@ -3107,6 +3999,7 @@ contains
       allocate(variable(nvalues))
     end if
     variable = ''
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -3131,22 +4024,37 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_character_1d
     
-  subroutine fpy_read_character_2d(filename, commentchar, variable)
+  subroutine fpy_read_character_2d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     character(len=*), allocatable, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (allocated(variable)) deallocate(variable)
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues, .true.)
     allocate(variable(nlines, nvalues))
     variable = ''
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -3167,19 +4075,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_character_2d
     
-  subroutine fpy_read_character_3d(filename, commentchar, variable)
+  subroutine fpy_read_character_3d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     character(len=*), allocatable, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -3222,19 +4145,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_character_3d
     
-  subroutine fpy_read_character_4d(filename, commentchar, variable)
+  subroutine fpy_read_character_4d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     character(len=*), allocatable, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -3278,19 +4216,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_character_4d
     
-  subroutine fpy_read_character_5d(filename, commentchar, variable)
+  subroutine fpy_read_character_5d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     character(len=*), allocatable, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -3335,19 +4288,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_character_5d
     
-  subroutine fpy_read_character_6d(filename, commentchar, variable)
+  subroutine fpy_read_character_6d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     character(len=*), allocatable, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -3393,19 +4361,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_character_6d
     
-  subroutine fpy_read_character_7d(filename, commentchar, variable)
+  subroutine fpy_read_character_7d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     character(len=*), allocatable, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -3452,24 +4435,41 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_character_7d
     
-  subroutine fpy_read_logical_0d(filename, commentchar, variable)
+  subroutine fpy_read_logical_0d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     logical, intent(inout) :: variable
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nvalues .gt. 1) .or. (nlines /= 1)) then
       write(*,*) "Cannot read a single value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
+    variable = .false.
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -3488,24 +4488,39 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_logical_0d
     
-  subroutine fpy_read_logical_1d(filename, commentchar, variable)
+  subroutine fpy_read_logical_1d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     logical, allocatable, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (allocated(variable)) deallocate(variable)
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
     if (nlines .gt. 1) then
       allocate(variable(nlines))
@@ -3513,6 +4528,7 @@ contains
       allocate(variable(nvalues))
     end if
     variable = .false.
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -3537,22 +4553,37 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_logical_1d
     
-  subroutine fpy_read_logical_2d(filename, commentchar, variable)
+  subroutine fpy_read_logical_2d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     logical, allocatable, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (allocated(variable)) deallocate(variable)
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     allocate(variable(nlines, nvalues))
     variable = .false.
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -3573,19 +4604,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_logical_2d
     
-  subroutine fpy_read_logical_3d(filename, commentchar, variable)
+  subroutine fpy_read_logical_3d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     logical, allocatable, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -3628,19 +4674,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_logical_3d
     
-  subroutine fpy_read_logical_4d(filename, commentchar, variable)
+  subroutine fpy_read_logical_4d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     logical, allocatable, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -3684,19 +4745,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_logical_4d
     
-  subroutine fpy_read_logical_5d(filename, commentchar, variable)
+  subroutine fpy_read_logical_5d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     logical, allocatable, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -3741,19 +4817,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_logical_5d
     
-  subroutine fpy_read_logical_6d(filename, commentchar, variable)
+  subroutine fpy_read_logical_6d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     logical, allocatable, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -3799,19 +4890,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_logical_6d
     
-  subroutine fpy_read_logical_7d(filename, commentchar, variable)
+  subroutine fpy_read_logical_7d(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     logical, allocatable, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (allocated(variable)) deallocate(variable)
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -3858,32 +4964,52 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_logical_7d
     
 
-    subroutine fpy_read_realsp_1df(filename, commentchar, variable)
+    subroutine fpy_read_realsp_1df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fsp), intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
 
     
     if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
       write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -3908,24 +5034,43 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realsp_1df
     
-  subroutine fpy_read_realsp_2df(filename, commentchar, variable)
+  subroutine fpy_read_realsp_2df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fsp), intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 2))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
       write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -3946,17 +5091,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realsp_2df
     
-  subroutine fpy_read_realsp_3df(filename, commentchar, variable)
+  subroutine fpy_read_realsp_3df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fsp), intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -3999,17 +5162,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realsp_3df
     
-  subroutine fpy_read_realsp_4df(filename, commentchar, variable)
+  subroutine fpy_read_realsp_4df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fsp), intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -4053,17 +5234,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realsp_4df
     
-  subroutine fpy_read_realsp_5df(filename, commentchar, variable)
+  subroutine fpy_read_realsp_5df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fsp), intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -4108,17 +5307,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realsp_5df
     
-  subroutine fpy_read_realsp_6df(filename, commentchar, variable)
+  subroutine fpy_read_realsp_6df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fsp), intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -4164,17 +5381,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realsp_6df
     
-  subroutine fpy_read_realsp_7df(filename, commentchar, variable)
+  subroutine fpy_read_realsp_7df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fsp), intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -4221,30 +5456,50 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realsp_7df
-      subroutine fpy_read_realdp_1df(filename, commentchar, variable)
+      subroutine fpy_read_realdp_1df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fdp), intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
 
     
     if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
       write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -4269,24 +5524,43 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realdp_1df
     
-  subroutine fpy_read_realdp_2df(filename, commentchar, variable)
+  subroutine fpy_read_realdp_2df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fdp), intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 2))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
       write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -4307,17 +5581,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realdp_2df
     
-  subroutine fpy_read_realdp_3df(filename, commentchar, variable)
+  subroutine fpy_read_realdp_3df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fdp), intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -4360,17 +5652,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realdp_3df
     
-  subroutine fpy_read_realdp_4df(filename, commentchar, variable)
+  subroutine fpy_read_realdp_4df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fdp), intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -4414,17 +5724,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realdp_4df
     
-  subroutine fpy_read_realdp_5df(filename, commentchar, variable)
+  subroutine fpy_read_realdp_5df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fdp), intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -4469,17 +5797,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realdp_5df
     
-  subroutine fpy_read_realdp_6df(filename, commentchar, variable)
+  subroutine fpy_read_realdp_6df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fdp), intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -4525,17 +5871,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realdp_6df
     
-  subroutine fpy_read_realdp_7df(filename, commentchar, variable)
+  subroutine fpy_read_realdp_7df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fdp), intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -4582,31 +5946,51 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realdp_7df
     
-  subroutine fpy_read_integer_1df(filename, commentchar, variable)
+  subroutine fpy_read_integer_1df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
 
     
     if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
       write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -4631,24 +6015,43 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integer_1df
     
-  subroutine fpy_read_integer_2df(filename, commentchar, variable)
+  subroutine fpy_read_integer_2df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 2))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
       write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -4669,17 +6072,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integer_2df
     
-  subroutine fpy_read_integer_3df(filename, commentchar, variable)
+  subroutine fpy_read_integer_3df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -4722,17 +6143,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integer_3df
     
-  subroutine fpy_read_integer_4df(filename, commentchar, variable)
+  subroutine fpy_read_integer_4df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -4776,17 +6215,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integer_4df
     
-  subroutine fpy_read_integer_5df(filename, commentchar, variable)
+  subroutine fpy_read_integer_5df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -4831,17 +6288,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integer_5df
     
-  subroutine fpy_read_integer_6df(filename, commentchar, variable)
+  subroutine fpy_read_integer_6df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -4887,17 +6362,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integer_6df
     
-  subroutine fpy_read_integer_7df(filename, commentchar, variable)
+  subroutine fpy_read_integer_7df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -4944,30 +6437,50 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integer_7df
-      subroutine fpy_read_integersp_1df(filename, commentchar, variable)
+      subroutine fpy_read_integersp_1df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fsi), intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
 
     
     if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
       write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -4992,24 +6505,43 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integersp_1df
     
-  subroutine fpy_read_integersp_2df(filename, commentchar, variable)
+  subroutine fpy_read_integersp_2df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fsi), intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 2))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
       write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -5030,17 +6562,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integersp_2df
     
-  subroutine fpy_read_integersp_3df(filename, commentchar, variable)
+  subroutine fpy_read_integersp_3df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fsi), intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -5083,17 +6633,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integersp_3df
     
-  subroutine fpy_read_integersp_4df(filename, commentchar, variable)
+  subroutine fpy_read_integersp_4df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fsi), intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -5137,17 +6705,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integersp_4df
     
-  subroutine fpy_read_integersp_5df(filename, commentchar, variable)
+  subroutine fpy_read_integersp_5df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fsi), intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -5192,17 +6778,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integersp_5df
     
-  subroutine fpy_read_integersp_6df(filename, commentchar, variable)
+  subroutine fpy_read_integersp_6df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fsi), intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -5248,17 +6852,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integersp_6df
     
-  subroutine fpy_read_integersp_7df(filename, commentchar, variable)
+  subroutine fpy_read_integersp_7df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fsi), intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -5305,30 +6927,50 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integersp_7df
-      subroutine fpy_read_integerdp_1df(filename, commentchar, variable)
+      subroutine fpy_read_integerdp_1df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fli), intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
 
     
     if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
       write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -5353,24 +6995,43 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integerdp_1df
     
-  subroutine fpy_read_integerdp_2df(filename, commentchar, variable)
+  subroutine fpy_read_integerdp_2df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fli), intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 2))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
       write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -5391,17 +7052,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integerdp_2df
     
-  subroutine fpy_read_integerdp_3df(filename, commentchar, variable)
+  subroutine fpy_read_integerdp_3df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fli), intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -5444,17 +7123,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integerdp_3df
     
-  subroutine fpy_read_integerdp_4df(filename, commentchar, variable)
+  subroutine fpy_read_integerdp_4df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fli), intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -5498,17 +7195,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integerdp_4df
     
-  subroutine fpy_read_integerdp_5df(filename, commentchar, variable)
+  subroutine fpy_read_integerdp_5df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fli), intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -5553,17 +7268,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integerdp_5df
     
-  subroutine fpy_read_integerdp_6df(filename, commentchar, variable)
+  subroutine fpy_read_integerdp_6df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fli), intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -5609,17 +7342,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integerdp_6df
     
-  subroutine fpy_read_integerdp_7df(filename, commentchar, variable)
+  subroutine fpy_read_integerdp_7df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fli), intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -5666,31 +7417,51 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integerdp_7df
     
-  subroutine fpy_read_complexsp_1df(filename, commentchar, variable)
+  subroutine fpy_read_complexsp_1df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fsp), intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
 
     
     if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
       write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -5715,24 +7486,43 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexsp_1df
     
-  subroutine fpy_read_complexsp_2df(filename, commentchar, variable)
+  subroutine fpy_read_complexsp_2df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fsp), intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 2))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
       write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -5753,17 +7543,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexsp_2df
     
-  subroutine fpy_read_complexsp_3df(filename, commentchar, variable)
+  subroutine fpy_read_complexsp_3df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fsp), intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -5806,17 +7614,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexsp_3df
     
-  subroutine fpy_read_complexsp_4df(filename, commentchar, variable)
+  subroutine fpy_read_complexsp_4df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fsp), intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -5860,17 +7686,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexsp_4df
     
-  subroutine fpy_read_complexsp_5df(filename, commentchar, variable)
+  subroutine fpy_read_complexsp_5df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fsp), intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -5915,17 +7759,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexsp_5df
     
-  subroutine fpy_read_complexsp_6df(filename, commentchar, variable)
+  subroutine fpy_read_complexsp_6df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fsp), intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -5971,17 +7833,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexsp_6df
     
-  subroutine fpy_read_complexsp_7df(filename, commentchar, variable)
+  subroutine fpy_read_complexsp_7df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fsp), intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -6028,30 +7908,50 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexsp_7df
-      subroutine fpy_read_complexdp_1df(filename, commentchar, variable)
+      subroutine fpy_read_complexdp_1df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fdp), intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
 
     
     if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
       write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -6076,24 +7976,43 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexdp_1df
     
-  subroutine fpy_read_complexdp_2df(filename, commentchar, variable)
+  subroutine fpy_read_complexdp_2df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fdp), intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 2))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
       write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -6114,17 +8033,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexdp_2df
     
-  subroutine fpy_read_complexdp_3df(filename, commentchar, variable)
+  subroutine fpy_read_complexdp_3df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fdp), intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -6167,17 +8104,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexdp_3df
     
-  subroutine fpy_read_complexdp_4df(filename, commentchar, variable)
+  subroutine fpy_read_complexdp_4df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fdp), intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -6221,17 +8176,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexdp_4df
     
-  subroutine fpy_read_complexdp_5df(filename, commentchar, variable)
+  subroutine fpy_read_complexdp_5df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fdp), intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -6276,17 +8249,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexdp_5df
     
-  subroutine fpy_read_complexdp_6df(filename, commentchar, variable)
+  subroutine fpy_read_complexdp_6df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fdp), intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -6332,17 +8323,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexdp_6df
     
-  subroutine fpy_read_complexdp_7df(filename, commentchar, variable)
+  subroutine fpy_read_complexdp_7df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fdp), intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = 0
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -6389,31 +8398,51 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexdp_7df
     
-  subroutine fpy_read_character_1df(filename, commentchar, variable)
+  subroutine fpy_read_character_1df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     character(len=*), intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = ''
+      return
+    end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues, .true.)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
 
     
     if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
       write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -6438,24 +8467,43 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_character_1df
     
-  subroutine fpy_read_character_2df(filename, commentchar, variable)
+  subroutine fpy_read_character_2df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     character(len=*), intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = ''
+      return
+    end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues, .true.)
     if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 2))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
       write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -6476,17 +8524,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_character_2df
     
-  subroutine fpy_read_character_3df(filename, commentchar, variable)
+  subroutine fpy_read_character_3df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     character(len=*), intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = ''
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -6529,17 +8595,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_character_3df
     
-  subroutine fpy_read_character_4df(filename, commentchar, variable)
+  subroutine fpy_read_character_4df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     character(len=*), intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = ''
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -6583,17 +8667,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_character_4df
     
-  subroutine fpy_read_character_5df(filename, commentchar, variable)
+  subroutine fpy_read_character_5df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     character(len=*), intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = ''
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -6638,17 +8740,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_character_5df
     
-  subroutine fpy_read_character_6df(filename, commentchar, variable)
+  subroutine fpy_read_character_6df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     character(len=*), intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = ''
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -6694,17 +8814,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_character_6df
     
-  subroutine fpy_read_character_7df(filename, commentchar, variable)
+  subroutine fpy_read_character_7df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     character(len=*), intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = ''
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -6751,31 +8889,51 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_character_7df
     
-  subroutine fpy_read_logical_1df(filename, commentchar, variable)
+  subroutine fpy_read_logical_1df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     logical, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = .false.
+      return
+    end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
 
     
     if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
       write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -6800,24 +8958,43 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_logical_1df
     
-  subroutine fpy_read_logical_2df(filename, commentchar, variable)
+  subroutine fpy_read_logical_2df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     logical, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = .false.
+      return
+    end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 2))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
       write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -6838,17 +9015,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_logical_2df
     
-  subroutine fpy_read_logical_3df(filename, commentchar, variable)
+  subroutine fpy_read_logical_3df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     logical, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = .false.
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -6891,17 +9086,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_logical_3df
     
-  subroutine fpy_read_logical_4df(filename, commentchar, variable)
+  subroutine fpy_read_logical_4df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     logical, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = .false.
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -6945,17 +9158,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_logical_4df
     
-  subroutine fpy_read_logical_5df(filename, commentchar, variable)
+  subroutine fpy_read_logical_5df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     logical, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = .false.
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -7000,17 +9231,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_logical_5df
     
-  subroutine fpy_read_logical_6df(filename, commentchar, variable)
+  subroutine fpy_read_logical_6df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     logical, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = .false.
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -7056,17 +9305,35 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_logical_6df
     
-  subroutine fpy_read_logical_7df(filename, commentchar, variable)
+  subroutine fpy_read_logical_7df(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     logical, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) then
+      variable = .false.
+      return
+    end if
+
 
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
@@ -7113,25 +9380,40 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_logical_7df
     
 
-    subroutine fpy_read_realsp_1dp(filename, commentchar, variable)
+    subroutine fpy_read_realsp_1dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fsp), pointer, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
     if (nlines .gt. 1) then
       allocate(variable(nlines))
@@ -7139,6 +9421,7 @@ contains
       allocate(variable(nvalues))
     end if
     variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -7163,22 +9446,37 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realsp_1dp
     
-  subroutine fpy_read_realsp_2dp(filename, commentchar, variable)
+  subroutine fpy_read_realsp_2dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fsp), pointer, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     allocate(variable(nlines, nvalues))
     variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -7199,19 +9497,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realsp_2dp
     
-  subroutine fpy_read_realsp_3dp(filename, commentchar, variable)
+  subroutine fpy_read_realsp_3dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fsp), pointer, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -7254,19 +9567,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realsp_3dp
     
-  subroutine fpy_read_realsp_4dp(filename, commentchar, variable)
+  subroutine fpy_read_realsp_4dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fsp), pointer, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -7310,19 +9638,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realsp_4dp
     
-  subroutine fpy_read_realsp_5dp(filename, commentchar, variable)
+  subroutine fpy_read_realsp_5dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fsp), pointer, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -7367,19 +9710,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realsp_5dp
     
-  subroutine fpy_read_realsp_6dp(filename, commentchar, variable)
+  subroutine fpy_read_realsp_6dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fsp), pointer, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -7425,19 +9783,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realsp_6dp
     
-  subroutine fpy_read_realsp_7dp(filename, commentchar, variable)
+  subroutine fpy_read_realsp_7dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fsp), pointer, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -7484,23 +9857,38 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realsp_7dp
-      subroutine fpy_read_realdp_1dp(filename, commentchar, variable)
+      subroutine fpy_read_realdp_1dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fdp), pointer, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
     if (nlines .gt. 1) then
       allocate(variable(nlines))
@@ -7508,6 +9896,7 @@ contains
       allocate(variable(nvalues))
     end if
     variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -7532,22 +9921,37 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realdp_1dp
     
-  subroutine fpy_read_realdp_2dp(filename, commentchar, variable)
+  subroutine fpy_read_realdp_2dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fdp), pointer, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     allocate(variable(nlines, nvalues))
     variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -7568,19 +9972,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realdp_2dp
     
-  subroutine fpy_read_realdp_3dp(filename, commentchar, variable)
+  subroutine fpy_read_realdp_3dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fdp), pointer, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -7623,19 +10042,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realdp_3dp
     
-  subroutine fpy_read_realdp_4dp(filename, commentchar, variable)
+  subroutine fpy_read_realdp_4dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fdp), pointer, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -7679,19 +10113,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realdp_4dp
     
-  subroutine fpy_read_realdp_5dp(filename, commentchar, variable)
+  subroutine fpy_read_realdp_5dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fdp), pointer, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -7736,19 +10185,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realdp_5dp
     
-  subroutine fpy_read_realdp_6dp(filename, commentchar, variable)
+  subroutine fpy_read_realdp_6dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fdp), pointer, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -7794,19 +10258,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realdp_6dp
     
-  subroutine fpy_read_realdp_7dp(filename, commentchar, variable)
+  subroutine fpy_read_realdp_7dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     real(fdp), pointer, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -7853,24 +10332,39 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_realdp_7dp
     
-  subroutine fpy_read_integer_1dp(filename, commentchar, variable)
+  subroutine fpy_read_integer_1dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer, pointer, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
     if (nlines .gt. 1) then
       allocate(variable(nlines))
@@ -7878,6 +10372,7 @@ contains
       allocate(variable(nvalues))
     end if
     variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -7902,22 +10397,37 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integer_1dp
     
-  subroutine fpy_read_integer_2dp(filename, commentchar, variable)
+  subroutine fpy_read_integer_2dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer, pointer, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     allocate(variable(nlines, nvalues))
     variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -7938,19 +10448,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integer_2dp
     
-  subroutine fpy_read_integer_3dp(filename, commentchar, variable)
+  subroutine fpy_read_integer_3dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer, pointer, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -7993,19 +10518,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integer_3dp
     
-  subroutine fpy_read_integer_4dp(filename, commentchar, variable)
+  subroutine fpy_read_integer_4dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer, pointer, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -8049,19 +10589,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integer_4dp
     
-  subroutine fpy_read_integer_5dp(filename, commentchar, variable)
+  subroutine fpy_read_integer_5dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer, pointer, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -8106,19 +10661,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integer_5dp
     
-  subroutine fpy_read_integer_6dp(filename, commentchar, variable)
+  subroutine fpy_read_integer_6dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer, pointer, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -8164,19 +10734,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integer_6dp
     
-  subroutine fpy_read_integer_7dp(filename, commentchar, variable)
+  subroutine fpy_read_integer_7dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer, pointer, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -8223,23 +10808,38 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integer_7dp
-      subroutine fpy_read_integersp_1dp(filename, commentchar, variable)
+      subroutine fpy_read_integersp_1dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fsi), pointer, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
     if (nlines .gt. 1) then
       allocate(variable(nlines))
@@ -8247,6 +10847,7 @@ contains
       allocate(variable(nvalues))
     end if
     variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -8271,22 +10872,37 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integersp_1dp
     
-  subroutine fpy_read_integersp_2dp(filename, commentchar, variable)
+  subroutine fpy_read_integersp_2dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fsi), pointer, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     allocate(variable(nlines, nvalues))
     variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -8307,19 +10923,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integersp_2dp
     
-  subroutine fpy_read_integersp_3dp(filename, commentchar, variable)
+  subroutine fpy_read_integersp_3dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fsi), pointer, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -8362,19 +10993,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integersp_3dp
     
-  subroutine fpy_read_integersp_4dp(filename, commentchar, variable)
+  subroutine fpy_read_integersp_4dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fsi), pointer, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -8418,19 +11064,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integersp_4dp
     
-  subroutine fpy_read_integersp_5dp(filename, commentchar, variable)
+  subroutine fpy_read_integersp_5dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fsi), pointer, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -8475,19 +11136,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integersp_5dp
     
-  subroutine fpy_read_integersp_6dp(filename, commentchar, variable)
+  subroutine fpy_read_integersp_6dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fsi), pointer, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -8533,19 +11209,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integersp_6dp
     
-  subroutine fpy_read_integersp_7dp(filename, commentchar, variable)
+  subroutine fpy_read_integersp_7dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fsi), pointer, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -8592,23 +11283,38 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integersp_7dp
-      subroutine fpy_read_integerdp_1dp(filename, commentchar, variable)
+      subroutine fpy_read_integerdp_1dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fli), pointer, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
     if (nlines .gt. 1) then
       allocate(variable(nlines))
@@ -8616,6 +11322,7 @@ contains
       allocate(variable(nvalues))
     end if
     variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -8640,22 +11347,37 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integerdp_1dp
     
-  subroutine fpy_read_integerdp_2dp(filename, commentchar, variable)
+  subroutine fpy_read_integerdp_2dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fli), pointer, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     allocate(variable(nlines, nvalues))
     variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -8676,19 +11398,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integerdp_2dp
     
-  subroutine fpy_read_integerdp_3dp(filename, commentchar, variable)
+  subroutine fpy_read_integerdp_3dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fli), pointer, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -8731,19 +11468,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integerdp_3dp
     
-  subroutine fpy_read_integerdp_4dp(filename, commentchar, variable)
+  subroutine fpy_read_integerdp_4dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fli), pointer, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -8787,19 +11539,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integerdp_4dp
     
-  subroutine fpy_read_integerdp_5dp(filename, commentchar, variable)
+  subroutine fpy_read_integerdp_5dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fli), pointer, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -8844,19 +11611,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integerdp_5dp
     
-  subroutine fpy_read_integerdp_6dp(filename, commentchar, variable)
+  subroutine fpy_read_integerdp_6dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fli), pointer, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -8902,19 +11684,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integerdp_6dp
     
-  subroutine fpy_read_integerdp_7dp(filename, commentchar, variable)
+  subroutine fpy_read_integerdp_7dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     integer(fli), pointer, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -8961,24 +11758,39 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_integerdp_7dp
     
-  subroutine fpy_read_complexsp_1dp(filename, commentchar, variable)
+  subroutine fpy_read_complexsp_1dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fsp), pointer, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
     if (nlines .gt. 1) then
       allocate(variable(nlines))
@@ -8986,6 +11798,7 @@ contains
       allocate(variable(nvalues))
     end if
     variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -9010,22 +11823,37 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexsp_1dp
     
-  subroutine fpy_read_complexsp_2dp(filename, commentchar, variable)
+  subroutine fpy_read_complexsp_2dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fsp), pointer, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     allocate(variable(nlines, nvalues))
     variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -9046,19 +11874,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexsp_2dp
     
-  subroutine fpy_read_complexsp_3dp(filename, commentchar, variable)
+  subroutine fpy_read_complexsp_3dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fsp), pointer, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -9101,19 +11944,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexsp_3dp
     
-  subroutine fpy_read_complexsp_4dp(filename, commentchar, variable)
+  subroutine fpy_read_complexsp_4dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fsp), pointer, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -9157,19 +12015,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexsp_4dp
     
-  subroutine fpy_read_complexsp_5dp(filename, commentchar, variable)
+  subroutine fpy_read_complexsp_5dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fsp), pointer, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -9214,19 +12087,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexsp_5dp
     
-  subroutine fpy_read_complexsp_6dp(filename, commentchar, variable)
+  subroutine fpy_read_complexsp_6dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fsp), pointer, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -9272,19 +12160,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexsp_6dp
     
-  subroutine fpy_read_complexsp_7dp(filename, commentchar, variable)
+  subroutine fpy_read_complexsp_7dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fsp), pointer, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -9331,23 +12234,38 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexsp_7dp
-      subroutine fpy_read_complexdp_1dp(filename, commentchar, variable)
+      subroutine fpy_read_complexdp_1dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fdp), pointer, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
     if (nlines .gt. 1) then
       allocate(variable(nlines))
@@ -9355,6 +12273,7 @@ contains
       allocate(variable(nvalues))
     end if
     variable = 0
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -9379,23 +12298,38 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexdp_1dp
     
-  subroutine fpy_read_complexdp_2dp(filename, commentchar, variable)
+  subroutine fpy_read_complexdp_2dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fdp), pointer, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     allocate(variable(nlines, nvalues))
     variable = 0
 
+
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
       i=1
@@ -9415,19 +12349,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexdp_2dp
     
-  subroutine fpy_read_complexdp_3dp(filename, commentchar, variable)
+  subroutine fpy_read_complexdp_3dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fdp), pointer, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -9470,19 +12419,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexdp_3dp
     
-  subroutine fpy_read_complexdp_4dp(filename, commentchar, variable)
+  subroutine fpy_read_complexdp_4dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fdp), pointer, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -9526,19 +12490,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexdp_4dp
     
-  subroutine fpy_read_complexdp_5dp(filename, commentchar, variable)
+  subroutine fpy_read_complexdp_5dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fdp), pointer, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -9583,19 +12562,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexdp_5dp
     
-  subroutine fpy_read_complexdp_6dp(filename, commentchar, variable)
+  subroutine fpy_read_complexdp_6dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fdp), pointer, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -9641,19 +12635,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexdp_6dp
     
-  subroutine fpy_read_complexdp_7dp(filename, commentchar, variable)
+  subroutine fpy_read_complexdp_7dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     complex(fdp), pointer, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -9700,24 +12709,39 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_complexdp_7dp
     
-  subroutine fpy_read_character_1dp(filename, commentchar, variable)
+  subroutine fpy_read_character_1dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     character(len=*), pointer, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues, .true.)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
     if (nlines .gt. 1) then
       allocate(variable(nlines))
@@ -9725,6 +12749,7 @@ contains
       allocate(variable(nvalues))
     end if
     variable = ''
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -9749,22 +12774,37 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_character_1dp
     
-  subroutine fpy_read_character_2dp(filename, commentchar, variable)
+  subroutine fpy_read_character_2dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     character(len=*), pointer, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues, .true.)
     allocate(variable(nlines, nvalues))
     variable = ''
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -9785,19 +12825,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_character_2dp
     
-  subroutine fpy_read_character_3dp(filename, commentchar, variable)
+  subroutine fpy_read_character_3dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     character(len=*), pointer, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -9840,19 +12895,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_character_3dp
     
-  subroutine fpy_read_character_4dp(filename, commentchar, variable)
+  subroutine fpy_read_character_4dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     character(len=*), pointer, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -9896,19 +12966,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_character_4dp
     
-  subroutine fpy_read_character_5dp(filename, commentchar, variable)
+  subroutine fpy_read_character_5dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     character(len=*), pointer, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -9953,19 +13038,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_character_5dp
     
-  subroutine fpy_read_character_6dp(filename, commentchar, variable)
+  subroutine fpy_read_character_6dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     character(len=*), pointer, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -10011,19 +13111,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_character_6dp
     
-  subroutine fpy_read_character_7dp(filename, commentchar, variable)
+  subroutine fpy_read_character_7dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     character(len=*), pointer, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -10070,24 +13185,39 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_character_7dp
     
-  subroutine fpy_read_logical_1dp(filename, commentchar, variable)
+  subroutine fpy_read_logical_1dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     logical, pointer, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      stop
+      if (present(success_)) success_ = .false.
+      if (strict) stop
     end if
     if (nlines .gt. 1) then
       allocate(variable(nlines))
@@ -10095,6 +13225,7 @@ contains
       allocate(variable(nvalues))
     end if
     variable = .false.
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -10119,22 +13250,37 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_logical_1dp
     
-  subroutine fpy_read_logical_2dp(filename, commentchar, variable)
+  subroutine fpy_read_logical_2dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     logical, pointer, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: nlines, nvalues, i
     character(150000) :: line
+
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     allocate(variable(nlines, nvalues))
     variable = .false.
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -10155,19 +13301,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_logical_2dp
     
-  subroutine fpy_read_logical_3dp(filename, commentchar, variable)
+  subroutine fpy_read_logical_3dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     logical, pointer, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -10210,19 +13371,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_logical_3dp
     
-  subroutine fpy_read_logical_4dp(filename, commentchar, variable)
+  subroutine fpy_read_logical_4dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     logical, pointer, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -10266,19 +13442,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_logical_4dp
     
-  subroutine fpy_read_logical_5dp(filename, commentchar, variable)
+  subroutine fpy_read_logical_5dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     logical, pointer, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -10323,19 +13514,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_logical_5dp
     
-  subroutine fpy_read_logical_6dp(filename, commentchar, variable)
+  subroutine fpy_read_logical_6dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     logical, pointer, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -10381,19 +13587,34 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_logical_6dp
     
-  subroutine fpy_read_logical_7dp(filename, commentchar, variable)
+  subroutine fpy_read_logical_7dp(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
+    logical, optional, intent(out) :: success_
+    logical, optional, intent(in) :: strict_
     logical, pointer, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
+    logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(150000) :: line
 
+    if (present(strict_)) then
+      strict = strict_
+    else
+      strict = .false.
+    end if
+
+    inquire(file=filename, exist=exists)
+    if (present(success_)) success_ = exists .or. .false.
+    if (.not. exists) return
+
     if (associated(variable)) variable => null()
+
 
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then
@@ -10440,6 +13661,7 @@ contains
       end do
     end if
     close(funit)    
+    if (present(success_)) success_ = .true.
   end subroutine fpy_read_logical_7dp
     
 
@@ -10578,6 +13800,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(1)
+    if (dims(1) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, *) variable(:)
@@ -10592,6 +13815,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(2)
+    if (dims(2) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     do i1=1, dims(1)
@@ -10608,6 +13832,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(3)
+    if (dims(3) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 3i15)") "## ", dims
@@ -10628,6 +13853,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(4)
+    if (dims(4) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 4i15)") "## ", dims
@@ -10650,6 +13876,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(5)
+    if (dims(5) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 5i15)") "## ", dims
@@ -10674,6 +13901,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(6)
+    if (dims(6) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 6i15)") "## ", dims
@@ -10700,6 +13928,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(7)
+    if (dims(7) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 7i15)") "## ", dims
@@ -10739,6 +13968,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(1)
+    if (dims(1) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, *) variable(:)
@@ -10753,6 +13983,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(2)
+    if (dims(2) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     do i1=1, dims(1)
@@ -10769,6 +14000,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(3)
+    if (dims(3) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 3i15)") "## ", dims
@@ -10789,6 +14021,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(4)
+    if (dims(4) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 4i15)") "## ", dims
@@ -10811,6 +14044,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(5)
+    if (dims(5) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 5i15)") "## ", dims
@@ -10835,6 +14069,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(6)
+    if (dims(6) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 6i15)") "## ", dims
@@ -10861,6 +14096,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(7)
+    if (dims(7) .eq. 0) return
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 7i15)") "## ", dims
@@ -10901,6 +14137,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(1)
+    if (dims(1) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, '('// adjustl(FMT) // 'i25)') variable(:)
@@ -10915,6 +14152,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(2)
+    if (dims(2) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     do i1=1, dims(1)
@@ -10931,6 +14169,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(3)
+    if (dims(3) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 3i15)") "## ", dims
@@ -10951,6 +14190,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(4)
+    if (dims(4) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 4i15)") "## ", dims
@@ -10973,6 +14213,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(5)
+    if (dims(5) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 5i15)") "## ", dims
@@ -10997,6 +14238,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(6)
+    if (dims(6) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 6i15)") "## ", dims
@@ -11023,6 +14265,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(7)
+    if (dims(7) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 7i15)") "## ", dims
@@ -11062,6 +14305,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(1)
+    if (dims(1) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, '('// adjustl(FMT) // 'i5)') variable(:)
@@ -11076,6 +14320,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(2)
+    if (dims(2) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     do i1=1, dims(1)
@@ -11092,6 +14337,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(3)
+    if (dims(3) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 3i15)") "## ", dims
@@ -11112,6 +14358,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(4)
+    if (dims(4) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 4i15)") "## ", dims
@@ -11134,6 +14381,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(5)
+    if (dims(5) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 5i15)") "## ", dims
@@ -11158,6 +14406,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(6)
+    if (dims(6) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 6i15)") "## ", dims
@@ -11184,6 +14433,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(7)
+    if (dims(7) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 7i15)") "## ", dims
@@ -11223,6 +14473,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(1)
+    if (dims(1) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, '('// adjustl(FMT) // 'i50)') variable(:)
@@ -11237,6 +14488,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(2)
+    if (dims(2) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     do i1=1, dims(1)
@@ -11253,6 +14505,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(3)
+    if (dims(3) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 3i15)") "## ", dims
@@ -11273,6 +14526,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(4)
+    if (dims(4) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 4i15)") "## ", dims
@@ -11295,6 +14549,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(5)
+    if (dims(5) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 5i15)") "## ", dims
@@ -11319,6 +14574,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(6)
+    if (dims(6) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 6i15)") "## ", dims
@@ -11345,6 +14601,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(7)
+    if (dims(7) .eq. 0) return
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 7i15)") "## ", dims
@@ -11385,6 +14642,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(1)
+    if (dims(1) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(:)
@@ -11399,6 +14657,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(2)
+    if (dims(2) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     do i1=1, dims(1)
@@ -11415,6 +14674,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(3)
+    if (dims(3) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 3i15)") "## ", dims
@@ -11435,6 +14695,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(4)
+    if (dims(4) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 4i15)") "## ", dims
@@ -11457,6 +14718,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(5)
+    if (dims(5) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 5i15)") "## ", dims
@@ -11481,6 +14743,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(6)
+    if (dims(6) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 6i15)") "## ", dims
@@ -11507,6 +14770,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(7)
+    if (dims(7) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 7i15)") "## ", dims
@@ -11546,6 +14810,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(1)
+    if (dims(1) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(:)
@@ -11560,6 +14825,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(2)
+    if (dims(2) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     do i1=1, dims(1)
@@ -11576,6 +14842,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(3)
+    if (dims(3) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 3i15)") "## ", dims
@@ -11596,6 +14863,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(4)
+    if (dims(4) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 4i15)") "## ", dims
@@ -11618,6 +14886,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(5)
+    if (dims(5) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 5i15)") "## ", dims
@@ -11642,6 +14911,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(6)
+    if (dims(6) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 6i15)") "## ", dims
@@ -11668,6 +14938,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(7)
+    if (dims(7) .eq. 0) return
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 7i15)") "## ", dims
@@ -11708,6 +14979,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(1)
+    if (dims(1) .eq. 0) return
 
     call file_open(filename, len(filename), 'character')
     call char_write_trimmed(variable(:))
@@ -11722,6 +14994,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(2)
+    if (dims(2) .eq. 0) return
 
     call file_open(filename, len(filename), 'character')
     do i1=1, dims(1)
@@ -11738,6 +15011,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(3)
+    if (dims(3) .eq. 0) return
 
     call file_open(filename, len(filename), 'character')
     write(fileunit, "(A, 3i15)") "## ", dims
@@ -11758,6 +15032,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(4)
+    if (dims(4) .eq. 0) return
 
     call file_open(filename, len(filename), 'character')
     write(fileunit, "(A, 4i15)") "## ", dims
@@ -11780,6 +15055,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(5)
+    if (dims(5) .eq. 0) return
 
     call file_open(filename, len(filename), 'character')
     write(fileunit, "(A, 5i15)") "## ", dims
@@ -11804,6 +15080,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(6)
+    if (dims(6) .eq. 0) return
 
     call file_open(filename, len(filename), 'character')
     write(fileunit, "(A, 6i15)") "## ", dims
@@ -11830,6 +15107,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(7)
+    if (dims(7) .eq. 0) return
 
     call file_open(filename, len(filename), 'character')
     write(fileunit, "(A, 7i15)") "## ", dims
@@ -11870,6 +15148,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(1)
+    if (dims(1) .eq. 0) return
 
     call file_open(filename, len(filename), 'logical')
     write(fileunit, *) variable(:)
@@ -11884,6 +15163,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(2)
+    if (dims(2) .eq. 0) return
 
     call file_open(filename, len(filename), 'logical')
     do i1=1, dims(1)
@@ -11900,6 +15180,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(3)
+    if (dims(3) .eq. 0) return
 
     call file_open(filename, len(filename), 'logical')
     write(fileunit, "(A, 3i15)") "## ", dims
@@ -11920,6 +15201,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(4)
+    if (dims(4) .eq. 0) return
 
     call file_open(filename, len(filename), 'logical')
     write(fileunit, "(A, 4i15)") "## ", dims
@@ -11942,6 +15224,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(5)
+    if (dims(5) .eq. 0) return
 
     call file_open(filename, len(filename), 'logical')
     write(fileunit, "(A, 5i15)") "## ", dims
@@ -11966,6 +15249,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(6)
+    if (dims(6) .eq. 0) return
 
     call file_open(filename, len(filename), 'logical')
     write(fileunit, "(A, 6i15)") "## ", dims
@@ -11992,6 +15276,7 @@ contains
 
     dims = shape(variable)
     write(FMT, *) dims(7)
+    if (dims(7) .eq. 0) return
 
     call file_open(filename, len(filename), 'logical')
     write(fileunit, "(A, 7i15)") "## ", dims
@@ -12037,7 +15322,7 @@ contains
     end if
 
     if (ioerr /= 0) then
-       print *, "ERROR opening file for pysave in fortpy", ioerr
+       print *, "ERROR opening file ", filename, " for pysave in fortpy", ioerr
     end if
   end subroutine file_open
 
@@ -12234,7 +15519,7 @@ contains
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
     character(150000) :: line
-    logical :: ischar_
+    logical :: ischar_, exists
 
     if (present(ischar)) then
        ischar_ = ischar
@@ -12246,6 +15531,10 @@ contains
     !end the loop. It can be caused by badly formatted data or the EOF marker.
     nlines = 0
     nvalues = 0
+    inquire(file=filename, exist=exists)
+    if (.not. exists) then
+       write(*,*) "The file ", filename, " does not exist."
+    end if
     
     open(fpy_newunit(funit), file=filename, iostat=ioerr)
     if (ioerr == 0) then

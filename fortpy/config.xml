@@ -2,16 +2,16 @@
 <config>
   <compilers>~/codes/fortpy-dist/fortpy/compilers.xml</compilers>
   <codes>
-    <trunk name="uncle" value="~/codes/uncle/trunk" />
-    <trunk name="celib" value="~/codes/celib/trunk" />
-    <trunk name="enumlib" value="~/codes/enumlib/trunk" />
+    <trunk name="uncle" value="~/codes/uncle/src" />
+    <trunk name="celib" value="~/codes/symlib/src" />
+    <trunk name="enumlib" value="~/codes/enumlib/src" />
   </codes>
   <mappings>
     <map module="utilities_module" file="utilities.f90" />
   </mappings>
   <libraries>
     <include path="~/codes/qhlib/libqhull.a" />
-    <include path="~/codes/uncle/trunk/timing.o" />
+    <include path="~/codes/uncle/src/timing.o" />
   </libraries>
   <ssh>
     <server name="ssh.fsl.byu.edu" username="profcwr" pkey="~/.ssh/id_rsa"></server>

@@ -140,11 +140,11 @@ class CodeElement(object):
         if self._full_name is None:
             ancestors = [ self.name ]
             current = self.parent
-            while current is not None:
+            while current is not None and type(current).__name__ != "CodeParser":
                 ancestors.append(current.name)
                 current = current.parent
 
-            self._full_name = ".".join(ancestors)
+            self._full_name = ".".join(reversed(ancestors))
         
         return self._full_name
 
@@ -222,6 +222,26 @@ class ValueElement(CodeElement):
     def __str__(self):
         return self.definition()
 
+    # def __eq__(self, other):
+    #     if not isinstance(other, ValueElement):
+    #         return False
+    #     mods = ["allocatable", "pointer"]
+    #     return (self.name.lower() == other.name.lower() and
+    #             self.kind.lower() == other.kind.lower() and
+    #             self.dtype.lower() == other.dtype.lower() and
+    #             self.D == other.D and
+    #             all([m in other.modifiers for m in self.modifiers if m in mods]))              
+
+    def matched(self, other):
+        """Returns True if the two ValueElement instances differ only by name,
+        default value or some other inconsequential modifier.
+        """
+        mods = ["allocatable", "pointer"]
+        return (self.kind.lower() == other.kind.lower() and
+                self.dtype.lower() == other.dtype.lower() and
+                self.D == other.D and
+                all([m in other.modifiers for m in self.modifiers if m in mods]))              
+    
     @property
     def strtype(self):
         """Returns a string representing the type and kind of this value element."""
@@ -513,6 +533,7 @@ class Dependency(object):
         self.isSubroutine = isSubroutine
         
         self._module = None
+        self._target = None
 
     def __str__(self):
         if self.isSubroutine:
@@ -525,6 +546,13 @@ class Dependency(object):
         """Sets the parent pointer references for the type executable."""
         self.parent = parent
 
+    @property
+    def argnames(self):
+        """Returns a list of the variable names being passed to the dependency
+        as arguments.
+        """
+        return [re.split("[(]", a)[0].lower() for a in self.argslist]
+        
     @property
     def operator(self):
         """Returns true if this dependency is to an operator interface."""
@@ -544,8 +572,29 @@ class Dependency(object):
     def external_name(self):
         """Returns the modulename.executable string that uniquely identifies
         the executable that this dependency points to."""
-        return "{}.{}".format(self.module.name.lower(), self.name)
+        target = self.target
+        if target is not None:
+            return "{}.{}".format(target.name.lower(), self.name)
+        else:
+            return "{}.{}".format(self.module.name.lower(), self.name)
 
+    @property
+    def target(self):
+        """Returns the executable code element that this dependency points to
+        if it can be found.
+        """
+        if self._target is None:
+            found, foundmod = self.module.parent.tree_find(self.name, self.module, "executables")
+            if found is not None:
+                self._target = found
+            else:
+                self._target = False
+
+        if isinstance(self._target, Executable):
+            return self._target
+        else:
+            return None
+    
     @property
     def module(self):
         """Returns the module that this code element belongs to."""
@@ -747,7 +796,10 @@ class Executable(ValueElement, Decoratable):
             checked = []
 
         if myname not in checked:
-            if self._get_assignments_in(self._parameters, symbol) == True:
+            matches = self._get_assignments_in(self._parameters, symbol)
+            if (matches is not None and
+                (isinstance(matches, bool) and matches == True) or
+                (isinstance(matches, list) and len(matches) > 0)):
                 return myname
             else:
                 #Make sure we don't check any executable twice.
@@ -759,9 +811,14 @@ class Executable(ValueElement, Decoratable):
                         if dependency.operator:
                             continue
 
-                        iexec = self.module.parent.get_executable(dependency.external_name)
-                        if iexec is not None and iexec.changed(symbol, checked) != "":
-                            return dependency.external_name
+                        if symbol in dependency.argnames:
+                            pindex = dependency.argnames.index(symbol)
+                            iexec = dependency.target
+                            pname = iexec.ordered_parameters[pindex].name.lower()
+                            if iexec is not None and iexec.changed(pname, checked) != "":
+                                return iexec.full_name
+                            else:
+                                checked.append(dependency.external_name)
                         else:
                             checked.append(dependency.external_name)
         else:
@@ -1026,6 +1083,32 @@ class CustomType(CodeElement, Decoratable):
         mems = "\n\t - ".join([x.__str__() for x in self.members ])
         return "TYPE {} ({}){}\nMEMBERS\n\t{}".format(self.name, mods, allexecs, mems)
 
+    @property
+    def fixedvar(self):
+        """Returns the name of a member in this type that is non-custom
+        so that it would terminate the auto-class variable context chain.
+        """
+        possible = [m for m in self.members.values() if not m.is_custom]
+        #If any of the possible variables is not allocatable or pointer, it will always
+        #have a value and we can just use that.
+        sufficient = [m for m in possible if "allocatable" not in m.modifiers
+                      and "pointer" not in m.modifiers]
+        if len(sufficient) > 0:
+            return [sufficient[0].name]
+        else:
+            return [m.name for m in possible]
+    
+    @property
+    def recursive(self):
+        """When True, this CustomType has at least one member that is of the same
+        type as itself.
+        """
+        for m in self.members.values():
+            if m.kind is not None and m.kind.lower() == self.name.lower():
+                return True
+        else:
+            return False
+    
     @property
     def signature(self):
         """Returns the signature definition for the derived type."""

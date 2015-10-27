@@ -3,7 +3,8 @@ for the shared libraries required by the ftypes interop package.
 """
 def makefile(identifier, dependencies, makepath, compileid,
              precompile=False, inclfortpy=True, parser=None,
-             executable=True, extralinks=None):
+             executable=True, extralinks=None, inclfpyaux=False,
+             makefpyaux=False):
     """Generates a makefile to create the unit testing executable
     for the specified test identifier.
 
@@ -40,18 +41,16 @@ def makefile(identifier, dependencies, makepath, compileid,
     #Append all the dependent modules to the makefile
     lines.append("LIBMODULESF90\t= \\")
 
-    for modk in dependencies[0:-1]:
-        if modk != "fortpy" and modk != identifier:
+    for modk in dependencies:
+        if modk not in ["fortpy", "fpy_auxiliary", identifier]:
             if parser is not None:
                 lines.append("\t\t{} \\".format(_get_mapping(parser, modk)))
             else:
                 lines.append("\t\t{} \\".format(modk))
-
-    if parser is not None:
-        lines.append("\t\t{}".format(_get_mapping(parser, dependencies[-1])))
-    else:
-        lines.append("\t\t{}".format(dependencies[-1]))
-
+    if makefpyaux:
+        lines.append("\t\tfpy_auxiliary.f90 \\")
+    lines.append("")
+    
     lines.append("MAINF90\t\t= {}.f90".format(identifier))
     lines.append("SRCF90\t\t= $(LIBMODULESF90) $(MAINF90)")
     lines.append("OBJSF90\t\t= $(SRCF90:.f90=.o)")
@@ -60,9 +59,17 @@ def makefile(identifier, dependencies, makepath, compileid,
 
     #Add explicitly defined libraries that should be included when linking
     #the unit testing executable.
-    linklibs = _add_explicit_includes(lines, dependencies, extralinks)
-    if inclfortpy:
-        lines.append("\t\tfortpy.o \\")
+    linklibs = True
+    _add_explicit_includes(lines, dependencies, extralinks)
+    if inclfortpy or inclfpyaux:
+        import sys
+        if len(sys.modules["config"].includes) == 0:
+            lines.append("LIBS\t\t= \\")
+
+        if inclfortpy:
+            lines.append("\t\tfortpy.o \\")
+        if inclfpyaux:
+            lines.append("\t\tfpy_auxiliary.o \\")
 
     lines.append("")
 

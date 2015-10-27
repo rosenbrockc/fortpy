@@ -114,7 +114,7 @@ class CodeParser(object):
                 for depend in self.modules[key].collection("dependencies"):
                     base = depend.split(".")[0]
                     if self.verbose and base.lower() not in self.modules:
-                        msg.info("DEPENDENCY: {}".format(base))
+                        msg.info("DEPENDENCY: {}".format(base), 2)
                     self.load_dependency(base, dependencies and recursive, recursive, greedy)
 
     def _parse_docstrings(self, filepath):
@@ -132,15 +132,27 @@ class CodeParser(object):
         segs.pop()
         return ".".join(segs) + ".xml"
 
+    def _get_mod_mtime(self, filepath):
+        """Gets the modified time of the file or its accompanying XML file,
+        whichever is greater.
+        """
+        file_mtime = self.tramp.getmtime(filepath)        
+        xmlpath = self.get_xmldoc_path(filepath)
+        if self.tramp.exists(xmlpath):
+            xml_mtime = self.tramp.getmtime(xmlpath)
+            if xml_mtime > file_mtime:
+                file_mtime = xml_mtime
+
+        return file_mtime
+    
     def _parse_from_file(self, filepath, fname,
                          dependencies, recursive, greedy):
         """Parses the specified string to load the modules *from scratch* as
         opposed to loading pickled versions from the file cache."""
         #Now that we have the file contents, we can parse them using the parsers
         string = self.tramp.read(filepath)
-
         pmodules = self.modulep.parse(string, self)
-        file_mtime = self.tramp.getmtime(filepath)
+        file_mtime = self._get_mod_mtime(filepath)
 
         for module in pmodules:
             module.change_time = file_mtime
@@ -164,15 +176,10 @@ class CodeParser(object):
         """Checks whether the modules in the specified file path need
         to be reparsed because the file was changed since it was
         last loaded."""       
-        file_mtime = self.tramp.getmtime(filepath)
         #We also want to perform a reparse if the XML documentation file for the
         #module changed, since the docs are also cached.
-        xmlpath = self.get_xmldoc_path(filepath)
-        if self.tramp.exists(xmlpath):
-            xml_mtime = self.tramp.getmtime(xmlpath)
-            if xml_mtime > file_mtime:
-                file_mtime = xml_mtime
-
+        file_mtime = self._get_mod_mtime(filepath)
+        
         #If we have parsed this file and have its modules in memory, its
         #filepath will be in self._parsed. Otherwise we can load it from
         #file or from a cached pickle version.
@@ -257,7 +264,7 @@ class CodeParser(object):
         #Keep track of parsing times if we are running in verbose mode.
         if self.verbose:
             start_time = clock()
-            msg.okay("WORKING on {0}".format(abspath))
+            msg.okay("WORKING on {0}".format(abspath), 2)
 
         if fname not in self._modulefiles:
             self._modulefiles[fname] = []
@@ -272,7 +279,6 @@ class CodeParser(object):
             #We use the pickler to load the file since a cached version might
             #be good enough.
             pmodules = self.serialize.load_module(abspath, mtime_check[0], self)
-
             if pmodules is not None:
                 for module in pmodules:
                     self.modules[module.name.lower()] = module
@@ -294,11 +300,11 @@ class CodeParser(object):
 
         if self.verbose:
             msg.info("PARSED: {} modules and {} ".format(len(pmodules), len(pprograms)) + 
-                     "programs in {} in {}".format(fname, secondsToStr(clock() - start_time)))
+                     "programs in {} in {}".format(fname, secondsToStr(clock() - start_time)), 2)
             for module in pmodules:
-                msg.gen("\tMODULE {}".format(module.name))
+                msg.gen("\tMODULE {}".format(module.name), 2)
             for program in pprograms:
-                msg.gen("\tPROGRAM {}".format(program.name))
+                msg.gen("\tPROGRAM {}".format(program.name), 2)
             if len(pmodules) > 0 or len(pprograms) > 0:
                 msg.blank()
 
@@ -308,12 +314,21 @@ class CodeParser(object):
         """Rescans the base paths to find new code files."""
         self._pathfiles = {}
         for path in self.basepaths:
-                self.scan_path(path)
+            self.scan_path(path)
 
     def load_dependency(self, module_name, dependencies, recursive, greedy, ismapping = False):
         """Loads the module with the specified name if it isn't already loaded."""
         key = module_name.lower()
         if key not in self.modules:
+            if key == "fortpy":
+                #Manually specify the correct path to the fortpy.f90 that shipped with
+                #the distribution
+                from fortpy.utility import get_fortpy_templates_dir
+                from os import path
+                fpy_path = path.join(get_fortpy_templates_dir(), "fortpy.f90")
+                self.parse(fpy_path, False, False)
+                return
+            
             fkey = key + ".f90"
             if fkey in self._pathfiles:
                 self.parse(self._pathfiles[fkey], dependencies, recursive)
@@ -328,7 +343,7 @@ class CodeParser(object):
                     msg.info("MAPPING: using {} as the file".format(self.mappings[key]) + 
                              " name for module {}".format(key))
                 self.parse(self._pathfiles[self.mappings[key]], dependencies, recursive)
-            else:
+            elif key not in ["mkl_vsl_type", "mkl_vsl", "iso_c_binding"]:
                 #The parsing can't continue without the necessary dependency modules.
                 msg.err(("could not find module {}. Enable greedy search or"
                        " add a module filename mapping.".format(key)))
@@ -420,6 +435,7 @@ class CodeParser(object):
         #well get a pointer to it.
         oattr = origin.collection(attribute)
         base = None
+        lorigin = None
         if symbol in oattr:
             base = oattr[symbol]
             lorigin = origin
@@ -488,3 +504,51 @@ def secondsToStr(t):
     return "%d:%02d:%02d.%03d" % \
         reduce(lambda ll,b : divmod(ll[0],b) + ll[1:],
                [(t*1000,),1000,60,60])
+
+def order_module_dependencies(modules, parser):
+    """Orders the specified list of modules based on their inter-dependencies."""
+    result = []        
+    for modk in modules:
+        if modk not in result:
+            result.append(modk)
+
+    #We also need to look up the dependencies of each of these modules
+    recursed = list(result)
+    for i in range(len(result)):
+        module = result[i]
+        _process_module_order(parser, module, i, recursed)
+
+    return recursed
+
+def _process_module_order(parser, module, i, result):
+    """Adds the module and its dependencies to the result list."""
+    #Some code might decide to use the fortpy module methods for general
+    #development, ignore it since we know it will be present in the end.
+    if module == "fortpy" or module == "fpy_auxiliary":
+        return
+
+    #See if the parser has alread loaded this module.
+    if module not in parser.modules:
+        parser.load_dependency(module, True, True, False)
+
+    #It is possible that the parser couldn't find it, if so
+    #we can't get a self-consistent ordering.
+    if module in parser.modules:
+        modneeds = parser.modules[module].needs
+        for modn in modneeds:
+            if modn not in result:
+                #Since this module depends on the other, insert the other
+                #above it in the list.
+                result.insert(i, modn)
+            else:
+                x = result.index(modn)
+                if x > i:
+                    #We need to move this module higher up in the food chain
+                    #because it is needed sooner.
+                    result.remove(modn)
+                    result.insert(i, modn)
+
+            newi = result.index(modn)
+            _process_module_order(parser, modn, newi, result)
+    else:
+        raise ValueError("unable to find module {}.".format(module))

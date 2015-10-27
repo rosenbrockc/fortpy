@@ -14,14 +14,17 @@ def parse():
         c.verbose = True
 
     if args["reparse"]:
-        c.reparse(args["source"])
+        fname = args["source"].split("/")[-1].lower()
+        c._modulefiles[fname] = []
+        c._programfiles[fname] = []
+        c._parse_from_file(args["source"], fname, False, False, False)
     else:
         c.parse(args["source"])
 
     #Since this is for unit testing, we will access the "private" variables.
     for fname in c._modulefiles:
         for moduledat in c._modulefiles[fname]:
-            if args["verbose"]:
+            if args["verbose"] > 2:
                 print(c.modules[moduledat])
             else:
                 print(moduledat)
@@ -39,7 +42,7 @@ parser = argparse.ArgumentParser(description="Fortpy File Parsing Unit Testing T
 
 #Add arguments to decide which of the systems and penalties to process.
 parser.add_argument("source", help="Specify the path to the source file to parse.")
-parser.add_argument("-verbose", help="Sets whether the comparison output is verbose.", action="store_true")
+parser.add_argument("-verbose", help="Sets whether the comparison output is verbose.", type=int, default=0)
 parser.add_argument("-reparse", help="Overwrite the cached version of the module.", action="store_true")
 parser.add_argument("-pypath", help="Specify a path to add to sys.path before running the tests.")
 
@@ -51,10 +54,16 @@ args = vars(parser.parse_args())
 if args["pypath"]:
     import sys
     sys.path.append(args["pypath"])
-
+    
 import fortpy
 from fortpy.code import CodeParser
 from fortpy import settings
 from fortpy import msg
 
+if args["verbose"]:
+    msg.set_verbosity(args["verbose"])
+    
 cparser = parse()
+e=cparser.modules["derivative_structure_generator"].executables["get_dvector_permutations"]
+i = e.dependencies["map_dvector_permutation"][0].argnames.index("drplist%perm")
+print(e.changed("drplist%perm"))

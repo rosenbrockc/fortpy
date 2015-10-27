@@ -21,6 +21,10 @@ ifeq ($(DEBUG),true)
    LDFLAGS = 
 endif
 
+ifeq ($(STRICT),true)
+     FFLAGS  += -warn all
+endif
+
 ifeq ($(GPROF),true)
    FFLAGS += -p
    LDFLAGS += -p

@@ -38,7 +38,7 @@ class TestGenerator(object):
         else:
             self.rerun = rerun
 
-        self.dependfiles = [ "Makefile.ifort", "Makefile.gfortran" ]
+        self.dependfiles = []
         self.xtests = {}
         """Dictionary of the dictionary of test specifications indexed by test identifier.
         """
@@ -140,7 +140,7 @@ class TestGenerator(object):
         for needk in needs:
             #Ignore references to fortpy since we include it automatically.
             #Also ignore MPI since it isn't something we need to worry about.
-            if needk == "fortpy":
+            if needk == "fortpy" or needk=="fpy_auxiliary":
                 continue
 
             needed = self.parser.modules[needk]

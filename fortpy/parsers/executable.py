@@ -240,14 +240,18 @@ class ExecutableParser(object):
         """
         for assign in self.RE_ASSIGN.finditer(contents):
             assignee = assign.group("assignee").strip()
-            target = re.split("[(%]", assignee)[0]
+            target = re.split(r"[(%\s]", assignee)[0].lower()
+
             #We only want to include variables that we know are in the scope of the
             #current executable. This excludes function calls etc. with optional params.
+            if target in self._intrinsic:
+                continue
+
             if target in anexec.members or \
                target in anexec.parameters or \
                (isinstance(anexec, Function) and target.lower() == anexec.name.lower()):
                 if mode == "insert":
-                    anexec.add_assignment(target)
+                    anexec.add_assignment(re.split(r"[(\s]", assignee)[0])
                 elif mode == "delete":
                     #Remove the first instance of this assignment from the list
                     try:
@@ -474,5 +478,5 @@ class ExecutableParser(object):
                 'COMPL', 'COT', 'CSMG', 'DSHIFTL', 'DSHIFTR', 'EQV', 'FCD', 'IBCHNG', 'ISHA', 'ISHC', 'ISHL',
                 'LEADZ', 'LENGTH', 'LOC', 'NEQV', 'POPCNT', 'POPPAR', 'SHIFT', 'SHIFTA', 'SHIFTL',
                 'SHIFTR', 'TIMEF', 'UNIT', 'XOR', 'MPI_SIZEOF', 'malloc', 'realloc', 'open', 'close',
-                    'allocate', 'deallocate', 'write', 'flush', '.not.present', 'equal'])
+                    'allocate', 'deallocate', 'write', 'flush', '.not.present', 'equal', 'do', 'if'])
         return [p.strip() for p in base]
