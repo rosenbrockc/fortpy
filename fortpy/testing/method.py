@@ -14,7 +14,7 @@ class MethodWriter(object):
     :arg fatal_if_missing: determines whether the framework chokes when it can't
        find a code element in the code parser that is referenced in the docstrings.
     """
-    def __init__(self, method, parser, testgen, fatal_if_missing = True):
+    def __init__(self, method, parser, testgen, fatal_if_missing = True, stagedir=None):
         self.mainid = method
         self.parser = parser
         self.method = None
@@ -36,6 +36,9 @@ class MethodWriter(object):
         """The variables that need to be declared at the top of the program are in
         globals[testid]; the order that they need to appear in is in ordered_globals[testid].
         """
+        self.stagedir = stagedir
+        """The script-argument staging directory (if any) to override the default staging
+        directory in the XML."""
         
         self._uses = {}
         """Dictionary of dependencies for the methods that need be executed in the
@@ -91,7 +94,8 @@ class MethodWriter(object):
         for methodk in self.ordered[testid]:
             method = self.method_dicts[testid][methodk]
             if isinstance(method, Assignment):
-                method.copy(coderoot, testroot, case, compiler)
+                method.copy(coderoot, testroot, case, compiler,
+                            self.testgen.xgenerator.libraryroot)
 
     def setup(self, testid, testroot):
         """Creates any folders for auto-class variables that are needed to save
@@ -173,7 +177,7 @@ class MethodWriter(object):
         """
         module = anexec.module
         if module is not None:
-            if not ("public" in anexec.modifiers or anexec.name in module.publics):
+            if not ("public" in anexec.modifiers or anexec.name.lower() in module.publics):
                 target = self.testgen.get_module_target(module.name)
                 with open(target) as f:
                     contents = f.readlines()
@@ -186,12 +190,16 @@ class MethodWriter(object):
                 #One thing we do know is that the public declarations have to appear before
                 #members and type definitions in the module.
                 insert = True
+                keywords = ["type", "interface", "contains"]
                 for line in contents[module.public_linenum[0]::]:
                     lline = line.lower()
                     if anexec.name.lower() in lline:
                         insert = False
                         break
-                    if ("type" in lline or "::" in lline or "interface" in lline):
+
+                    if (any([re.match(r"\b{}\b".format(b), lline, re.I) for b in keywords])):
+                        break
+                    if (re.match(r"[\w\s\d]::[\w\s]", lline)):
                         break
 
                 if insert:

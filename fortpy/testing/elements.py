@@ -3,9 +3,215 @@ from fortpy.testing.templates import FileLine
 from fortpy.docelements import DocElement, DocGroup
 from fortpy.printing.formatting import present_params
 from os import path, remove
-from shutil import copyfile
+from fortpy.utility import copyfile
 import re
 
+def _expand_cases(casestr):
+    """Returns a list of case identifiers from the shorthand string.
+    """
+    # For specifying the cases in a unit test, we should allow ranges like
+    # "standard.cr[1-12]" so that the developer doesn't need to enter each
+    # of the cases separately. We should still allow a comma-separated list
+    # of cases, but each must allow the shorthand notation.
+    rawcases = re.split(",\s*", casestr)
+    if "[" in casestr:
+        cases = []
+        rxcase = r"(?P<prefix>[^[]*)\[(?P<range>\d+-\d+)](?P<suffix>.*)"
+        recase = re.compile(rxcase)
+        for craw in rawcases:
+            m = recase.match(craw)
+            if m:
+                prefix = m.group("prefix")
+                vals = list(map(int, m.group("range").split("-")))
+                suffix = m.group("suffix")
+                if prefix is None:
+                    prefix = ""
+                if suffix is None:
+                    suffix = ""
+                for v in range(vals[0], vals[1]+1):
+                    cases.append("{}{}{}".format(prefix, v, suffix))
+            else:
+                cases.append(craw)
+        return cases
+    else:
+        return rawcases
+
+class TestSource(object):
+    """Represents a link between the output of one unit test that is being used
+    as input for another unit test.
+    """
+    def __init__(self, compkey, testspec):
+        """Construct the test source.
+        
+        :arg compkey: module.executable.parameter:testid:cases.
+        :arg testspec: the instance of TestSpecification for the <value> or <input>
+          tag using the 'testsource" attribute.
+        """
+        subkeys = compkey.split(":")
+        self.key = subkeys[0].strip().split('.')
+        """The 'module.executable.parameter' directive."""
+        self.testid = None if len(subkeys) < 2 else subkeys[1]
+        """The identifier of the test whose output will be used."""
+        self.cases = None
+        """The list of test cases to use inputs for. One test case will be created
+        for each distinct test source case using either 'one-to-one' or 'cartesian'.
+        """
+        if len(subkeys) == 3:
+            if subkeys[2] in ["match", "product"]:
+                self.cases = subkeys[2]
+            else:
+                self.cases = _expand_cases(subkeys[2])
+
+        self.testspec = testspec
+        """The TestSpecification instance of the target whose input is being defined.
+        """        
+        self.source = self._source_parameter()
+        """The CodeElement instance of the parameter whose output is being used.
+        """
+        self.target = self._source_testoutput(*self.source)
+        """The TestTarget instance for the variable whose output is being used as
+        the test source.
+        """
+
+    @property
+    def varname(self):
+        """Returns the name of the local file *variable* that will contain
+        the full path to the data to use.
+        """
+        return "fpy_{}_ts".format(self.source[1].name)
+    
+    @property
+    def filevar(self):
+        """Returns the code to reference a trimmed, clean version of the contents
+        of the variable containing the full path to the data.
+        """
+        return "trim(adjustl({}))".format(self.varname)
+
+    @property
+    def filename(self):
+        """Returns the name of the local file that will contain
+        the full path to the data to use.
+        """
+        return "fpy_{}_ts".format(self.source[1].name)
+
+    def _is_relevant(self, testcase, sourcespec):
+        """Returns True if the specified target case identifier matches
+        the specification in self.cases.
+        """
+        #First check that the test names match.
+        if self.testid is not None:
+            #We are filtering on a specific test id *and* the existence of that
+            #test in the source specification.
+            testok = self.testid == sourcespec.identifier
+        else:
+            #We just need to make sure that the test exists
+            testok = True
+
+        if not testok:
+            return False
+        
+        if self.cases == "every":
+            #Check whether the specified test case matches any of those for
+            #which we have sample output.
+            if (testcase in sourcespec.cases or (testcase == "" and sourcespec.cases is None)):
+                return True
+        if isinstance(self.cases, list) and len(self.cases) > 0:
+            #Check that the testcase is in our filtering list *and* that it exists
+            #in the set of output (source) test cases.
+            return testcase in self.cases and testcase in sourcespec.cases
+        return False
+
+    def path(self, coderoot, case, compiler=None, stagedir=None):
+        """Returns the full path to the *source* file that this test source
+        is going to use (either directly or with copy).
+
+        :arg stagedir: the path to the staging directory to use (override).
+        """
+        from os import path
+        from fortpy.testing.compilers import replace
+        identifier = replace("{}.{}.[c]".format(xinst.module.name, xinst.name), compiler)
+
+        if not self._is_relevant(case, self.target.testspec):
+            return None
+        
+        if stagedir is not None:
+            folder = path.abspath(stagedir)
+        elif xinst.group is not None and xinst.group.staging is not None:
+            #Determine the absolute path using the relative path specified in the group
+            #staging directory attribute.
+            from fortpy.tramp import coderelpath
+            folder = coderelpath(coderoot, xinst.group.staging)
+
+        #This is the path to the source output folder that we need to copy from
+        if case != "":
+            folder = path.join(folder, identifier, "tests", self.target.testspec.identifier)
+        else:
+            caseid = "{}.{}".format(self.target.testspec.identifier, case)
+            folder = path.join(folder, identifier, "tests", caseid)
+
+        if path.isdir(folder):
+            source = path.join(folder, self.target.varfile)
+            if path.isfile(source):
+                return source
+            else:
+                raise ValueError("File '{}' for 'testsource' does not exist.".format(source))
+        else:
+            raise ValueError("Can't find source folder for 'testsource' at '{}'".format(folder))
+    
+    def copy(self, coderoot, testroot, case, compiler=None, stagedir=None):
+        """Copies the test-source file to the specified testing directory.
+        
+        :arg stagedir: the path to the staging directory to use (override).
+        """
+        source = self.path(coderoot, case, compiler, stagedir)
+        if source is not None:
+            copyfile(source, testroot)
+        
+    def _source_testoutput(self, executable, parameter):
+        """Returns the test output source file information for the specified
+        parameter from a unit test.
+        """
+        if executable.test_group is None:
+            return None
+        result = None
+        for tname, tinst in executable.test_group.tests:
+            for target in tinst.targets:
+                if (parameter == target.name and
+                    (target.testspec.identifier == self.testid or self.testid is None)):
+                    result = target
+                    break
+
+        return result
+        
+    def _source_parameter(self):
+        """Returns the parameter CodeElement instance defined by the testsource
+        attribute if it was specified. Result is a tuple of (executable, parameter)
+        instances.
+        """
+        if len(self.key) == 3:
+            emsg = "Couldn't find the test-source {} '{}' for test '{}' in '{}'."
+            tid, xid = self.testspec.identifier, self.testspec.testgroup.executable.name
+            mname, xname, pname = self.key
+            parser = self.testspec.testgroup.executable.module.parent
+            
+            if mname not in parser.modules:
+                parser.load_dependency(mname, True, True)
+            if mname in parser.modules:
+                if xname in parser.modules[mnam].executables:
+                    xinst = parser.modules.executables[xname]
+                    if pname in xinst.parameters:
+                        return (xinst, xinst.parameters[pname])
+                    else:
+                        raise ValueError(emsg.format("parameter", xname, tid, xid))
+                else:
+                    raise ValueError(emsg.format("executable", xname, tid, xid))
+            else:
+                raise ValueError(emsg.format("module", mname, tid, xid))
+        else:
+            raise ValueError("The 'testsource' attribute requires a list of 3 "
+                             "'.'-separated identifiers 'module.executable.parameter'. "
+                             "Specified value was '{}'.".format(testsource))               
+    
 class GlobalDeclaration(object):
     """Represents a declaration to have a global variable instance available
     for execution of a unit test.
@@ -188,9 +394,29 @@ class GlobalDeclaration(object):
             else:
                 result.append("({})".format(self.attributes["kind"]))
 
+        dimalloc = False
+        if "dimensions" in self.attributes:
+            normal = True
+            if isinstance(self.element, DocElement) and self.element.doctype == "AUTOPARAM":
+                #We used to force the user to explicitly declare a <global> tag if the
+                #dimensions were fixed; however, we should be able to predict whether it
+                #is necessary: if the dimensions only include digits etc. then it can be
+                #declared as is; otherwise, we replace it with ':'.
+                complexdim=[re.match("^\d+", d) is None for d in re.split(',\s*', self.attributes["dimensions"])]
+                if any(complexdim):
+                    normal = False
+            if normal:
+                dimstr = "({})".format(self.attributes["dimensions"])
+            else:
+                dimstr = "({})".format(','.join([':' for i in range(self.attributes["D"])]))
+                dimalloc = True
+        else:
+            dimstr = ""
         if "modifiers" in self.attributes:
             mods = re.split(",\s*", self.attributes["modifiers"])
             smods = self._clean_mods(mods)
+            if dimalloc:
+                smods += (", " if len(smods) > 0 else "") + "allocatable"
         else:
             smods = ""
 
@@ -199,9 +425,8 @@ class GlobalDeclaration(object):
         result.append(" :: ")
         result.append(self.attributes["name"])
 
-        if "dimensions" in self.attributes:
-            result.append("({})".format(self.attributes["dimensions"]))
-
+        if dimstr != "":
+            result.append(dimstr)
         if "default" in self.attributes:
             result.append(" ={}".format(self.attributes["default"]))
             
@@ -333,7 +558,7 @@ class AutoClasser(object):
         from fortpy.tramp import coderelpath
         return coderelpath(root, self.acroot)
 
-    def xcode(self, lines, position, spacer, write=True, first=True):
+    def xcode(self, lines, position, spacer, write=True, first=True, testsource=None):
         """Generates the code to save/read a variable from its auto-class folder.
         This version uses the `auxsave` and `auxread` interfaces from `fpy_auxiliary`
         instead of generating all the save and read statements directly.
@@ -341,15 +566,16 @@ class AutoClasser(object):
         #Everything is handled internally by the auxiliary module. We don't have
         #any additional variables/initialization outside of the ones handled
         #globally by the <assignment> and <target> objects.
-        if position == "vars" and "fpy_coderoot" in self.acroot:
+        acroot = testsource if testsource is not None else self.acroot
+        if position == "vars" and "fpy_coderoot" in acroot:
             rootstr = "{}character({}), parameter :: fpy_coderoot = '{}'"
             lines.append(rootstr.format(spacer, len(self.coderoot), self.coderoot))
         if position == "save" and write:
             fstr = "{}call auxsave({}, '{}')"
-            lines.append(fstr.format(spacer, self.variable.name, self.acroot))
+            lines.append(fstr.format(spacer, self.variable.name, acroot))
         elif position == "assign" and not write:
             fstr = "{}call auxread({}, '{}')"
-            lines.append(fstr.format(spacer, self.variable.name, self.acroot))            
+            lines.append(fstr.format(spacer, self.variable.name, acroot))
     
     def _scan_folder(self, spath):
         """Creates a tree representation of the specified folder under the assumption
@@ -698,7 +924,8 @@ class AutoClasser(object):
                 fstr = "{}call fpy_read{}({}, '#', {})"
                 if "pointer" in variable.modifiers:
                     result.append(fstr.format(spacing, "_p", filename, varname))
-                elif "allocatable" not in variable.modifiers and variable.D > 0:
+                elif ("allocatable" not in variable.modifiers and variable.D > 0 and
+                      not re.match("[\w]+", variable.dimension)):
                     result.append(fstr.format(spacing, "_f", filename, varname))
                 else:
                     result.append(fstr.format(spacing, "", filename, varname))                                
@@ -799,7 +1026,11 @@ class AssignmentValue(object):
         self.autoclass = False
         """Specifies whether the value comes from an auto-class structured folder.
         """
-
+        self.testsource = None
+        """Specifies the module.executable.parameter name whose output from a previous
+        unit test run will be used as input for this value.
+        """
+        
         self._derived_type = None
         self._codes = {
             "vars": self._code_vars,
@@ -824,17 +1055,30 @@ class AssignmentValue(object):
             return self.rename
         else:
             return self.filename
+
+    def livefile(self, testroot, case):
+        """Returns the full path to the file that should be *created* in the
+        specified test directory as part of this assignment. This is only
+        useful for file-based assignments.
+        """
+        if self.rename is not None:
+            target = path.join(testroot, self.rename)
+        else:
+            target = path.join(testroot, self.filename.format(case))
+        return target
         
-    def copy(self, coderoot, testroot, case, compiler):
+    def copy(self, coderoot, testroot, case, compiler, stagedir=None):
         """Copies the input files needed for this value to set a variable.
 
         :arg coderoot: the full path to folder with the code files.
         :arg testroot: the full path the folder where the test is running.
         :arg case: the case id for multi-case testing.
         :arg compiler: the name of the compiler being used for the unit tests.
+        :arg stagedir: the path to the staging directory to use (override).
         """
         #We only want to do the copy if we are assigning a value from a file.
-        if self.folder is not None and not self.autoclass:
+        if (self.folder is not None and self.filename is not None and not self.autoclass
+            and self.testsource is None):
             from fortpy.tramp import coderelpath
             from fortpy.testing.compilers import replace
             relpath = coderelpath(coderoot, self.folder)
@@ -852,11 +1096,26 @@ class AssignmentValue(object):
                         target = path.join(testroot, filename[0:len(filename)-len(suffix)].split("/")[-1])
                         copyfile(filename, target)
             else:
-                if self.rename is not None:
-                    target = path.join(testroot, self.rename)
-                else:
-                    target = path.join(testroot, self.filename.format(case))
+                target = self.livefile(testroot, case)
                 copyfile(source, target)
+
+        if (self.testsource):
+            #We don't want to duplicate lots of files all over the system. If they already
+            #exist in an output folder, we should just tell Fortran to get the files from
+            #there. For the copy operation, we set the *path* to the actual data in a file
+            #with the variable name and 'ts': 'fpy_var_ts'.
+            target = self.livefile(testroot, case)
+            datpath = self.testsource.path(coderoot, case, compiler, stagedir)
+            if path.isfile(target):
+                with open(target) as f:
+                    rewrite = datpath == f.readlines()[1]
+            else:
+                rewrite = True
+
+            if rewrite:
+                with open(target, 'w') as f:
+                    f.write('#<fortpy mode="testsource" copy="false" />\n')
+                    f.write(datpath)
 
     def check_prereqs(self, finder):
         """Checks whether this value element requires an embedded method to be
@@ -940,8 +1199,12 @@ class AssignmentValue(object):
         """
         if self.autoclass:
             aclass = self._check_autoclass()
-            aclass.xcode(lines, "assign", spacer, False, first)
-        elif self.filename is None:
+            if self.testsource is not None:
+                testpath = self.testsource.filevar
+            else:
+                testpath = None
+            aclass.xcode(lines, "assign", spacer, False, first, testpath)
+        elif self.filename is None and self.testsource is None:
             #We handle these each individually when no file assignment is present.
             #The file assigner may handle the embedded and function calls at the right
             #spot when parts are being assigned.
@@ -1025,124 +1288,132 @@ class AssignmentValue(object):
         :arg first: specifies that this file assignment is the first of a list
           of <value> tags that are siblings in the same context.
         """
-        if self.filename is not None:
-            flines = []
-            #If we have slices being set from file values, we will have a set
-            #of files that match a wildcard pattern. They will all have been copied
-            #into the test directory. However, we need to replace the wildcard in
-            #the filename at *runtime* with the current value of the loop variable.
-            if "*" in self.xname and self.suffix != False:
-                if self.suffix is None:
-                    lslice = slices[1]
-                else:
-                    lslice = []
-                    for i in range(len(slices[1])):
-                        if "${}".format(i+1) in self.suffix:
-                            lslice.append(slices[1][i])
-                            
-                indices = "(/ {} /)".format(', '.join(lslice))
-                flines.append("call fpy_period_join_indices(" +
-                              "{}_pslist, {}, {})".format(self.iid, indices, len(lslice)))
-                if self.xname[-1] != "*":
-                    #This makes sure that if the wildcard is in the middle of the filename
-                    #we still get it right.
-                    pre, post = self.xname.split("*")
-                    rtname = '"{}"//{}_pslist//"{}"'.format(pre, self.iid, post)
-                else:
-                    rtname = '"{}"//{}_pslist'.format(self.xname[:len(self.xname)-1], self.iid)
+        if self.filename is None and self.testsource is None:
+            return
+        
+        flines = []
+        #If we have slices being set from file values, we will have a set
+        #of files that match a wildcard pattern. They will all have been copied
+        #into the test directory. However, we need to replace the wildcard in
+        #the filename at *runtime* with the current value of the loop variable.
+        if "*" in self.xname and self.suffix != False:
+            if self.suffix is None:
+                lslice = slices[1]
+            else:
+                lslice = []
+                for i in range(len(slices[1])):
+                    if "${}".format(i+1) in self.suffix:
+                        lslice.append(slices[1][i])
+                        
+            indices = "(/ {} /)".format(', '.join(lslice))
+            flines.append("call fpy_period_join_indices(" +
+                          "{}_pslist, {}, {})".format(self.iid, indices, len(lslice)))
+            if self.xname[-1] != "*":
+                #This makes sure that if the wildcard is in the middle of the filename
+                #we still get it right.
+                pre, post = self.xname.split("*")
+                rtname = '"{}"//{}_pslist//"{}"'.format(pre, self.iid, post)
+            else:
+                rtname = '"{}"//{}_pslist'.format(self.xname[:len(self.xname)-1], self.iid)
+        else:
+            if self.testsource is not None:
+                rtname = self.testsource.filevar
             else:
                 rtname = "'{}'".format(self.xname)
 
-            #There is also the case where we want to use a single file, but with ragged data
-            #lengths on each line.
-            if self.ragged:
-                ragvar = "{}_rag".format(self.iid)
-                if slices is None:
-                    slices = (ragvar, [ragvar])
-                else:
-                    #Make sure that we have at least one free dimension available for the ragged
-                    #list in the file.
-                    if slices[0][-1] == ":":
-                        slices[0][-1] = ragvar
-                        slices[1].append(ragvar)
-                    else:
-                        raise ValueError("The 'ragged' option can only be used when there is "
-                                         "a spare dimension on the array to assign the ragged "
-                                         "file values to.")
-
-            if slices is not None and self.member is None:
-                varname = "{}_fvar".format(self.iid)
-            elif self.member is not None:
-                if slices is not None:
-                    varname = "{}({})%{}".format(self.parent.name, ','.join(slices[1]), self.member)
-                else:
-                    varname = "{}%{}".format(self.parent.name, self.member)
+        #There is also the case where we want to use a single file, but with ragged data
+        #lengths on each line.
+        if self.ragged:
+            ragvar = "{}_rag".format(self.iid)
+            if slices is None:
+                slices = (ragvar, [ragvar])
             else:
-                varname = self.parent.name
-
-            #We are working with a vector or scalar. Check the dimensionality of
-            #the actual variable and see if it needs to be allocated.
-            if self.ragged:
-                #For the ragged option, this is the only place that we handle it.
-                flines.append("call fpy_linevalue_count({}, ".format(rtname) +
-                              "'{0}'".format(self.commentchar) + 
-                              ", {0}_nlines, {0}_nvalues)".format(self.iid))
-                flines.append("allocate({}({}_nlines))".format(self.parent.name, self.iid))
-                flines.append("call fpy_linevalue_count_all({}, ".format(rtname) +
-                              "'{0}'".format(self.commentchar) + 
-                              ", {0}_nlines, {0}_ragvals)".format(self.iid))
-                flines.append("open(fpy_newunit({}_funit), ".format(self.iid) + 
-                              "file={})".format(rtname))
-                flines.append("do {0}_rag=1, {0}_nlines".format(self.iid))
-                flines.append("  allocate({0}_fvar({0}_ragvals({0}_rag)))".format(self.iid))
-                flines.append("  read({}_funit, *) {}".format(self.iid, varname))
-                    
-            #Now handle the case where the input file fills a 2D variable.
-            if not self.ragged:
-                fmtstr = "call fpy_read{}({}, '{}', {})"
-                if self.member is None:
-                    modifiers = self.parent.global_attr("modifiers", [])
-                    D = self.D
-                elif type(self.parent.variable).__name__  == "ValueElement":
-                    #We need to get the code element of the *member* variable and look
-                    #at its modifiers instead of the parent.
-                    custype = self.parent.variable.customtype
-                    if custype is not None and self.member.lower() in custype.members:
-                        memvar = custype.members[self.member.lower()]
-                        modifiers = memvar.modifiers
-                        D = memvar.D
-                    else:
-                        raise ValueError("The member '{}' is not part of user-derived".format(self.member) +
-                                         " type '{}'.".format(self.parent.variable.kind))
+                #Make sure that we have at least one free dimension available for the ragged
+                #list in the file.
+                if slices[0][-1] == ":":
+                    slices[0][-1] = ragvar
+                    slices[1].append(ragvar)
                 else:
-                    raise ValueError("The variable '{}' is not a user-derived type.".format(self.parent.name))
-                    
-                if ("pointer" in modifiers and "fvar" not in varname):
-                    flines.append(fmtstr.format("_p", rtname, self.commentchar, varname))
-                elif ("allocatable" not in modifiers and "fvar" not in varname and D > 0):
-                    flines.append(fmtstr.format("_f", rtname, self.commentchar, varname))
-                else:
-                    flines.append(fmtstr.format("", rtname, self.commentchar, varname))
+                    raise ValueError("The 'ragged' option can only be used when there is "
+                                     "a spare dimension on the array to assign the ragged "
+                                     "file values to.")
 
-            #Handle the mixture of embed/function and filename case.
+        if slices is not None and self.member is None:
+            varname = "{}_fvar".format(self.iid)
+        elif self.member is not None:
             if slices is not None:
-                if self.embedded is not None:
-                    self._code_embedded(flines, "", slices, varname)
-                if self.function is not None:
-                    filefun = self.function.replace("@file", varname)
-                    self._code_setvar_value(lines, spacer, filefun, slices)
+                varname = "{}({})%{}".format(self.parent.name, ','.join(slices[1]), self.member)
+            else:
+                varname = "{}%{}".format(self.parent.name, self.member)
+        else:
+            varname = self.parent.name
 
-            if self.ragged:
-                flines.append("  deallocate({0}_fvar)".format(self.iid))
-                flines.append("end do")
-                flines.append("close({}_funit)".format(self.iid))
-            if self.D == 2 and slices is not None:
-                flines.append("deallocate({0}_fvar)".format(self.iid))
+        #We are working with a vector or scalar. Check the dimensionality of
+        #the actual variable and see if it needs to be allocated.
+        if self.ragged:
+            #For the ragged option, this is the only place that we handle it.
+            flines.append("call fpy_linevalue_count({}, ".format(rtname) +
+                          "'{0}'".format(self.commentchar) + 
+                          ", {0}_nlines, {0}_nvalues)".format(self.iid))
+            flines.append("allocate({}({}_nlines))".format(self.parent.name, self.iid))
+            flines.append("call fpy_linevalue_count_all({}, ".format(rtname) +
+                          "'{0}'".format(self.commentchar) + 
+                          ", {0}_nlines, {0}_ragvals)".format(self.iid))
+            flines.append("open(fpy_newunit({}_funit), ".format(self.iid) + 
+                          "file={})".format(rtname))
+            flines.append("do {0}_rag=1, {0}_nlines".format(self.iid))
+            flines.append("  allocate({0}_fvar({0}_ragvals({0}_rag)))".format(self.iid))
+            flines.append("  read({}_funit, *) {}".format(self.iid, varname))
+                
+        #Now handle the case where the input file fills a 2D variable.
+        if not self.ragged:
+            fmtstr = "call fpy_read{}({}, '{}', {})"
+            if self.member is None:
+                modifiers = self.parent.global_attr("modifiers", [])
+                D = self.D
+                dimensions = self.parent.global_attr("dimensions", "")
+            elif type(self.parent.variable).__name__  == "ValueElement":
+                #We need to get the code element of the *member* variable and look
+                #at its modifiers instead of the parent.
+                custype = self.parent.variable.customtype
+                if custype is not None and self.member.lower() in custype.members:
+                    memvar = custype.members[self.member.lower()]
+                    modifiers = memvar.modifiers
+                    D = memvar.D
+                    dimensions = memvar.dimension
+                else:
+                    raise ValueError("The member '{}' is not part of user-derived".format(self.member) +
+                                     " type '{}'.".format(self.parent.variable.kind))
+            else:
+                raise ValueError("The variable '{}' is not a user-derived type.".format(self.parent.name))
 
-            #Deallocate the variable for concatenating the loop ids to form the file name
-            #if "*" in self.xname:
-            #    flines.append("deallocate({0}_pslist)".format(self.iid))
-            lines.extend([ spacer + l for l in flines])
+            if ("pointer" in modifiers and "fvar" not in varname):
+                flines.append(fmtstr.format("_p", rtname, self.commentchar, varname))
+            elif ("allocatable" not in modifiers and "fvar" not in varname and D > 0 and
+                  not re.match("[\w]+", dimensions)):
+                flines.append(fmtstr.format("_f", rtname, self.commentchar, varname))
+            else:
+                flines.append(fmtstr.format("", rtname, self.commentchar, varname))
+
+        #Handle the mixture of embed/function and filename case.
+        if slices is not None:
+            if self.embedded is not None:
+                self._code_embedded(flines, "", slices, varname)
+            if self.function is not None:
+                filefun = self.function.replace("@file", varname)
+                self._code_setvar_value(lines, spacer, filefun, slices)
+
+        if self.ragged:
+            flines.append("  deallocate({0}_fvar)".format(self.iid))
+            flines.append("end do")
+            flines.append("close({}_funit)".format(self.iid))
+        if self.D == 2 and slices is not None:
+            flines.append("deallocate({0}_fvar)".format(self.iid))
+
+        #Deallocate the variable for concatenating the loop ids to form the file name
+        #if "*" in self.xname:
+        #    flines.append("deallocate({0}_pslist)".format(self.iid))
+        lines.extend([ spacer + l for l in flines])
 
     def _code_after(self, lines, spacer, slices=None, first=True):
         """Appends code for deallocating a variable that was assigned a value.
@@ -1157,6 +1428,14 @@ class AssignmentValue(object):
         """Appends code to initialize any variables we need for assignment
         operations later on.
         """
+        #The test source initialization needs to be coded first since the autoclass
+        #could *also* be specified at the same time. In that case we need the variable
+        #with the full folder name to be available.
+        if self.testsource:
+            ts = self.testsource
+            lines.append(spacer + "!Read the full path to the test-source output data to use.")
+            lines.append("{}call fpy_read('{}', '#', {})".format(spacer, ts.filename, ts.filevar))
+
         if self.autoclass:
             #We need to analyze the contents of the folder that the variable
             #is getting its value from and write them to the .fortpy.analysis
@@ -1169,6 +1448,10 @@ class AssignmentValue(object):
         """Appends lines to declare any variables we need for file read
         operations later on.
         """
+        if self.testsource:
+            vtext = "{}character(250) :: {} ! test-source path variable"
+            lines.append(vtext.format(spacer, self.testsource.varname))
+        #It is possible to have testsource and autoclass at the *same* time.
         if self.autoclass:
             aclass = self._check_autoclass()
             aclass.xcode(lines, "vars", spacer, False, first)
@@ -1218,7 +1501,10 @@ class AssignmentValue(object):
         if "identifier" in self.xml.attrib:
             self.identifier = self.xml.attrib["identifier"]
         else:
-            raise ValueError("'identifier' is a required attribute of <value> tags.")
+            #We use this for automatic assignment of value identifiers when there
+            #is only one <value> tag and it is unambiguous. The ambiguity is checked
+            #by the parent <assignment> tag.
+            self.identifier = "default"
         if "member" in self.xml.attrib:
             self.member = self.xml.attrib["member"]
 
@@ -1259,7 +1545,12 @@ class AssignmentValue(object):
                 self.suffix = False
 
         if "autoclass" in self.xml.attrib:
-            self.autoclass = self.xml.attrib["autoclass"].lower() == "true"        
+            self.autoclass = self.xml.attrib["autoclass"].lower() == "true"
+        if "testsource" in self.xml.attrib:
+            self.testsource = TestSource(self.xml.attrib["testsource"].lower(), self.parent.testspec)
+            #If a test-source is specified, we need to make sure that the relevant
+            #attributes from the source <target> tag get copied over to this <value>.
+            self.autoclass = self.testsource.target.autoclass
 
 class Condition(object):
     """Represents a single if, elseif or else block to execute."""
@@ -1563,6 +1854,8 @@ class Assignment(object):
     def __init__(self, element, parent):
         self.element = element
         self.parent = parent
+        """An instance of TestSpecification or TestingGroup in which this <assignment>
+        was defined."""
         self.methods = []
         if isinstance(self.parent, TestingGroup):
             self.group = self.parent
@@ -1670,7 +1963,11 @@ class Assignment(object):
         return (self.allocate and 
                 ("allocatable" in self.global_attr("modifiers", "") or
                  "pointer" in self.global_attr("modifiers", "") or
-                 (self.variable.D > 0 and ":" in self.variable.dimension)))
+                 (self.variable.D > 0 and ":" in self.variable.dimension) or
+                 #If the dimension is a complicated set of functions or variable names, then
+                 #we can't initialize it except with ':' and allocatable. That gets added by
+                 #the GlobalDeclaration.definition(), so add this check here.
+                 (re.match("[\w]+", self.variable.dimension) and self.variable.D > 0)))
     
     def check_prereqs(self, finder):
         """Checks all the values this assignment may use to make sure they reference
@@ -1683,17 +1980,18 @@ class Assignment(object):
         for v in self.values:
             self.values[v].check_prereqs(finder)
 
-    def copy(self, coderoot, testroot, case, compiler):
+    def copy(self, coderoot, testroot, case, compiler, stagedir=None):
         """Copies the input files needed for this assignment to set a variable.
 
         :arg coderoot: the full path to folder with the code files.
         :arg testroot: the full path the folder where the test is running.
         :arg case: the case id for multi-case testing.
         :arg compiler: the name of the compiler used to make the unit test executable.
+        :arg stagedir: the path to the staging directory to use (override).
         """
         #Just call copy on all the child value objects.
         for v in self.values:
-            self.values[v].copy(coderoot, testroot, case, compiler)        
+            self.values[v].copy(coderoot, testroot, case, compiler, stagedir)        
         
     def _code_setvar_allocate(self, lines, spacer):
         """Allocates the variables before a general value setting if they need to be
@@ -1783,17 +2081,29 @@ class Assignment(object):
 
         if "value" in self.attributes:
             self.value = re.split(",\s*", self.attributes["value"].lower())
+
+        def autoval(attr, value):
+            """Creates an automatic AssignmentValue instance for the specified
+            attribute and value.
+            """
+            val = AssignmentValue(None, self)
+            val.identifier = attr
+            setattr(val, attr, value)
+            self.values[attr] = val
+            if self.value is None:
+                self.value = [attr]
+            else:
+                self.value.append(attr)
+            
         if "constant" in self.attributes:
             #We want to manually create an AssignmentValue object for the constant and
             #add it to the child list.
-            val = AssignmentValue(None, self)
-            val.identifier = "constant"
-            val.constant = self.attributes["constant"]
-            self.values["constant"] = val
-            if self.value is None:
-                self.value = ["constant"]
-            else:
-                self.value.append("constant")
+            autoval("constant", self.attributes["constant"])
+        if "testsource" in self.attributes:
+            tsource = TestSource(self.attributes["testsource"].lower(), self.testspec)
+            autoval("testsource", tsource)
+            self.values["testsource"].autoclass = tsource.target.autoclass
+            
         if "allocate" in self.attributes:
             if self.attributes["allocate"] in ["false", "true"]:
                 self.allocate = self.attributes["allocate"] == "true"
@@ -1806,6 +2116,11 @@ class Assignment(object):
         for child in kids:
             if child.tag == "value":
                 val = AssignmentValue(child, self)
+                #Having automation of value identifiers disabled the check to make
+                #sure that every <value> tag has a unique one. Perform that check now.
+                if "default" in self.values and val.identifier == "default":
+                    raise ValueError("'identifier' is a required attribute of <value> tags "
+                                     "unless there is only one of them in the <assignment>.")
                 self.values[val.identifier.lower()] = val
             elif child.tag == "part":
                 p = Part(child, self)
@@ -1819,6 +2134,13 @@ class Assignment(object):
             self.writekey += "({})".format(list(self.parts.keys())[0])
         if self.value is not None:
             self.writekey += "_{}".format('|'.join(self.value))
+
+        #If we only have a single value without any fancy conditionals etc.
+        #then the value identifier and attribute are unnecessary.
+        if (self.value is None and len(self.values) == 1 and
+            len(self.parts) == 0 and len(self.conditionals) == 0 and
+            "default" in self.values):
+            self.value = ["default"]
          
 class TestInput(object):
     """Represents information for a single input source as part of a unit test.
@@ -1831,16 +2153,28 @@ class TestInput(object):
     :attr line: a FileLine instance describing the values that appear in a single
       line of the input file. Use for constant-input mode.
     """
-    def __init__(self, xmltag):
+    def __init__(self, xmltag, testspec):
+        """Constructor.
+
+        :arg testspec: the TestSpecification parent instance that has access
+          to code element information for test-source inputs.
+        """
         self.xml = xmltag
+        self.testspec = testspec
+        """TestSpecification parent instance that has access
+          to code element information for test-source inputs."""
         self.folder = None
         self.filename = None
         self.rename = None
         self.line = None
         self.position = "before"
+        self.testsource = None
+        """Specifies the module.executable.parameter name whose output from a previous
+        unit test run will be used as input for this value.
+        """
 
         self._parse_xml()
-
+        
     @property
     def constant(self):
         """Returns true if operating in constant-input mode."""
@@ -1935,7 +2269,7 @@ class TestInput(object):
         if self.constant:
             lines.append("{}close({})".format(spacer, self.fileunit))
 
-    def copy(self, coderoot, testroot, case="", compiler=None):
+    def copy(self, coderoot, testroot, case="", compiler=None, stagedir=None):
         """Copies the input file from the specified code root directory to
         the folder where the test is being performed.
 
@@ -1945,18 +2279,22 @@ class TestInput(object):
         :arg case: if a specific case of the same test is being performed, the
           case identifier to use for string formatting.
         :arg compiler: the name of the compiler used to make the unit test executable.
+        :arg stagedir: the path to the staging directory to use (override).
         """
-        from fortpy.tramp import coderelpath
-        from fortpy.testing.compilers import replace
-        relpath = coderelpath(coderoot, self.folder)
-        source = replace(path.join(relpath, self.filename.format(case)), compiler)
-        source = replace(source, compiler, True)
-        
         if self.rename is not None:
             target = path.join(testroot, self.rename)
         else:
             target = path.join(testroot, self.filename.format(case))
-        copyfile(source, target)
+
+        if self.testsource is None:
+            from fortpy.tramp import coderelpath
+            from fortpy.testing.compilers import replace
+            relpath = coderelpath(coderoot, self.folder)
+            source = replace(path.join(relpath, self.filename.format(case)), compiler)
+            source = replace(source, compiler, True)
+            copyfile(source, target)
+        else:
+            self.testsource.copy(coderoot, testroot, case, compiler, stagedir)
 
     def _parse_xml(self):
         """Extracts the input file attributes from the xmltag."""
@@ -1968,7 +2306,9 @@ class TestInput(object):
             self.rename = self.xml.attrib["rename"]
         if "position" in self.xml.attrib:
             self.position = self.xml.attrib["position"]
-        
+        if "testsource" in self.xml.attrib:
+            self.testsource = TestSource(self.xml.attrib["testsource"].lower(), self.testspec)
+            
         self._parse_lines()
 
     def _parse_lines(self):
@@ -2146,7 +2486,7 @@ class TestTarget(object):
             vardir = path.join(testroot, self.varfile)
             if not path.isdir(vardir):
                 mkdir(vardir)
-                    
+
     def clean(self, testroot):
         """Removes the output file for saving the variable's value from the
         testing folder."""
@@ -2256,7 +2596,7 @@ class TestTarget(object):
         if "varfile" in self.xml.attrib:
             self.varfile = self.xml.attrib["varfile"]
         else:
-            self.varfile = "{}".format(self.name.replace("%", "."))
+            self.varfile = "{}".format(self.xml.attrib["name"].replace("%", "."))
         if "when" in self.xml.attrib:
             self.when = re.split(",\s*", self.xml.attrib["when"])
         else:
@@ -2341,7 +2681,12 @@ class TestSpecification(object):
         if "identifier" in self.xml.attrib:
             self.identifier = self.xml.attrib["identifier"]
         else:
-            raise ValueError("'identifier' is a required attribute for <test> tags.")
+            #Let's auto-assign an identifier.
+            root = "std"
+            for child in testgroup.group.xml.iterfind("test"):
+                if "identifier" in child.attrib and child.attrib["identifier"] == root:
+                    root += "I"
+            self.identifier = root
 
     @property 
     def executable(self):
@@ -2521,18 +2866,23 @@ class TestSpecification(object):
         """Parses the child-tags and attributes of this test specification once
         its parent testing group is finished parsing.
         """
-        def group_list(collection, position, target):
+        def group_list(collection, position, target, docopy=False):
             """Appends all the elements in the collection that match the position
             specification to the given target.
             """
+            if docopy:
+                from copy import deepcopy
             for item in collection:
                 if item.position == position:
-                    target.append(item)
+                    citem = item if not docopy else deepcopy(item)
+                    target.append(citem)
 
-        def group_dict(collection, position, target, ordering=None, tordering=None):
+        def group_dict(collection, position, target, ordering=None, tordering=None, docopy=False):
             """Updates the 'target' dictionary to include all items in the 'collection'
             that match the specified position.
             """
+            if docopy:
+                from copy import deepcopy
             if ordering is not None:
                 keys = ordering
             else:
@@ -2540,14 +2890,15 @@ class TestSpecification(object):
                 
             for item in keys:
                 if collection[item].position == position:
-                    if tordering is not None:
-                        tordering.append(item)
-                    target[item] = collection[item]
+                    citem = item if not docopy else deepcopy(item)
+                    if tordering is not None:                        
+                        tordering.append(citem)
+                    target[item] = collection[citem]
             
         #We need to add all the pre-reqs and assignments from the parent group to
         #this one since they were specified globally for *all* tests.
         group_list(self.testgroup.methods, "before", self.methods)
-        group_list(self.testgroup.inputs, "before", self.inputs)
+        group_list(self.testgroup.inputs, "before", self.inputs, docopy=True)
         group_list(self.testgroup.targets, "before", self.targets)
         group_dict(self.testgroup.outputs, "before", self.outputs)
         group_dict(self.testgroup.variables, "before", self.variables,
@@ -2559,18 +2910,32 @@ class TestSpecification(object):
         #Now handle the methods from the group that should be added *after* the local
         #assignments and pre-reqs are done.
         group_list(self.testgroup.methods, "after", self.methods)
-        group_list(self.testgroup.inputs, "after", self.inputs)
+        group_list(self.testgroup.inputs, "after", self.inputs, docopy=True)
         group_list(self.testgroup.targets, "after", self.targets)
         group_dict(self.testgroup.outputs, "after", self.outputs)
         group_dict(self.testgroup.variables, "after", self.variables,
                    self.testgroup.variable_order, self._variable_order)
-            
+
+        #If there is only a single target and a single output, then match them up
+        #even if there is no "compareto" and "identifier" on the <target> and <output>
+        #tags.
+        if len(self.targets) == 1 and len(self.outputs) == 1:
+            if self.targets[0].compareto is None:
+                self.targets[0].compareto = self.outputs.keys()[0]
+
+        #Because of the testsource feature, the <input> tags have a reference to the
+        #TestSpecification. We copied any from the TestingGroup above, but the Group
+        #doesn't initialize the testspec (since it isn't one). We do that here.
+        for xinput in self.inputs:
+            if xinput.testspec is None:
+                xinput.testspec = self
+                
     def _parse_children(self):
         """Gets all child tags from the <test> and parses them for relevant
         content to set targets, inputs and output attributes."""
         for child in self.xml:
             if child.tag == "input":
-                self.inputs.append(TestInput(child))
+                self.inputs.append(TestInput(child, self))
             elif child.tag == "output":
                 outvar = TestOutput(child)
                 self.outputs[outvar.identifier] = outvar
@@ -2596,37 +2961,15 @@ class TestSpecification(object):
                 #If we don't run the executable, we obviously can't check outputs!
                 self.runchecks = False
         if "cases" in self.xml.attrib:
-            # For specifying the cases in a unit test, we should allow ranges like
-            # "standard.cr[1-12]" so that the developer doesn't need to enter each
-            # of the cases separately. We should still allow a comma-separated list
-            # of cases, but each must allow the shorthand notation.
-            rawcases = re.split(",\s*", self.xml.attrib["cases"])
-            if "[" in self.xml.attrib["cases"]:
-                self.cases = []
-                rxcase = r"(?P<prefix>[^[]*)\[(?P<range>\d+-\d+)](?P<suffix>.*)"
-                recase = re.compile(rxcase)
-                for craw in rawcases:
-                    m = recase.match(craw)
-                    if m:
-                        prefix = m.group("prefix")
-                        vals = list(map(int, m.group("range").split("-")))
-                        suffix = m.group("suffix")
-                        if prefix is None:
-                            prefix = ""
-                        if suffix is None:
-                            suffix = ""
-                        for v in range(vals[0], vals[1]+1):
-                            self.cases.append("{}{}{}".format(prefix, v, suffix))
-                    else:
-                        self.cases.append(craw)
-            else:
-                self.cases = rawcases
+            self.cases = _expand_cases(self.xml.attrib["cases"])
         if "runtime" in self.xml.attrib:
             runtime = list(self.xml.attrib["runtime"])
             self.unit = runtime.pop()
             self.runtime = [ int(t) for t in "".join(runtime).split("-") ]
         if "timed" in self.xml.attrib:
             self.timed = self.xml.attrib["timed"] == "true"
+        else:
+            self.timed = True
 
 class TestPreReq(object):
     """Represents a subroutine or function that must run before the main
@@ -2738,7 +3081,10 @@ class TestingGroup(object):
     @property
     def name(self):
         """Returns the name of the underlying DocGroup."""
-        return self.group.name
+        if self.group.name is not None:
+            return self.group.name
+        else:
+            return "unittests"
     
     def set_finder(self, finder):
         """Sets the currently active MethodFinder instance being used by the MethodWriter
@@ -2805,7 +3151,7 @@ class TestingGroup(object):
                 #should have allocation if applicable, otherwise it wouldn't work.
                 self.assignments[child.attributes["name"].lower()] = child.attributes
             elif child.doctype == "input":
-                self.inputs.append(TestInput(child.xml))
+                self.inputs.append(TestInput(child.xml, None))
             elif child.doctype == "output":
                 outvar = TestOutput(child.xml)
                 self.outputs[outvar.identifier] = outvar
@@ -2866,6 +3212,7 @@ class TestingGroup(object):
             result.doctype = "AUTOPARAM"
             result.attributes["name"] = param.name
             result.attributes["type"] = param.dtype
+            result.attributes["D"] = param.D
             self._global_clean_param(result, "kind", param.kind)
             self._global_clean_param(result, "modifiers", ", ".join(param.modifiers))
             self._global_clean_param(result, "dimensions", param.dimension)
@@ -3148,7 +3495,8 @@ class MethodFinder(object):
         else:
             #For a function, we still need to save the value somewhere so we
             #can compare it.
-            prefix = "{}_fpy = ".format(self.executable.name)
+            pntr = ">" if "pointer" in [m.lower() for m in self.executable.modifiers] else ""
+            prefix = "{}_fpy ={} ".format(self.executable.name, pntr)
 
         spacing = len(list(prefix)) + len(list(self.executable.name)) + len(spacer)
 
@@ -3174,11 +3522,12 @@ class MethodFinder(object):
                     calllist.append(optstr + self.group.mappings[param])
                 else:
                     var = None
+                    pname = param.name.lower()
                     #The test specification takes precedence over the testing group for variables.
-                    if self.test is not None and param.name in self.test.variables:
-                        var = self.test.variables[param.name]
-                    if var is None and self.group is not None and param.name in self.group.variables:
-                        var = self.group.variables[param.name]
+                    if self.test is not None and pname in self.test.variables:
+                        var = self.test.variables[pname]
+                    if var is None and self.group is not None and pname in self.group.variables:
+                        var = self.group.variables[pname]
                     if var is not None and not var.ignore:
                         calllist.append(optstr + param.name)
                     elif var is None:

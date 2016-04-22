@@ -307,7 +307,8 @@ def compile_general(folder, compiler=None, identifier=None, debug=False, profile
     target = replace(folder + ".[c]", compiler)
     copytree(folder, target)
     
-    code, success = compile(target, compiler, identifier, debug, profile, quiet, moptions, inclfortpy)
+    code, success = compile(target, compiler, identifier, debug, profile, quiet, moptions,
+                            inclfortpy, vupdates, strict)
     return (code, success, target)
                     
 def compile(folder, compiler=None, identifier=None, debug=False, profile=False,

@@ -70,6 +70,7 @@ class FileRepresentation(object):
 
         for line in self.template.preamble:
             count = self._get_line_count(line, self.stored)
+            
             lineres = []
             for i in range(count):
                 #If the output file doesn't have enough lines, we can't compare the files.
@@ -98,6 +99,8 @@ class FileRepresentation(object):
         #apply to the current iteration of the body template
         count = self._get_line_count(self.template, self.stored)
         success = True
+        if count == 0:
+            return True
 
         if count > 1:
             #We will just process the body template count times
@@ -140,6 +143,10 @@ class FileRepresentation(object):
         stored = {}
         for line in body:
             count = self._get_line_count(line, stored)
+            if count == 0:
+                #We don't want to read anything in, just keep moving along.
+                continue
+            
             lineres = []
             for i in range(count):
                 #If the output file doesn't have enough lines, we can't compare the files.
@@ -171,6 +178,16 @@ class FileRepresentation(object):
             #earlier line.
             if line.count in store:
                 count = store[line.count]
+            elif "$" in line.count:
+                #We just use eval() on the attribute value they specified. Any variable
+                #names need to be replaced by the appropriate value in the store dict.
+                import operator
+                rx = re.compile(r"(?<=[(\s,\-+*/%])(?<![\[.])[A-Za-z]+[\w\d_]*")
+                nl = line.count.replace("$", "")
+                for varname in rx.findall(line.count):
+                    if varname not in ["if", "then", "else", "operator"]:
+                        nl = nl.replace(varname, 'store["{}"]'.format(varname))
+                count = eval(nl)
             else:
                 msg.err("reference to stored value that does not exist '{}'".format(line.count))
                 msg.gen("STORE: {}".format(list(store.keys())))
@@ -253,7 +270,7 @@ def _compare_body(rep1, rep2, mode):
     #if a key was specified for the body, we generate a hashtable so that
     #each line will only be matched to a corresponding one that has
     #the same value for the key.
-    result = BodyResult(rep1.body, rep2.body)
+    result = BodyResult(rep1, rep2)
     if len(rep1.body) == 0 and len(rep2.body) == 0:
         #Don't bother computing anything, we have two empty sets.
         return result
@@ -455,7 +472,7 @@ def _get_key_value_single(key, bodyblock):
             result = bodyblock[key].values[0]
 
     if result is None:
-        msg.err("block {} did not return a valid key value for '{}'.".format(bodyblock, template.key))
+        msg.err("block {} did not return a valid key value for '{}'.".format(bodyblock, key))
         exit(1)
 
     return result    

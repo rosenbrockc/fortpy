@@ -44,7 +44,8 @@ class ExecutableGenerator(object):
         #A method writer has all the guts needed to generate the executable
         #We are just wrapping it and making sure the variable values get
         #recorded to temporary files for comparison etc.
-        self.writer = MethodWriter(identifier, self.parser, self.testgen)
+        self.writer = MethodWriter(identifier, self.parser, self.testgen,
+                                   stagedir=self.libraryroot)
         self.identifier = identifier
         if self.libraryroot is not None:
             self.folders[identifier] = path.abspath(self.libraryroot)
