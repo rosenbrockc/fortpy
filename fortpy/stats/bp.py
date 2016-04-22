@@ -35,6 +35,8 @@ def _exec_check_pointers(executable):
     for pname, param in executable.parameters.items():
         if param.direction == "(out)" and param.is_custom:
             utype = param.customtype
+            if utype is None:
+                continue
             for mname, member in utype.members.items():
                 key = "{}%{}".format(pname, mname).lower().strip()
                 if key not in xassigns:
@@ -54,7 +56,7 @@ def _type_check_pointers(utype):
     result = []
     for mname, member in utype.members.items():
         if ("pointer" in member.modifiers and member.D > 0 and
-            (member.default is None or "null()" not in member.default)):
+            (member.default is None or "null" not in member.default)):
             result.append(member)
 
     return result

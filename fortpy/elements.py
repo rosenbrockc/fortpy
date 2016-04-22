@@ -584,11 +584,19 @@ class Dependency(object):
         if it can be found.
         """
         if self._target is None:
-            found, foundmod = self.module.parent.tree_find(self.name, self.module, "executables")
-            if found is not None:
-                self._target = found
+            if '%' in self.name:
+                parts = self.name.split('%')
+                base = self.module.parent.type_search(parts[0], self.name, self.module)
+                if base is not None:
+                    self._target = base.target
+                else:
+                    self._target = False
             else:
-                self._target = False
+                found, foundmod = self.module.parent.tree_find(self.name, self.module, "executables")
+                if found is not None:
+                    self._target = found
+                else:
+                    self._target = False
 
         if isinstance(self._target, Executable):
             return self._target
@@ -814,9 +822,10 @@ class Executable(ValueElement, Decoratable):
                         if symbol in dependency.argnames:
                             pindex = dependency.argnames.index(symbol)
                             iexec = dependency.target
-                            pname = iexec.ordered_parameters[pindex].name.lower()
-                            if iexec is not None and iexec.changed(pname, checked) != "":
-                                return iexec.full_name
+                            if iexec is not None:
+                                pname = iexec.ordered_parameters[pindex].name.lower()
+                                if iexec.changed(pname, checked) != "":
+                                    return iexec.full_name
                             else:
                                 checked.append(dependency.external_name)
                         else:
@@ -1056,7 +1065,8 @@ class TypeExecutable(CodeElement):
         executable points to."""
         if self.pointsto is not None:
             #It is in the format of module.executable.
-            return self.module.parent.get_executable(self.pointsto.lower())
+            xinst = self.module.parent.get_executable(self.pointsto.lower())
+            return xinst
         else:
             #The executable it points to is the same as its name.
             fullname = "{}.{}".format(self.module.name, self.name)
@@ -1350,30 +1360,34 @@ class Module(CodeElement, Decoratable):
         #modifier on the member itself).
         self.publics = publics
         self.interfaces = {}
-        #A list of ValueElements() that were declared in the body of the module.
         self.members = {}
-        #A list of CustomType() declared in the module using fortran type...end type
+        """A list of ValueElements() that were declared in the body of the module."""
         self.types = {}
-        #A list of Executable() declared within the contains section of the module.
+        """A list of CustomType() declared in the module using fortran type...end type
+        """
         self.executables = {}
-        #The dictionary of docstrings extracted from the preamble section of the
-        #module's contents.
+        """A list of Executable() declared within the contains section of the module.
+        """
         self.predocs = {}
-        #The section in the module after CONTAINS keyword
+        """The dictionary of docstrings extracted from the preamble section of the
+        module's contents."""
         self.contains = ""
-        #The original string that contains all the members and types before CONTAINS.
+        """The section in the module after CONTAINS keyword."""
         self.preamble = ""
-        #The string from which the module was parsed
+        """The original string that contains all the members and types before CONTAINS.
+        """
         self.refstring = ""
-        #The path to the library where this module was parsed from.
+        """The string (file contents) from which the module was parsed."""
         self.filepath = None
-        #The datetime that the file was last modified.
+        """The path to the library where this module was parsed from."""
         self.change_time = None
-        #changed keeps track of whether the module has had its refstring updated
-        #via a real-time update since the sequencer last analyzed it.
+        """The datetime that the file was last modified."""
         self.changed = False
-        #Does this module require pre-compilation; i.e. does it have pre-processor directives.
+        """keeps track of whether the module has had its refstring updated
+        via a real-time update since the sequencer last analyzed it."""
         self.precompile = False
+        """Does this module require pre-compilation; i.e. does it have 
+        pre-processor directives."""
         self.public_linenum = 0
         """The number of the line that contains the first 'public' keyword declaration."""
 
@@ -1421,7 +1435,14 @@ class Module(CodeElement, Decoratable):
                 result.append(dep)
                         
         return result
-        
+
+    @property
+    def codefolder(self):
+        """Returns the full path to the code folder (library) that this module is in.
+        """
+        from os import path
+        return path.dirname(self.filepath)
+    
     @property
     def compile_path(self):
         """Returns the file path to this module taking the pre-processing into account.
@@ -1663,7 +1684,7 @@ class Module(CodeElement, Decoratable):
         :arg basetype: the type name of the first element in the symbol string.
         :arg symblstr: a %-separated list of symbols, e.g. this%sym%sym2%go.
         """
-        self.parent.type_search(basetype, symbolstr, self)
+        return self.parent.type_search(basetype, symbolstr, self)
 
     def sorted_collection(self, attribute):
         """Returns the names of all elements in a collection sorted."""

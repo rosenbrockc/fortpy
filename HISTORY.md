@@ -1,5 +1,19 @@
 # FORTPY: Revision History
 
+## Revision 1.7.4
+
+- Fixed a bug where if `dimension` keyword was specified all-caps, the dimension parsing would fail.
+- Fixed issue #74.
+- Added enhancement #73; it reduced the number of lines in the `bcs/bcs.xml` file by 30%.
+- Fixed issue #77.
+
+## Revision 1.7.3
+
+- Removed lines for debugging from the `parse.py` file.
+- Updated `bestprac.py` to always parse from file and never use the cache. This makes the feedback loop faster for chekcing if changes resolved the best practice suggestions.
+- Fixed an issue in the module parser that wasn't terminating the regex for `public` keyword properly. This fixed issue #71 and issue #70.
+- Fixed issue #69.
+
 ## Revision 1.7.2
 
 - Refined filtering for user-types that get skipped in the `fpy_auxiliary` module generation.

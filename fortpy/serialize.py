@@ -15,7 +15,7 @@ class Serializer(object):
     """Serializes parsed module contents to optimizie loading for modules
     whose contents don't change very often."""
     
-    version = 30
+    version = 35
     """
     Version number (integer) for file system cache.
 

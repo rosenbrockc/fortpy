@@ -6,9 +6,206 @@ import re
 from ..docelements import DocElement, DocGroup
 import os
 
+def _update_globals(kids, xmlglobals):
+    """Updates the specified 'xmlglobals' dictionary with the specific
+    *and* supported global tag definitions.
+    """
+    for child in kids:
+        key = child.tag.lower()
+        if key != "defaults":
+            if key not in xmlglobals:
+                xmlglobals[key] = {}
+            if "identifier" in child.attrib:
+                xmlglobals[key][child.attrib["identifier"]] = child
+            elif "name" in child.attrib:
+                xmlglobals[key][child.attrib["name"].lower()] = child
+        else:
+            if "defaults" not in xmlglobals:
+                xmlglobals["defaults"] = {}
+            xmlglobals["defaults"].update(child.attrib)
+
+def _set_global_defaults(xmlglobals):
+    """Sets the default attributes on tags that were specified in <global>
+    tags in the XML file."""
+    for key, val in xmlglobals.items():
+        if key != "defaults":
+            for name, tag in val.items():
+                _update_from_globals(tag, xmlglobals, None)
+
+def _handle_ignores(testtag):
+    """Checks if the specified test tag has attribute "ignores"; if it
+    does, a <global ignore="true" /> tag is created for each variable
+    name in the list.
+    """
+    if "ignores" in testtag.attrib:
+        from xml.etree.ElementTree import Element
+        for varname in re.split("[\s,]+", testtag.attrib["ignores"]):
+            #For ignored variables, the order does not matter. However,
+            #if the user included the caret, just remove it.
+            if varname[0] == '^':
+                varname = varname[1::]
+            e = Element("global", {"name": varname, "ignore": "true"})
+            testtag.append(e)                
+                
+limited = ["staging", "folder", "when"]
+"""A set of attributes in the global defaults that only copy to tags that can
+make use of them."""
+monitored = {
+    "group": ["staging"],
+    "output": ["folder"],
+    "value": ["folder"],
+    "input": ["folder"],
+    "target": ["when"]
+}
+"""Dictionary of fortpy testing tags that have their attributes monitored.
+The attributes listed in 'limited' will only be copied to those tags that
+explicitly require them in this dictionary."""
+            
+def _update_from_globals(xtag, xmlglobals, container):
+    """Updates the attributes of the specified XML tag using the globals
+    dictionary for those tags that are supported.
+    """
+    #We also need to perform a globals update on each of the *original* child tags
+    #in the current tag being updated.
+    for child in list(xtag):
+        _update_from_globals(child, xmlglobals, xtag)
+
+    #If the tag doesn't have a value that is in the global defaults
+    #then we automatically copy it over.
+    if "defaults" in xmlglobals:
+        #Iterate over the attributes that we have default values for.
+        for key in xmlglobals["defaults"]:
+            if key not in xtag.attrib:
+                overwrite = True
+                #If the key is a limited one, then it only gets copied to
+                #tags that we know can actually use the attribute.
+                if key in limited:
+                    overwrite = (xtag.tag in monitored and key in monitored[xtag.tag])
+                if overwrite:
+                    xtag.attrib[key] = xmlglobals["defaults"][key]
+
+    #For the global tags, we just want to update using the default values
+    #They aren't allowed to reference other globals.
+    if container is None:
+        return                
+                    
+    def update_tag(xtag, gtag):
+        """Updates the missing attributes in xtag with those from gtag."""
+        for attr, value in gtag.attr.items():
+            if attr not in xtag.attrib:
+                xtag.attr[attr] = value
+                
+    def resolve_global(xtag, xmlglobals, xtagname, gtagname, attrib, container, op, gassumed):
+        """Adds the child in xmlglobals with the relevant id to the tag.
+
+        :arg xtag: the tag with the reference to a global tag.
+        :arg xmlglobals: the dictionary of global tags extracted from <global>.
+        :arg tagname: the name of the global tag to look for.
+        :arg attrib: the name of the attribute in 'xtag' that references the
+          global tag to process.
+        :arg container: for "op"=="append", the XMLElement to append the global
+          tag to as a subelement.
+        :arg op: one of ["append", "update"]. For "append" the global tag is appended
+          as a subelement to 'container'. For "update", the attributes of the global
+          tag are copied to 'xtag'.
+        :arg gassumed: when True, the 'attrib' being examined is assumed to reference
+          only tags in <globals>, so no 'global:' prefix is required before attributes.
+        """
+        if attrib not in xtag.attrib:
+            return False
+
+        result = False
+        if xtag.tag == xtagname and (gassumed or "global:" in xtag.attrib[attrib]):
+            #We allow a ';'-separated list of global tag names, all of
+            #which are appended to the child's subelements list.
+            i = -1
+            for sattr in xtag.attrib[attrib].split(";"):
+                gid = sattr.strip().split(":")[1] if ":" in sattr else sattr.strip()
+                #Since ordering matters, if the id starts with ^, we insert it at
+                #the beginning of the subelements list instead of appending
+                if gid[0] == '^':
+                    insert = True
+                    gid = gid[1::]
+                    i += 1
+                else:
+                    insert = False
+                    
+                if gtagname in xmlglobals and gid.lower() in xmlglobals[gtagname]:
+                    gtag = xmlglobals[gtagname][gid.lower()]
+                    if op == "append":
+                        if insert:
+                            container.insert(i, gtag)
+                        else:
+                            container.append(gtag)
+                    elif op == "update":
+                        update_tag(xtag, gtag)
+                    result = True
+                else:
+                    from fortpy.msg import warn
+                    wstr = 'The global tag of type <{}> for <{} {}="{}"> does not exist.'
+                    warn(wstr.format(gtagname, xtagname, attrib, xtag.attrib[attrib]))
+
+            #Overwrite the name of the tag to not have the 'global:' in it anymore.
+            xtag.attrib[attrib] = xtag.attrib[attrib].replace("global:", "")
+
+        return result
+                
+    #Next, we just need to check the attributes of the tag that are allowed
+    #to point to global tag children.
+    i = 0
+    #The order of these is xtagname, gtagname, xtagattrib, container, op, gassumed
+    tags = [("assignment", "value", "value", xtag, "append", False),
+            ("target", "output", "compareto", container, "append", False),
+            ("test", "input", "inputs", xtag, "append", True),
+            ("test", "global", "globals", xtag, "append", True),
+            ("test", "assignment", "assignments", xtag, "append", True),
+            ("test", "mapping", "mappings", xtag, "append", True),
+            ("group", "input", "inputs", xtag, "append", True),
+            ("group", "global", "globals", xtag, "append", True),
+            ("group", "assignment", "assignments", xtag, "append", True),
+            ("group", "mapping", "mappings", xtag, "append", True)]
+
+    while i < len(tags):
+        resolve_global(xtag, xmlglobals, *tags[i])
+        i += 1
+
+    if xtag.tag in ["test", "group"]:
+        _handle_ignores(xtag)
+
+    if xtag.tag == "auto":
+        _expand_autotag(xtag, container)
+
+def _expand_autotag(atag, container):
+    """Expands the contents of the specified auto tag within its parent container.
+    """
+    if atag.tag != "auto":
+        return
+
+    if "names" in atag.attrib:
+        i = -1
+        for name in re.split("[\s,]+", atag.attrib["names"]):
+            if name[0] == '^':
+                name = name[1::]
+                insert = True
+                i += 1
+            else:
+                insert = False
+                
+            for child in atag:
+                dupe = child.copy()
+                for attr, value in dupe.items():
+                    dupe.attrib[attr] = value.replace("$", name)
+
+                if insert:
+                    container.insert(i, dupe)
+                else:
+                    container.append(dupe)            
+    else:
+        from fortpy.msg import warn
+        warn("'names' is a required attribute of the <auto> tag.")
+        
 class DocStringParser(object):
     """Parses the XML tags from the custom docstrings in our fortran code."""
-
     def __init__(self):
         self.setup_regex()
 
@@ -110,6 +307,8 @@ class DocStringParser(object):
                           "parameter in the executable definition for '{}'."
                     msg.warn(wmsg.format(doc.pointsto, anexec))
             elif doc.doctype == "group":
+                if "name" not in doc.attributes:
+                    doc.attributes["name"] = "default"
                 kids = self._process_docgroup(doc, anexec)
                 if add:
                     anexec.docstring.extend(kids)
@@ -254,13 +453,13 @@ class DocStringParser(object):
                     #parser will scream. Wrap everything in a doc tag.
                     doctext = "<doc>{}</doc>".format(" ".join(current))
                     try:
-                        docs = XML(doctext)
+                        #Let the docstart and docend *always* be absolute character references.
+                        tabsstart, tabsend = container.module.absolute_charindex(string, docstart, docend-len(line))
+                        emsg="module '{0}' docstring starting @ {1[0]}:{1[1]}"
+                        emsg=emsg.format(container.module.name, container.module.linenum(tabsstart))
+                        docs = XML(doctext, emsg)
                         if not key in docblocks:
-                            #Let the docstart and docend *always* be absolute 
-                            #character references.
-                            absstart, absend = container.module.absolute_charindex(string, 
-                                                                                   docstart,
-                                                                                   docend-len(line))
+                            absstart, absend = tabsstart, tabsend
                             docblocks[key] = [list(docs), absstart, absend]
                         else:
                             docblocks[key][0].extend(list(docs))
@@ -297,9 +496,20 @@ class DocStringParser(object):
         xmlroot = XML_fromstring(xmlstring, source)
         if xmlroot.tag == "fortpy" and "mode" in xmlroot.attrib and \
            xmlroot.attrib["mode"] == "docstring":
+            #First, cycle through the kids to find the <global> tag (if any
+            #exist). It's children will apply to any of the other tags we find
+            #and we will have to update their attributes accordingly.
+            xmlglobals = {}
+            for child in xmlroot.iterfind("globals"):
+                _update_globals(list(child), xmlglobals)
+            _set_global_defaults(xmlglobals)
+                
             #We fill the dictionary with decorates names as keys and lists
             #of the xml docstring elements as values.
             for child in xmlroot:
+                if child.tag == "globals":
+                    continue
+
                 xmltags = []
                 if child.tag == "decorates" and "name" in child.attrib:
                     decorates = child.attrib["name"]
@@ -307,6 +517,9 @@ class DocStringParser(object):
                 elif "decorates" in child.attrib:
                     decorates = child.attrib["decorates"]
                     xmltags.append(child)
+
+                for xtag in xmltags:
+                    _update_from_globals(xtag, xmlglobals, child)
 
                 if decorates in result:
                     result[decorates].extend(xmltags)

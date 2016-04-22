@@ -13,7 +13,9 @@ def parse():
     f90files = {}
     c.scan_path(args["source"], f90files)
     for fname, fpath in f90files.items():
-        c.parse(fpath, args["recursive"], args["recursive"])
+        if fname not in c._modulefiles:
+            c._modulefiles[fname] = []
+        c._parse_from_file(fpath, fname, args["recursive"], args["recursive"], False)
 
     return c
 

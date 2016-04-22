@@ -7,6 +7,33 @@ quiet = None
 """When in quiet mode, no text is ever printed to terminal unless its
 verbosity level is explicitly specified.
 """
+cenum = {
+    "cerrs": 0,
+    "cwarn": 1,
+    "cinfo": 2,
+    "cgens": 3,
+    "cstds": 4,
+    "cokay": 5
+}
+"""Dict of the various colors available for coloring specific
+lines in the arb().
+"""
+icols = ["red", "yellow", "cyan", "blue", "white", "green"]
+
+def arb(text, cols, split):
+    """Prints a line of text in arbitrary colors specified by the numeric
+    values contained in msg.cenum dictionary.
+    """
+    stext = text if text[-1] != split else text[0:-1]
+    words = stext.split(split)
+    for i, word in enumerate(words):
+        col = icols[cols[i]]
+        cprint(word, col, end="")
+        if i < len(words)-1:
+            cprint(split, end="")
+        else:
+            cprint(split)
+
 def set_verbosity(level):
     """Sets the modules message verbosity level for *all* messages printed.
 
@@ -34,19 +61,19 @@ def will_print(level=1):
         return ((isinstance(verbosity, int) and level <= verbosity) or
                 (isinstance(verbosity, bool) and verbosity == True))
     
-def warn(msg, level=0):
+def warn(msg, level=0, prefix=True):
     """Prints the specified message as a warning; prepends "WARNING" to
     the message, so that can be left off.
     """
     if will_print(level):
-        cprint("WARNING: " + msg, "yellow")
+        cprint(("WARNING: " if prefix else "") + msg, "yellow")
 
-def err(msg, level=-1):
+def err(msg, level=-1, prefix=True):
     """Prints the specified message as an error; prepends "ERROR" to
     the message, so that can be left off.
     """
     if will_print(level) or verbosity is None:
-        cprint("ERROR: " + msg, "red")
+        cprint(("ERROR: " if prefix else "") + msg, "red")
 
 def info(msg, level=1):
     """Prints the specified message as information."""

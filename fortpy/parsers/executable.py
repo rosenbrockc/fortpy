@@ -1,6 +1,6 @@
 from .. import msg
 import re
-from ..elements import Subroutine, Function, Dependency, Executable, Module
+from ..elements import Subroutine, Function, Dependency, Executable, Module, TypeExecutable
 import pyparsing
 
 class ExecutableParser(object):
@@ -43,7 +43,7 @@ class ExecutableParser(object):
         self._RX_DEPEND = r"^\s*(?P<sub>call\s+)?(?P<exec>[a-z0-9_%]+\s*\([^\n]+)$"
         self.RE_DEPEND = re.compile(self._RX_DEPEND, re.M | re. I)
 
-        self._RX_DEPCLEAN = r"(?P<key>[a-z0-9_]+)\("
+        self._RX_DEPCLEAN = r"(?P<key>[a-z0-9_%]+)\("
         self.RE_DEPCLEAN = re.compile(self._RX_DEPCLEAN, re.I)
 
         self._RX_CONST = '[^"]+(?P<const>"[^"]+")'
@@ -280,7 +280,7 @@ class ExecutableParser(object):
 
             if not "::" in execline:
                 try:
-                    dependent = self.nester.parseString(execline).asList()[0]           
+                    dependent = self.nester.parseString(execline).asList()[0]
                 except:
                     msg.err("parsing executable dependency call {}".format(anexec.name))
                     msg.gen("\t" + execline)
@@ -379,9 +379,13 @@ class ExecutableParser(object):
 
             if ftype is not None:
                 end = anexec.parent.type_search(ftype, key)
-                if end is not None and isinstance(end, Executable):
-                    d = Dependency(dependlist[i], dependlist[i + 1], isSubroutine, anexec)
+                if end is not None and isinstance(end, TypeExecutable):
+                    #We have to overwrite the key to include the actual name of the type
+                    #that is being referenced instead of the local name of its variable.
+                    tname = "{}%{}".format(ftype, '%'.join(key.split('%')[1:]))
+                    d = Dependency(tname, dependlist[i + 1], isSubroutine, anexec)
                     anexec.add_dependency(d)
+                    
         elif lkey not in ["for", "forall", "do"]:
             #This is a straight forward function/subroutine call, make sure that
             #the symbol is not a local variable or parameter, then add it
