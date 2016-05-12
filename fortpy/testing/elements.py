@@ -415,7 +415,7 @@ class GlobalDeclaration(object):
         if "modifiers" in self.attributes:
             mods = re.split(",\s*", self.attributes["modifiers"])
             smods = self._clean_mods(mods)
-            if dimalloc:
+            if dimalloc and "allocatable" not in smods and "pointer" not in smods:
                 smods += (", " if len(smods) > 0 else "") + "allocatable"
         else:
             smods = ""

@@ -22,8 +22,6 @@ class FortpyShell(cmd.Cmd):
             "yscale": None,
             "tfilter": ["*"],
             "threshold": 1.,
-            "xlabel": None,
-            "ylabel": None,
             "functions": {},
             "independent": None,
             "dependents": [],
@@ -36,7 +34,8 @@ class FortpyShell(cmd.Cmd):
             "ticks": {},
             "lines": {},
             "plottypes": {},
-            "limits": {}
+            "limits": {},
+            "twinplots": {}
         }
         """A dictionary of template arguments that can be set to affect the plotting/tabulating 
         behavior of the shell for a unit test analysis group. This gets duplicated for each
@@ -49,7 +48,7 @@ class FortpyShell(cmd.Cmd):
         crashing the console. Anything that uses properties 'live', 'allvars' or 'allprops'
         relies on a valid unit test being loaded.
         """
-        self._group_cmds = ["xlabel", "ylabel", "filter", "rmfilter", "threshold", "dep",
+        self._group_cmds = ["label", "filter", "rmfilter", "threshold", "dep",
                             "indep", "rmdep", "vars", "postfix", "failures", "headings"]
         """As for self._test_cmds but for a valid analysis group. Anything needing property
         'curargs' relies on a valid analysis group.
@@ -305,29 +304,6 @@ class FortpyShell(cmd.Cmd):
             result = "{}: '{}'".format(argid.upper(), self.curargs[argid])
             self._redirect_output(result, filename, append, msg.info)
 
-    def do_xlabel(self, arg):
-        self._set_arg_generic("xlabel", arg)
-    def help_xlabel(self):
-        lines = [("Sets the label of the x-axis for plotting. This property is used in conjunction "
-                  "with the commands 'plot', 'logplot' and 'loglogplot'."),
-                 ("EXAMPLE: \"xlabel The Number of Elements in the Group\" sets the xlabel for the "
-                  "plots in the current analysis group. Notice that quotes are *not* required; "
-                  "everything after the 'xlabel' keyword is used as the axis label. "
-                  "See also: 'ylabel'")]
-        self._fixed_width_info(lines)
-
-    def do_ylabel(self, arg):
-        """Sets the label of the y-axis for plotting."""
-        self._set_arg_generic("ylabel", arg)
-    def help_ylabel(self):
-        lines = [("Sets the label of the y-axis for plotting. This property is used in conjunction "
-                  "with the commands 'plot', 'logplot' and 'loglogplot'."),
-                 ("EXAMPLE: \"ylabel Total Execution Time (ms)\" sets the ylabel for the "
-                  "plots in the current analysis group. Notice that quotes are *not* required; "
-                  "everything after the 'ylabel' keyword is used as the axis label. "
-                  "See also: 'xlabel'")]
-        self._fixed_width_info(lines)
-
     def do_headings(self, arg):
         usable, filename, append = self._redirect_split(arg)
         if usable != "":
@@ -464,9 +440,12 @@ class FortpyShell(cmd.Cmd):
                 rest = value
             if "|" in rest:
                 var, prop = rest.split("|")
-                return self._complete_props(var, prop)
+                return ["{}|{}".format(var, p) for p in self._complete_props(var, prop)]
             else:
-                return self._complete_vars(rest)
+                if wfilter:
+                    return ["{}/{}".format(filt, v) for v in self._complete_vars(rest)]
+                else:
+                    return self._complete_vars(rest)
         else:
             return self._complete_filters(value)
 
@@ -531,8 +510,12 @@ class FortpyShell(cmd.Cmd):
         """Adds the name and attribute of a dependent variable to the list 
         for plotting/tabulating functions."""
         vals = args.split()
+        twin = None
         if len(vals) > 1:
-            var, plot = vals
+            if len(vals) == 2:
+                var, plot = vals
+            elif len(vals) == 3:
+                var, plot, twin = vals
         else:
             var = vals[0]
             plot = None
@@ -546,7 +529,9 @@ class FortpyShell(cmd.Cmd):
                 del self.curargs["plottypes"][var]
             self.curargs["dependents"].append(var)
             if plot is not None:
-                self.curargs["plottypes"][var] = plot                
+                self.curargs["plottypes"][var] = plot
+            if twin is not None:
+                self.curargs["twinplots"][var] = twin
     def complete_dep(self, text, line, istart, iend):
         els = line.split()
         if len(els) == 1 or (len(els) == 2 and line[-1] != " "):
@@ -555,12 +540,18 @@ class FortpyShell(cmd.Cmd):
             else:
                 part = els[-1]
             return self._complete_fullvar(part, line, istart, iend)
-        else:
+        elif (len(els) == 2 and line[-1] == " ") or (len(els) == 3 and line[-1] != " "):
             keys = ["line", "scatter"]
             if line[-1] == " ":
                 return keys
             else:
                 return [c for c in keys if c.startswith(text)]
+        else:
+            twins = ["twinx", "twiny"]
+            if line[-1] == " ":
+                return twins
+            else:
+                return [c for c in twins if c.startswith(text)]
     def help_dep(self):
         lines = [("Adds one variable as a *dependent* variable for plotting or tabulating. "
                   "A description of the format of the variables and properties can be found by typing "
@@ -606,10 +597,11 @@ class FortpyShell(cmd.Cmd):
         result.append("DEPENDENTS")
         for i in range(len(self.curargs["dependents"])):
             var = self.curargs["dependents"][i]
+            plottype = "scatter"
+            twinplot = "" if var not in self.curargs["twinplots"] else "-{}".format(self.curargs["twinplots"][var])
             if var in self.curargs["plottypes"]:
-                result.append("  {}. '{}' ({})".format(i, var, self.curargs["plottypes"][var]))
-            else:
-                result.append("  {}. '{}' (scatter)".format(i, var))
+                plottype = self.curargs["plottypes"][var]
+            result.append("  {}. '{}' ({}{})".format(i, var, plottype, twinplot))
         self._redirect_output('\n'.join(result), filename, append, msg.info)
     def help_vars(self):
         lines = [("Prints the current status of the independent and dependent variables for the "
@@ -763,7 +755,8 @@ class FortpyShell(cmd.Cmd):
             self._print_map_dict("labels", filename, append)
         else:
             var, label = sargs[0], ' '.join(sargs[1:len(sargs)])
-            if var != "plot" and not self._validate_var(var):
+            options = ["plot", "x", "y", "z", "x-twin", "y-twin"]
+            if var not in options and not self._validate_var(var):
                 msg.err("Variable '{}' is not a valid variable|property combination.")
             else:
                 if var == "*":
@@ -777,9 +770,11 @@ class FortpyShell(cmd.Cmd):
         els = line.split()
         if len(els) == 1 or (len(els) == 2 and line[-1] != " "):
             varlist = self._complete_deps(els, line)
-            if text in "plot" and "|" not in line:
-                varlist.append("plot")
-            return varlist
+            varlist.extend(["plot", "x", "y", "z", "x-twin", "y-twin"])
+            if len(els) == 1:
+                return varlist
+            else:
+                return [p for p in varlist if p.startswith(els[-1])]
         else:
             return []
     def help_label(self):
@@ -866,9 +861,9 @@ class FortpyShell(cmd.Cmd):
         if filename == "":
             filename = None
 
-        if self.curargs["xlabel"] is None:
+        if "x" not in self.curargs["labels"]:
             #Set a default x-label since we know what variable is being plotted.
-            self.curargs["xlabel"] = "Value of '{}' (unknown units)".format(self.curargs["independent"])
+            self.curargs["labels"]["x"] = "Value of '{}' (unknown units)".format(self.curargs["independent"])
         args = self.curargs
         a = self.tests[self.active]
         self._make_fits()
@@ -878,10 +873,12 @@ class FortpyShell(cmd.Cmd):
         markdict = self._get_matplot_dict("markers", "marker", self._possible_markers)
         linedict = self._get_matplot_dict("lines", "style", self._possible_linestyles)
 
-        a.plot(args["independent"], args["dependents"], args["threshold"], args["xlabel"], 
-               args["ylabel"], filename, args["functions"], 
-               args["xscale"], args["yscale"], args["colors"], args["labels"], args["fonts"],
-               markdict, linedict, args["ticks"], args["plottypes"], args["limits"])
+        #Set the remaining arguments to have the right keyword name.
+        args["savefile"] = filename
+        args["markers"] = markdict
+        args["lines"] = linedict
+        
+        a.plot(**args)
 
     def do_logplot(self, arg):
         """Plots the current state of the shell's independent vs. dependent variables on the
@@ -1352,6 +1349,7 @@ class FortpyShell(cmd.Cmd):
         cmd.Cmd.preloop(self)
         #We need to restore the console history if it exists.
         import readline
+        readline.set_completer_delims(' \t\n')
         from os import path
         if path.isfile(self.histpath) and self.lasterr is None:
             readline.read_history_file(self.histpath)
@@ -1370,22 +1368,22 @@ class FortpyShell(cmd.Cmd):
         self.lasterr = '\n'.join(format_exception(e[0], e[1], e[2]))
 
     def cmdloop(self):
-        try:
-            cmd.Cmd.cmdloop(self)
-        except Exception as exsimple:
-            msg.err(exsimple.message)
-            self._store_lasterr()
-            if self._errcount < self._maxerr:
-                self._errcount += 1
-                msg.err("The shell has caught {} unhandled exceptions so far.\n".format(self._errcount) + 
-                        "When that value reaches {}, the shell will save a ".format(self._maxerr) + 
-                        "recovery file and exit.")
-                self.postloop()
-                self.cmdloop()
-            else:
-                self.do_save("#fortpy.shell#")
-                msg.err("Something unexpected happened. The shell has died. Your session "
-                        "has been saved as '#fortpy.shell#' in the current directory.")
+#        try:
+        cmd.Cmd.cmdloop(self)
+        # except Exception as exsimple:
+        #     msg.err(exsimple.message)
+        #     self._store_lasterr()
+        #     if self._errcount < self._maxerr:
+        #         self._errcount += 1
+        #         msg.err("The shell has caught {} unhandled exceptions so far.\n".format(self._errcount) + 
+        #                 "When that value reaches {}, the shell will save a ".format(self._maxerr) + 
+        #                 "recovery file and exit.")
+        #         self.postloop()
+        #         self.cmdloop()
+        #     else:
+        #         self.do_save("#fortpy.shell#")
+        #         msg.err("Something unexpected happened. The shell has died. Your session "
+        #                 "has been saved as '#fortpy.shell#' in the current directory.")
 
     def precmd(self, line):
         """Makes sure that the command specified in the line is valid given the current
@@ -1489,6 +1487,9 @@ class FortpyShell(cmd.Cmd):
 
     def do_font(self, arg):
         opts = arg.split()
+        if len(opts) == 0:
+            self.help_font()
+            return
         if opts[0] == "family":
             value = ' '.join(opts[1:len(opts)])
             if value == "rm":
@@ -1496,7 +1497,8 @@ class FortpyShell(cmd.Cmd):
             else:
                 self.curargs["fonts"]["family"] = value
             self.do_font("list")
-        elif opts[0] in ["xticks", "xlabel", "yticks", "ylabel", "legend", "title"]:
+        elif opts[0] in ["xticks", "xlabel", "yticks", "ylabel", "legend", "title",
+                         "x-twin-ticks", "x-twin-label", "y-twin-ticks", "y-twin-label"]:
             if opts[1] == "rm":
                 del self.curargs["fonts"][opts[0]]
             else:
@@ -1521,7 +1523,9 @@ class FortpyShell(cmd.Cmd):
                   "- xticks, yticks: font settings for the digits marking ticks on the axes.\n"
                   "- xlabel, ylabel: font settings for the axes labels.\n"
                   "- legend: font settings for the legend box.\n"
-                  "- list: show the font settings for the entire plot."),
+                  "- list: show the font settings for the entire plot.\n"
+                  "- x-twin-ticks, y-twin-ticks: ticks fonts for twin axes.\n"
+                  "- x-twin-label, y-twin-label: font settings for twin axes labels."),
                  ("For 'axes', 'labels' and 'legend' font settings, the size, weight, variant "
                   "and style of the font can be set. Use the tab completion to select valid "
                   "values. To type without tab completion, specify the property value set as "
@@ -1541,7 +1545,8 @@ class FortpyShell(cmd.Cmd):
                 part = els[1]
             else:
                 part = ""
-            options = ["family", "xlabel", "ylabel", "xticks", "yticks", "list", "legend", "title"]
+            options = ["family", "xlabel", "ylabel", "xticks", "yticks", "list", "legend", "title",
+                       "x-twin-ticks", "x-twin-label", "y-twin-ticks", "y-twin-label"]
             return [o for o in options if o.startswith(part)]
         else:
             #We need to look at the second element to decide how to complete.
@@ -1733,7 +1738,16 @@ class FortpyShell(cmd.Cmd):
                     if prop in cast:
                         dprops[prop] = float(val)
                     else:
-                        dprops[prop] = val
+                        if prop == "axis":
+                            #Handle the twin-x and twin-y. A little tricky because when
+                            #we think about handling the twin-x ticks, we really mean
+                            #that we want to adjust the y-axis.
+                            if "-" in val:
+                                dprops["axis"] = "y" if val == "x-twin" else "x"
+                            else:
+                                dprops["axis"] = val
+                        else:
+                            dprops[prop] = val
                 elif entry == "rm":
                     delete = True
 
@@ -1776,7 +1790,7 @@ class FortpyShell(cmd.Cmd):
     def complete_ticks(self, text, line, istart, iend):
         bopts = ("on", "off")
         opts = {
-            "axis": ("x", "y", "both"),
+            "axis": ("x", "y", "both", "x-twin", "y-twin"),
             "which": ("major", "minor", "both"),
             "direction": ("in", "out", "inout"),
             "color": self._possible_cols,
@@ -1811,7 +1825,7 @@ class FortpyShell(cmd.Cmd):
     def do_limit(self, arg):
         vals = arg.split()
         if len(vals) == 3:
-            if vals[0] in ["x", "y"]:
+            if vals[0] in ["x", "y", "z", "x-twin", "y-twin"]:
                 self.curargs["limits"][vals[0]] = tuple(map(float, vals[1:3]))
             else:
                 msg.err("Only 'x', 'y' and 'z' are valid axis designations.")                
@@ -1819,21 +1833,46 @@ class FortpyShell(cmd.Cmd):
             for dim in self.curargs["limits"]:
                 msg.info("{0} LIMITS: {1[0]}-{1[1]}".format(dim.upper(), self.curargs["limits"][dim]))
         else:
-            msg.warn("Enter the axis type ('x' or 'y') and the start and end values. "
-                     "E.g. \"limit x 0 20\"")
-    def help_limit(self, arg):
+            msg.warn("Enter the axis type ('x', 'y', 'z', 'x-twin', 'y-twin') and the"
+                     " start and end values. E.g. \"limit x 0 20\"")
+    def help_limit(self):
         lines = [("Sets the limiting values for the axes on the plot."),
                  ("EXAMPLE \"limit x 0 20\" sets the x-axis to only plot from zero to twenty.")]
         self._fixed_width_info(lines)
     def complete_limit(self, text, line, istart, iend):
         els = line.split()
         if len(els) == 1 or (len(els) == 2 and line[-1] != ' '):
-            axes = ["x", "y", "z", "list"]
+            axes = ["x", "y", "z", "list", "x-twin", "y-twin"]
             if len(els) == 2:
                 return [a for a in axes if a.startswith(els[1])]
             else:
                 return axes
 
+    def do_figsize(self, arg):
+        vals = arg.split()
+        if len(vals) >= 2:
+            self.curargs["figsize"] = tuple(map(float, vals))
+        elif arg == "list":
+            if "figsize" in self.curargs:
+                msg.info("FIGSIZE: {0[0]}x{0[1]}".format(self.curargs["figsize"]))
+            else:
+                msg.info("FIGSIZE: {0[0]}x{0[1]}".format((7,5)))
+        else:
+            self.help_figsize()
+    def help_figsize(self):
+        lines = [("Sets the size of the figure for the plot."),
+                 ("EXAMPLE \"figsize 10 20\" sets the figure size to 10x20 (WxH) *inches*.\n"
+                  "EXAMPLE \"figsize 10 20 0.8\" also sets the figure padding to 0.8 (fraction of text width).")]
+        self._fixed_width_info(lines)
+    def complete_figsize(self, text, line, istart, iend):
+        els = line.split()
+        if len(els) == 1 or (len(els) == 2 and line[-1] != ' '):
+            options = ["list"]
+            if len(els) == 2:
+                return [a for a in options if a.startswith(els[1])]
+            else:
+                return options
+        
 parser = argparse.ArgumentParser(description="Fortpy Automated Test Result Analyzer")
 parser.add_argument("-pypath", help="Specify a path to add to sys.path before running the tests.")
            

@@ -68,7 +68,9 @@ class Analysis(object):
         comparefile = "{}.compare".format(outfile)
         if comparefile in testcase["percents"]:
             result = testcase["percents"][comparefile]
-        
+        else:
+            #Since the user isn't explicitly comparing the result, it must be true.
+            result = 1.0
         return result        
 
     def _is_successful(self, testcase, outfile=None, threshold=1.):
@@ -212,7 +214,7 @@ class Analysis(object):
         #Handle cases where the values need to have functions applied to them before tabulating
         #or printing the values.
         if functions is not None and fullvar in functions:
-            if isinstance(functions[fullvar], str) or isinstance(functions[fullvar], str):
+            if isinstance(functions[fullvar], str) or isinstance(functions[fullvar], unicode):
                 from importlib import import_module
                 module = functions[fullvar].split(".")
                 fname = module.pop()
@@ -359,10 +361,10 @@ class Analysis(object):
             if "edgecolors" in dargs:
                 del dargs["edgecolors"]
 
-    def plot(self, independent, dependents, threshold=1., xlabel=None, ylabel=None,
+    def plot(self, independent=None, dependents=None, threshold=1.,
              savefile=None, functions=None, xscale=None, yscale=None,
              colors=None, labels=None, fonts=None, markers=None, lines=None, ticks=None,
-             plottypes=None, limits=None):
+             plottypes=None, limits=None, twinplots=None, **kwargs):
         """Plots the specified dependent variables as functions of the independent one.
 
         :arg independent: a string indentifying the independent variable's filename and the
@@ -379,6 +381,9 @@ class Analysis(object):
           from the depth property of the data in 'group.in' before plotting it. If the value
           is not a string, it must be callable with some argument.
         """
+        if independent is None or dependents is None:
+            raise ValueError("Must specify at least the variables to plot.")
+        
         import matplotlib.pyplot as plt
         from matplotlib import cm, rc
         from numpy import linspace, array
@@ -386,31 +391,50 @@ class Analysis(object):
         from matplotlib.font_manager import FontProperties
 
         xs, ys = self._get_data_series(independent, dependents, threshold, functions)
-
+        
         #Set the default font for the plots, or the custom one.
         if fonts is not None and "family" in fonts:
             rc('font',family=fonts["family"])
         else:
             rc('font',family='Times New Roman')
-
-        fig = plt.figure()
+            
+        layout = None
+        if "figsize" in kwargs:
+            if len(kwargs["figsize"]) > 2:
+                layout = {"pad": kwargs["figsize"][2]}
+                
+        fig = plt.figure(figsize=(None if "figsize" not in kwargs else kwargs["figsize"][0:2]), tight_layout=layout)
         dfont = FontProperties()
 
         ax = fig.add_subplot(111)
-        if xlabel is not None:
-            ax.set_xlabel(xlabel, fontproperties=self._get_font(dfont, fonts, "xlabel"))
-        if ylabel is not None:
-            ax.set_ylabel(ylabel, fontproperties=self._get_font(dfont, fonts, "ylabel"))
+        rbcolors = cm.rainbow(linspace(0, 1, len(ys)))
+        cycols = cycle(rbcolors)
+
+        axx = None
+        axy = None
+        if twinplots is not None:
+            if "twinx" in twinplots.values():
+                axx = ax.twinx()
+            if "twiny" in twinplots.values():
+                axy = ax.twiny()
+
+        if labels is not None:
+            if "x" in labels:
+                ax.set_xlabel(labels["x"], fontproperties=self._get_font(dfont, fonts, "xlabel"))
+            if "y" in labels:
+                ax.set_ylabel(labels["y"], fontproperties=self._get_font(dfont, fonts, "ylabel"))
+            if "plot" in labels:
+                plt.title(labels["plot"], fontproperties=self._get_font(dfont, fonts, "title"))
+            if "x-twin" in labels and axx is not None:
+                axx.set_ylabel(labels["x-twin"], fontproperties=self._get_font(dfont, fonts, "x-twin-label"))
+            if "y-twin" in labels and axy is not None:
+                axy.set_xlabel(labels["y-twin"], fontproperties=self._get_font(dfont, fonts, "y-twin-label"))
+                
         if xscale is not None:
             ax.set_xscale(xscale)
         if yscale is not None:
             ax.set_yscale(yscale)
-        if labels is not None and "plot" in labels:
-            plt.title(labels["plot"], fontproperties=self._get_font(dfont, fonts, "title"))
-
-        rbcolors = cm.rainbow(linspace(0, 1, len(ys)))
-        cycols = cycle(rbcolors)
-
+                
         for xset, yset in zip(xs, ys):
             x, xlabel = xset
             y, ylabel = yset
@@ -441,6 +465,13 @@ class Analysis(object):
             else:
                 dargs["label"] = ylabel
 
+            if twinplots is not None and ylabel in twinplots:
+                if twinplots[ylabel] == "twinx":
+                    liveax = axx
+                elif twinplots[ylabel] == "twiny":
+                    liveax = axy
+            else:
+                liveax = ax
             try:
                 if plottypes is not None and ylabel in plottypes:
                     lineplot = plottypes[ylabel] == "line"
@@ -459,38 +490,51 @@ class Analysis(object):
                         dargs["label"] = self._format_fit(key)
 
                     self._reset_lineplot(dargs)
-                    ax.plot(allx, self.fits[key]["function"](allx), **dargs)
+                    liveax.plot(allx, self.fits[key]["function"](allx), **dargs)
                 elif lineplot:
                     self._reset_lineplot(dargs)
                     from operator import itemgetter
                     sdata = array(sorted(zip(x,y),key=itemgetter(0)))
-                    ax.plot(sdata[:,0], sdata[:,1], **dargs)
+                    liveax.plot(sdata[:,0], sdata[:,1], **dargs)
                 else:
                     size = dargs["s"]
                     del dargs["s"]
-                    ax.scatter(x, y, s=size, **dargs)
+                    liveax.scatter(x, y, s=size, **dargs)
             except ValueError:
                 msg.err("The values for {} can't be log-plotted.".format(ylabel))
 
         #Set the tick labels font sizes.
-        if fonts is not None and "xticks" in fonts:
-            tfont = self._get_font(dfont, fonts, "xticks")
-            for label in ax.get_xticklabels():
-                label.set_fontproperties(tfont)
-        if fonts is not None and "yticks" in fonts:
-            for label in ax.get_yticklabels():
-                tfont = self._get_font(dfont, fonts, "yticks")
-                label.set_fontproperties(tfont)
+        def tickfonts(fonts, key, labels):
+            if fonts is not None and key in fonts:
+                for label in labels:
+                    tfont = self._get_font(dfont, fonts, key)
+                    label.set_fontproperties(tfont)
+        tickfonts(fonts, "xticks", ax.get_xticklabels())
+        tickfonts(fonts, "yticks", ax.get_yticklabels())
+        if axx is not None:
+            tickfonts(fonts, "x-twin-ticks", axx.get_yticklabels())
+        if axy is not None:
+            tickfonts(fonts, "y-twin-ticks", axy.get_xticklabels())
 
         if ticks is not None and len(ticks) > 0:
             for key in ticks:
                 if "reset" in ticks[key]:
                     ticks[key]["reset"] = ticks[key]["reset"] == "true"
-                ax.tick_params(**ticks[key])
+                if "x-twin" in key:
+                    axx.tick_params(**ticks[key])
+                elif "y-twin" in key:
+                    axy.tick_params(**ticks[key])
+                else:
+                    ax.tick_params(**ticks[key])
 
-        for dim in ["x", "y", "z"]:
+        for dim in ["x", "y", "z", "x-twin", "y-twin"]:
             if limits is not None and dim in limits:
-                getattr(plt, "{}lim".format(dim))(limits[dim])
+                if dim == "x-twin":
+                    axx.set_ylim(limits[dim])
+                elif dim == "y-twin":
+                    axy.set_ylim(limits[dim])
+                else:
+                    getattr(ax, "set_{}lim".format(dim))(limits[dim])
 
         if len(dependents) > 1:
             plt.legend(loc='upper left', prop=self._get_font(dfont, fonts, "legend"))
@@ -739,5 +783,4 @@ class Analysis(object):
         for root, dirs, files in walk(testpath):
             if root.lower() != testpath.lower():
                 result[root.split("/")[-1]] = self._process_test(root, files, fullparse)
-
         self.details = result
