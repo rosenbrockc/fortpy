@@ -187,6 +187,10 @@ class ModuleParser(object):
             if start == 0:
                 start = public.start("methods")
             for item in re.split(r"[\s&\n,]+", methods.strip()):
+                if item.lower() in ["interface", "type", "use"]:
+                    #We have obviously reached the end of the actual public
+                    #declaration in this regex match.
+                    break
                 self._dict_increment(result, item.lower())
         return (result, start)
 

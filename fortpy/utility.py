@@ -161,7 +161,7 @@ def x_parse_error(err, content, source):
         column -= 5
     start = lineno - (1 if lineno == 1 else 2)
     lines = []
-    tcontent = content.replace("<doc>", "").replace("</doc>", "")
+    tcontent = content.replace("<doc>", "").replace("</doc>", "").split('\n')
     for context in IT.islice(tcontent, start, lineno):
         lines.append(context.strip())
     last = wrap_line(lines.pop(), column)
@@ -194,3 +194,24 @@ def XML_fromstring(content, source=None):
     except ET.ParseError as err:
         x_parse_error(err, content, source)
     return tree
+
+def which(program):
+    """Tests whether the specified program is anywhere in the environment
+    PATH so that it probably exists."""
+    import os
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            path = path.strip('"')
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+
+    return None
+

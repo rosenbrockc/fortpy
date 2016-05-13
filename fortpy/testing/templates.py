@@ -285,7 +285,7 @@ class FileLine(object):
         if "overwrite" in self.xml.attrib:
             self.overwrite = self.xml.attrib["overwrite"] == "true"
         if "store" in self.xml.attrib:
-             self._stores = re.split(",\s*", self.xml.attrib["store"])
+             self._stores = re.split(";\s*", self.xml.attrib["store"])
         if "names" in self.xml.attrib:
             #The template allows them to repeat names using a *[int] notation
             #If the same name appears multiple times, the values are grouped
@@ -387,7 +387,9 @@ class FileLine(object):
                 break
 
         #Now that we have determined all the values, we can store the ones
-        #that need to be used later
+        #that need to be used later. We import operator so that the eval()
+        #can work properly.
+        import operator
         if self._stores is not None:
             for s in self._stores:
                 name, target = s.split("=")

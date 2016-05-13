@@ -30,7 +30,7 @@ def _get_compilers():
         complist.append("gfortran")
     return complist
     
-def do_testing():
+def do_testing(args):
     """Runs the unit tests for all the modules in the code directory."""
     from fortpy.msg import set_quiet
     from fortpy.testing.tester import UnitTester
@@ -124,26 +124,27 @@ parser.add_argument("-compileaux", action="store_true",
                     help=("Also compile the fpy_auxiliary.f90 into .o, .mod and .so library. "
                           "Requires -stagedir to be specified."))
 
-#Parse the args from the commandline that ran the script, call initialize
-args = vars(parser.parse_args())
+if __name__ == "__main__":
+    #Parse the args from the commandline that ran the script, call initialize
+    args = vars(parser.parse_args())
 
-#We added this argument for debugging installations. That way we can make changes
-#without doing a pip install each time; just put the path to the repo root in 'pypath'
-if args["pypath"]:
-    import sys
-    sys.path.append(args["pypath"])
+    #We added this argument for debugging installations. That way we can make changes
+    #without doing a pip install each time; just put the path to the repo root in 'pypath'
+    if args["pypath"]:
+        import sys
+        sys.path.append(args["pypath"])
 
-import fortpy
-if args["pypath"]:
-    #Change to unit-testing mode so that we don't compete with the live cache.
-    from fortpy import settings
-    settings.use_test_cache = True
+    import fortpy
+    if args["pypath"]:
+        #Change to unit-testing mode so that we don't compete with the live cache.
+        from fortpy import settings
+        settings.use_test_cache = True
 
-from fortpy import msg
-msg.set_verbosity(args["verbose"])
-    
-testing = not (args["auxiliary"])
-if testing:
-    do_testing()
-elif args["auxiliary"]:
-    do_auxiliary()
+    from fortpy import msg
+    msg.set_verbosity(args["verbose"])
+        
+    testing = not (args["auxiliary"])
+    if testing:
+        do_testing(args)
+    elif args["auxiliary"]:
+        do_auxiliary()

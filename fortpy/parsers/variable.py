@@ -40,6 +40,7 @@ class VariableParser(object):
             #Unfortunately, the dimension can also be specified as a modifier and
             #the dimensions can include variable names and functions. This introduces
             #the possibility of nested lists.
+            modifiers = modifiers.lower()
             if "dimension" in modifiers:
                 start, end = self._get_dim_modifier(modifiers)
                 dimension = modifiers[start+1:end]
@@ -71,7 +72,8 @@ class VariableParser(object):
         for name, ldimension, default, D in self._clean_multiple_def(ready):
             #Now construct the element and set all the values, then add it in the results list.
             udim = ldimension if ldimension is not None else dimension
-            result.append(ValueElement(name, modifiers, dtype, kind, default, udim, parent, D))
+            uD = D if ldimension is not None else count_dimensions([dimension])
+            result.append(ValueElement(name, modifiers, dtype, kind, default, udim, parent, uD))
 
         return result
 
@@ -160,16 +162,6 @@ class VariableParser(object):
             else:
                 return entry.strip()
 
-    def _count_dimensions(self, entry):
-        """Counts the number of dimensions from a nested list of dimension assignments
-        that may include function calls.
-        """
-        result = 0
-        for e in entry:
-            if isinstance(e, str):
-                result += len(e.strip(",").split(","))
-        return result
-
     def _clean_multiple_def(self, ready):
         """Cleans the list of variable definitions extracted from the definition text to
         get hold of the dimensions and default values.
@@ -195,20 +187,24 @@ class VariableParser(object):
             else:
                 #Namedim is a tuple of (name, dimension)
                 name = namedim[0].strip()
-                D = self._count_dimensions(namedim[1])
+                D = count_dimensions(namedim[1])
                 dimension = self._collapse_default(namedim[1])
 
             result.append((name, dimension, default, D))
         return result        
 
-    def _get_dim_modifier(self, modifiers):
+    def _get_dim_modifier(self, modifiers, dimstring=None):
         """Extracts the dimension information from the string of modifiers extracted by
         the regex.
         
         :arg modifiers: the list of modifiers identified by the regex.
         """
-        suffix = modifiers.split("dimension")[1]
-        start = modifiers.index("dimension") + len("dimension")
+        if dimstring is None:
+            suffix = modifiers.split("dimension")[1]
+            start = modifiers.index("dimension") + len("dimension")
+        else:
+            suffix = dimstring
+            start = 0
         
         #We use a stack to monitor how many parenthesis we have traversed in the string.
         #Once we reach the closing parenthesis, we know that we have the dimension info.
@@ -223,3 +219,14 @@ class VariableParser(object):
                     #The last entry in args should be the indices of the entire
                     #dimension expression once the very first '(' has its twin found.
                     return args[-1]
+               
+def count_dimensions(entry):
+    """Counts the number of dimensions from a nested list of dimension assignments
+    that may include function calls.
+    """
+    result = 0
+    for e in entry:
+        if isinstance(e, str):
+            sliced = e.strip(",").split(",")
+            result += 0 if len(sliced) == 1 and sliced[0] == "" else len(sliced)
+    return result

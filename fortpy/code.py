@@ -396,7 +396,7 @@ class CodeParser(object):
         """
         symbols = symbolstr.split("%")
         base, basemod = self.tree_find(basetype, origin, "types")
-
+        
         #As long as we keep finding child objects, we can continue
         #until we run out of symbols in the list
         i = 1
@@ -495,6 +495,9 @@ class CodeParser(object):
     def get(self, name):
         """Gets the module with the given name if it exists in
         this code parser."""
+        if name not in self.modules:
+            self.load_dependency(name, False, False, False)
+
         if name in self.modules:
             return self.modules[name]
         else:

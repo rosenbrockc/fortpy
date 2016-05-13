@@ -6,17 +6,12 @@ class DocGroup(object):
     def __init__(self, XMLElement, decorates = None):
         self.xml = XMLElement
         self.decorates = decorates
-        self.attributes = {}
+        self.attributes = self.xml.attrib
         self.doctype = "group"
 
-        #Extract all the attributes of the group into a dictionary
-        for key in list(self.xml.keys()):
-            self.attributes[key] = self.xml.get(key)
-            
     def __str__(self):
         return "GROUP: {}\nAttributes: {}\nDecorates: {}\n".format(self.name,
                                                                 self.attributes, self.decorates)
-
     @property
     def name(self):
         """Gets the name of this group if it exists."""

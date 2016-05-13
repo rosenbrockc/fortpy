@@ -115,12 +115,16 @@ class DictResult(object):
         if self.outcomes.can_ignore(self.label):
             return 1
         else:
-            total = self._ignore_total(self.dict1) + self._ignore_total(self.dict2)
+            #This is the total number of dictionary entries that can *not* be ignored.
+            intersect = set(self.dict1.keys()).intersection(set(self.dict2.keys()))
+            total = self._ignore_total(intersect)
+            #This is how many of the keys that actually had the same values cannot be ignored.
             common = self._ignore_total(self._matched)
             if total == 0 and common == 0:
+                #Everything was told to be ignored, so this is a perfect match!
                 return 1
             else:
-                return float(2 * common) / total
+                return float(common) / total
 
     @property
     def common_match(self):
@@ -289,10 +293,14 @@ class BlockResult(object):
 
 class BodyResult(object):
     """The result of comparing all the body entries using the template."""
-    def __init__(self, body1, body2):
+    def __init__(self, rep1, rep2):
         self.blocks = {}
         self.only1 = {}
         self.only2 = {}
+        self.rep1 = rep1
+        self.rep2 = rep2
+        """Pointer to the parent file representation that has template information.
+        """
 
     def __str__(self):
         return print_body_result(self)
@@ -418,8 +426,33 @@ def print_body_result(result, verbose = False):
         if result.blocks[block].common_match < 1:
             lines.append(print_block_result(result.blocks[block], True, verbose))
 
+    lines.extend(print_body_onlys(result.only1, result.rep1, 1, verbose))
+    lines.append('\n')
+    lines.extend(print_body_onlys(result.only2, result.rep2, 2, verbose))
+            
     return "\n".join(lines)
 
+def print_body_onlys(only, rep, i, verbose=False):
+    """Returns a string representation of those entries in the body that were in only one
+    or the other, but not both.
+    """
+    lines = []
+    if len(only) > 0:
+        lines.append("ENTRIES ONLY IN FILE {}\n".format(i))
+        for key, block in only.items():
+            for lineid, linevals in block.items():
+                for lineval in linevals:
+                    for vkey in sorted(lineval.named.keys()):
+                        compkey = "{}.{}".format(lineid, vkey)
+                        if isinstance(rep.template.key, list):
+                            add = compkey in rep.template.key
+                        else:
+                            add = compkey == rep.template.key
+                        if add:
+                            lines.append("{}: {}".format(vkey, str(lineval.named[vkey])))
+                    lines.append("")
+    return lines
+                        
 def print_block_result(result, separator = True, verbose=False):    
     """Returns a string representation of the block result."""
     lines = []

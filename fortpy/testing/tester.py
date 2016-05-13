@@ -501,7 +501,8 @@ class UnitTester(object):
         :arg profile: the value specified in the UnitTester constructor.
         """
         if profile==True:
-            gprof = self.which("gprof")
+            from fortpy.utility import which
+            gprof = which("gprof")
             if gprof is None:
                 msg.err("gprof is required to run profiling with fortpy.")
                 exit(1)
@@ -529,30 +530,11 @@ class UnitTester(object):
         else:
             compiler = self.compiler
 
-        if self.which(compiler) is None:
+        from fortpy.utility import which
+        if which(compiler) is None:
             msg.err("compiler {} not found. Exiting.".format(self.compiler))
             exit(1)
         
-    def which(self, program):
-        """Tests whether the specified program is anywhere in the environment
-        PATH so that it probably exists."""
-        import os
-        def is_exe(fpath):
-            return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
-
-        fpath, fname = os.path.split(program)
-        if fpath:
-            if is_exe(program):
-                return program
-        else:
-            for path in os.environ["PATH"].split(os.pathsep):
-                path = path.strip('"')
-                exe_file = os.path.join(path, program)
-                if is_exe(exe_file):
-                    return exe_file
-
-        return None
-
     def writeall(self, codefolder):
         """Writes all the unit test executables that are new or modified
         as well as the makefiles for all subroutines in all modules."""
@@ -750,7 +732,8 @@ class UnitTester(object):
 
         #Copy across all the input files we need to run.
         for i in testspec.inputs:
-            i.copy(self._codefolder, testpath, case, self.compiler)
+            i.copy(self._codefolder, testpath, case, self.compiler,
+                   self.tgenerator.xgenerator.libraryroot)
         #Also copy any assignment file dependencies.
         testwriter.copy(self._codefolder, testpath, case, testspec.identifier, self.compiler)
         #Clean the testing folder to remove any target variable output files

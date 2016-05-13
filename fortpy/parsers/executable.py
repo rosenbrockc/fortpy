@@ -1,6 +1,6 @@
 from .. import msg
 import re
-from ..elements import Subroutine, Function, Dependency, Executable, Module
+from ..elements import Subroutine, Function, Dependency, Executable, Module, TypeExecutable
 import pyparsing
 
 class ExecutableParser(object):
@@ -43,10 +43,10 @@ class ExecutableParser(object):
         self._RX_DEPEND = r"^\s*(?P<sub>call\s+)?(?P<exec>[a-z0-9_%]+\s*\([^\n]+)$"
         self.RE_DEPEND = re.compile(self._RX_DEPEND, re.M | re. I)
 
-        self._RX_DEPCLEAN = r"(?P<key>[a-z0-9_]+)\("
+        self._RX_DEPCLEAN = r"(?P<key>[a-z0-9_%]+)\("
         self.RE_DEPCLEAN = re.compile(self._RX_DEPCLEAN, re.I)
 
-        self._RX_CONST = '[^"]+(?P<const>"[^"]+")'
+        self._RX_CONST = '[^"\']+(?P<const>["\'][^\'"]+["\'])'
         self.RE_CONST = re.compile(self._RX_CONST)
 
         self._RX_COMMENTS = r'\s*![^\n"]+?\n'
@@ -223,8 +223,8 @@ class ExecutableParser(object):
         #Fortran allows lines to be continued using &. The easiest way
         #to deal with this is to remove all of those before processing
         #any of the regular expressions
-        cleaned = re.sub("&\s*", "", contents)
-        decommented = "\n".join([ l.split("!")[0] for l in cleaned.split("\n") ])
+        decommented = "\n".join([ self._depend_exec_clean(l) for l in contents.split("\n") ])
+        cleaned = re.sub("&\s*", "", decommented)
 
         #Finally, process the dependencies. These are calls to functions and
         #subroutines from within the executable body
@@ -280,7 +280,7 @@ class ExecutableParser(object):
 
             if not "::" in execline:
                 try:
-                    dependent = self.nester.parseString(execline).asList()[0]           
+                    dependent = self.nester.parseString(execline).asList()[0]
                 except:
                     msg.err("parsing executable dependency call {}".format(anexec.name))
                     msg.gen("\t" + execline)
@@ -301,7 +301,7 @@ class ExecutableParser(object):
             newstr = string.replace("!", "_FORTPYEX_")
             unquoted = unquoted.replace(string, newstr)
 
-        requote = unquoted.split("!")[0].replace("_FORTPYDQ", '""').replace("_FORTPYSQ_", "''")
+        requote = unquoted.split("!")[0].replace("_FORTPYDQ_", '""').replace("_FORTPYSQ_", "''")
         result = "(" + requote.replace("_FORTPYEX_", "!").replace(",", ", ") + ")"
         return result
 
@@ -378,10 +378,14 @@ class ExecutableParser(object):
                 ftype = anexec.parameters[base].kind
 
             if ftype is not None:
-                end = anexec.parent.type_search(ftype, key)
-                if end is not None and isinstance(end, Executable):
-                    d = Dependency(dependlist[i], dependlist[i + 1], isSubroutine, anexec)
+                end = anexec.module.type_search(ftype, key)
+                if end is not None and isinstance(end, TypeExecutable):
+                    #We have to overwrite the key to include the actual name of the type
+                    #that is being referenced instead of the local name of its variable.
+                    tname = "{}%{}".format(ftype, '%'.join(key.split('%')[1:]))
+                    d = Dependency(tname, dependlist[i + 1], isSubroutine, anexec)
                     anexec.add_dependency(d)
+                    
         elif lkey not in ["for", "forall", "do"]:
             #This is a straight forward function/subroutine call, make sure that
             #the symbol is not a local variable or parameter, then add it

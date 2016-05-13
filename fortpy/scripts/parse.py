@@ -64,6 +64,3 @@ if args["verbose"]:
     msg.set_verbosity(args["verbose"])
     
 cparser = parse()
-e=cparser.modules["derivative_structure_generator"].executables["get_dvector_permutations"]
-i = e.dependencies["map_dvector_permutation"][0].argnames.index("drplist%perm")
-print(e.changed("drplist%perm"))
