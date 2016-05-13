@@ -520,24 +520,24 @@ class Analysis(object):
             for key in ticks:
                 if "reset" in ticks[key]:
                     ticks[key]["reset"] = ticks[key]["reset"] == "true"
-                if "x-twin" in key:
+                if "x-twin" in key and axx is not None:
                     axx.tick_params(**ticks[key])
-                elif "y-twin" in key:
+                elif "y-twin" in key and axy is not None:
                     axy.tick_params(**ticks[key])
                 else:
                     ax.tick_params(**ticks[key])
 
         for dim in ["x", "y", "z", "x-twin", "y-twin"]:
             if limits is not None and dim in limits:
-                if dim == "x-twin":
+                if dim == "x-twin" and axx is not None:
                     axx.set_ylim(limits[dim])
-                elif dim == "y-twin":
+                elif dim == "y-twin" and axy is not None:
                     axy.set_ylim(limits[dim])
-                else:
+                elif "-" not in dim:
                     getattr(ax, "set_{}lim".format(dim))(limits[dim])
 
         if len(dependents) > 1:
-            plt.legend(loc='upper left', prop=self._get_font(dfont, fonts, "legend"))
+            plt.legend(loc='upper right', prop=self._get_font(dfont, fonts, "legend"))
         if savefile is None:
             plt.show(block=False)
         else:
@@ -601,7 +601,7 @@ class Analysis(object):
             row = []
             for col in range(len(data)):
                 if i < len(data[col]):
-                    row.append(print_value(data[col][i]))
+                    row.append(str(print_value(data[col][i])))
                     done = False
                 else:
                     row.append(' '*17)

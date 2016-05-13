@@ -440,7 +440,10 @@ class FortpyShell(cmd.Cmd):
                 rest = value
             if "|" in rest:
                 var, prop = rest.split("|")
-                return ["{}|{}".format(var, p) for p in self._complete_props(var, prop)]
+                if wfilter:
+                    return ["{}/{}|{}".format(filt, var, p) for p in self._complete_props(var, prop)]
+                else:
+                    return ["{}|{}".format(var, p) for p in self._complete_props(var, prop)]
             else:
                 if wfilter:
                     return ["{}/{}".format(filt, v) for v in self._complete_vars(rest)]
@@ -525,8 +528,6 @@ class FortpyShell(cmd.Cmd):
         else:
             if var in self.curargs["dependents"]:
                 self.curargs["dependents"].remove(var)
-            if var in self.curargs["plottypes"]:
-                del self.curargs["plottypes"][var]
             self.curargs["dependents"].append(var)
             if plot is not None:
                 self.curargs["plottypes"][var] = plot
@@ -575,6 +576,19 @@ class FortpyShell(cmd.Cmd):
         for arg in args.split():
             if arg in self.curargs["dependents"]:
                 self.curargs["dependents"].remove(arg)
+            if arg in self.curargs["plottypes"]:
+                del self.curargs["plottypes"][arg]
+            if arg in self.curargs["twinplots"]:
+                del self.curargs["twinplots"][arg]
+            if arg in self.curargs["colors"]:
+                del self.curargs["colors"][arg]
+            if arg in self.curargs["labels"]:
+                del self.curargs["labels"][arg]
+            if arg in self.curargs["markers"]:
+                del self.curargs["markers"][arg]
+            if arg in self.curargs["lines"]:
+                del self.curargs["lines"][arg]
+                
     def complete_rmdep(self, text, line, istart, iend):
         els = line.split()
         if len(els) == 1:
@@ -1143,30 +1157,60 @@ class FortpyShell(cmd.Cmd):
         """Creates a new analysis group with unique settings for plotting/tabulating etc.
         or switches the active group to the specified name.
         """
-        if arg == "":
-            msg.err("Can't switch to empty group {}.")
+        from copy import deepcopy
+        vals = arg.split()
+        if len(vals) == 0 or vals[0] not in ["list", "duplicate", "add", "switch", "remove"]:
+            self.help_group()
             return
-        elif arg not in self.args[self.active]:
-            self.args[self.active][arg] = dict(self._template_args)
-            msg.okay("Created analysis group '{}'.".format(arg))
 
-        self.group = arg
-        self._set_def_prompt()
+        if vals[0] == "add":
+            if vals[1] not in self.args[self.active]:
+                self.args[self.active][vals[1]] = self._template_args.copy()
+                msg.okay("Created analysis group '{}'.".format(vals[1]))
+                self.do_group("switch {}".format(vals[1]))
+            else:
+                msg.info("Group '{}' already exists. Switching to it.".format(vals[1]))
+                self.do_group("switch {}".format(vals[1]))
+        elif vals[0] == "switch":
+            if vals[1] in self.args[self.active]:
+                self.group = vals[1]
+                self._set_def_prompt()
+            else:
+                msg.warn("The group '{}' does not exist.".format(vals[1]))
+        elif vals[0] == "duplicate" and len(vals) == 3 and vals[1] in self.args[self.active]:
+            self.args[self.active][vals[2]] = deepcopy(self.args[self.active][vals[1]])
+            msg.okay("Duplicated analysis group '{}' into '{}'.".format(vals[1], vals[2]))
+            self.do_group("switch {}".format(vals[2]))
+        elif vals[0] == "list":
+            for key in self.args[self.active]:
+                msg.info(key)
+        elif vals[0] == "remove" and vals[1] in self.args[self.active]:
+            del self.args[self.active][vals[1]]
+            self.do_group("list")
+            
     def complete_group(self, text, line, istart, iend):
-        if text == "":
-            return list(self.args[self.active].keys())
-        else:
-            return [k for k in self.args[self.active] if k.startswith(text)]
+        els = line.split()
+        options = ["list", "duplicate", "add", "switch", "remove"]
+        if len(els) == 1:
+            return options
+        elif len(els) == 2 and line[-1] != " ":
+            return [o for o in options if o.startswith(text)]
+        elif len(els) == 3 or (len(els) == 2 and line[-1] == " "):
+            if text == "":
+                return list(self.args[self.active].keys())
+            else:
+                return [k for k in self.args[self.active] if k.startswith(text)]
     def help_group(self):
-        lines = [("Adds a new analysis group to the session. If the group already exists "
-                  "it is merely switched to be the active group. When a new group is "
+        lines = [("Adds/duplicates/switches the active analysis group. When a new group is "
                   "created, it gets a new set of default variables and properties that "
                   "can be set independently of any other analysis groups in the session. "
                   "Groups are most useful for defining multiple plots that can be made from "
                   "the test cases of a single unit test."),
-                 ("EXAMPLE: \"group newplot\" creates a new analysis group called 'newplot' that "
+                 ("EXAMPLE: \"group add newplot\" creates a new analysis group called 'newplot' that "
                   "has its own set of plot properties. All the variables (independent and "
-                  "dependent) have to be set since a new group is completely blank.")]
+                  "dependent) have to be set since a new group is completely blank."),
+                 ("EXAMPLE: \"group duplicate default copy\" creates an identical copy of the "
+                  "variables in the 'default' group under the new group name 'copy'.")]
         self._fixed_width_info(lines)
 
     def _make_fits(self):
@@ -1368,22 +1412,22 @@ class FortpyShell(cmd.Cmd):
         self.lasterr = '\n'.join(format_exception(e[0], e[1], e[2]))
 
     def cmdloop(self):
-#        try:
-        cmd.Cmd.cmdloop(self)
-        # except Exception as exsimple:
-        #     msg.err(exsimple.message)
-        #     self._store_lasterr()
-        #     if self._errcount < self._maxerr:
-        #         self._errcount += 1
-        #         msg.err("The shell has caught {} unhandled exceptions so far.\n".format(self._errcount) + 
-        #                 "When that value reaches {}, the shell will save a ".format(self._maxerr) + 
-        #                 "recovery file and exit.")
-        #         self.postloop()
-        #         self.cmdloop()
-        #     else:
-        #         self.do_save("#fortpy.shell#")
-        #         msg.err("Something unexpected happened. The shell has died. Your session "
-        #                 "has been saved as '#fortpy.shell#' in the current directory.")
+        try:
+            cmd.Cmd.cmdloop(self)
+        except Exception as exsimple:
+            msg.err(exsimple.message)
+            self._store_lasterr()
+            if self._errcount < self._maxerr:
+                self._errcount += 1
+                msg.err("The shell has caught {} unhandled exceptions so far.\n".format(self._errcount) + 
+                        "When that value reaches {}, the shell will save a ".format(self._maxerr) + 
+                        "recovery file and exit.")
+                self.postloop()
+                self.cmdloop()
+            else:
+                self.do_save("#fortpy.shell#")
+                msg.err("Something unexpected happened. The shell has died. Your session "
+                        "has been saved as '#fortpy.shell#' in the current directory.")
 
     def precmd(self, line):
         """Makes sure that the command specified in the line is valid given the current
