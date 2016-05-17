@@ -378,7 +378,7 @@ class ExecutableParser(object):
                 ftype = anexec.parameters[base].kind
 
             if ftype is not None:
-                end = anexec.parent.type_search(ftype, key)
+                end = anexec.module.type_search(ftype, key)
                 if end is not None and isinstance(end, TypeExecutable):
                     #We have to overwrite the key to include the actual name of the type
                     #that is being referenced instead of the local name of its variable.
