@@ -123,12 +123,6 @@ class LineGroup(object):
         self.line_counts = None
         """List of integer line counts, one for each FileLine in self.lines.
         """
-        self.gcount = None
-        """Number of times to repeat this group for the current file.
-        """
-        self._total_count = None
-        """The total number of times to repeat this group.
-        """
         self._line_cum = None
         """Cumulative number of times to use each FileLine. Makes it easier to
         pick which one we should be using.
@@ -139,11 +133,8 @@ class LineGroup(object):
 
         :arg counts: a list of integer values, one for each FileLine in self.lines.
         """
-        if self.line_counts is None:
-            self.line_counts = counts
-            self.gcount = gcount
-            self._total_count = sum(lcounts)*gcount
-            self._line_cum = [sum(a[0:i]) for i in range(1, len(self.lines))]
+        self.line_counts = counts
+        self._line_cum = [sum(a[0:i]) for i in range(1, len(self.lines))]
 
     def parse(self, line, i):
         """Parses the specified line using the relevant FileLine object, based on the global line
@@ -152,14 +143,7 @@ class LineGroup(object):
         #i is zero-based. However, once we reach sum(self.line_counts), we need to repeat
         #the line templates again. igroup is the index within the group (instead of global).
         igroup = i % sum(self.line_counts)
-        iline = [0 if c < i else 1 for c in cumsum].index(1)
-
-        if i == (self._total_count-1):
-            #Reset the counts so that they can be updated for the next file
-            #that needs to be represented with this template.
-            self.line_counts = None
-            self.gcount = None
-
+        iline = [0 if c < i else 1 for c in self._line_cum].index(1)
         return self.lines[iline].parse(line)
                 
 class FileLine(object):

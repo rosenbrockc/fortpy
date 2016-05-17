@@ -15507,9 +15507,11 @@ contains
   !!<summary>Returns the number of lines in the file that aren't comments and
   !!the number of whitespace-separated values on the first non-comment line.</summary>
   !!<parameter name="filename">The name of the file to pass to open.</parameter>
-  !!<parameter name="n">The number of characters in 'filename'.</parameter>
   !!<parameter name="commentchar">A single character which, when present at the start
   !!of a line designates it as a comment.</parameter>
+  !!<parameter name="nlines">Number of lines discovered in the file.</parameter>
+  !!<parameter name="nvalues">Number of values in the first line of the file.</parameter>
+  !!<parameter name="ischar">Are we counting lines and values for a character-valued file.</parameter>
   subroutine fpy_linevalue_count(filename, commentchar, nlines, nvalues, ischar)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
