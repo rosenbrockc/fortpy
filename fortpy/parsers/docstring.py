@@ -303,9 +303,9 @@ class DocStringParser(object):
                         anexec.parameters[doc.pointsto].overwrite_docs(doc)
                 else: 
                     #the parameter docstring is orphaned, give a warning.
-                    wmsg = "the docstring for parameter '{}' had no corresponding " + \
-                          "parameter in the executable definition for '{}'."
-                    msg.warn(wmsg.format(doc.pointsto, anexec))
+                    wmsg = ("the docstring for parameter '{}' had no corresponding "
+                            "parameter in the executable definition for '{}' ({}).")
+                    msg.warn(wmsg.format(doc.pointsto, anexec.name, anexec.module.filepath))
             elif doc.doctype == "group":
                 if "name" not in doc.attributes:
                     doc.attributes["name"] = "default"
