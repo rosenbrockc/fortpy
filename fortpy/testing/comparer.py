@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 import re
 import os
 from .results import CompareResult, BodyResult, BlockResult, CompatibilityResult, ListResult
-from .templates import FileTemplate
+from .templates import FileTemplate, LineGroup
 
 class FileRepresentation(object):
     """The python-valued representation of a templated file.
@@ -143,15 +143,23 @@ class FileRepresentation(object):
         stored = {}
         for line in body:
             count = self._get_line_count(line, stored)
+            if isinstance(line, LineGroup):
+                lcounts = [self._get_line_count(gline, stored) for gline in line.lines]
+                line.update_counts(lcounts)
+                count = count*sum(lcounts)
+                
             if count == 0:
                 #We don't want to read anything in, just keep moving along.
                 continue
-            
+
             lineres = []
             for i in range(count):
                 #If the output file doesn't have enough lines, we can't compare the files.
                 if l + i < len(self.clean):
-                    values = line.parse(self.clean[l + i])
+                    if isinstance(line, LineGroup):
+                        values = line.parse(self.clean[l + i], i)
+                    else:
+                        values = line.parse(self.clean[l + i])
                     lineres.append(values)
                     #If the result stored any values, we need to make those publicly
                     #available to future lines.
