@@ -192,7 +192,7 @@ class MethodWriter(object):
                 insert = True
                 keywords = ["type", "interface", "contains"]
                 for line in contents[module.public_linenum[0]::]:
-                    lline = line.lower()
+                    lline = line.lower().strip()
                     if anexec.name.lower() in lline:
                         insert = False
                         break

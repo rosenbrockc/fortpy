@@ -6,6 +6,9 @@
 - Fixed issue #74.
 - Added enhancement #73; it reduced the number of lines in the `bcs/bcs.xml` file by 30%.
 - Fixed issue #77.
+- Fixed issue #82.
+- Fixed issue #84.
+- Added enhancements to the unit test analysis shell to allow twin-axis plots.
 
 ## Revision 1.7.3
 

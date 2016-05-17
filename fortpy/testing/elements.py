@@ -308,7 +308,8 @@ class GlobalDeclaration(object):
     def _kind_check(self, element):
         """Checks whether the kind declaration of the element matches this global."""
         if ("kind" not in self.attributes and "kind" not in element.attributes) or \
-           (self.attributes["kind"].lower() == element.attributes["kind"].lower()):
+           ("kind" in self.attributes and "kind" in element.attributes
+            and self.attributes["kind"].lower() == element.attributes["kind"].lower()):
             return True
         else:
             return False
@@ -415,7 +416,7 @@ class GlobalDeclaration(object):
         if "modifiers" in self.attributes:
             mods = re.split(",\s*", self.attributes["modifiers"])
             smods = self._clean_mods(mods)
-            if dimalloc:
+            if dimalloc and "allocatable" not in smods and "pointer" not in smods:
                 smods += (", " if len(smods) > 0 else "") + "allocatable"
         else:
             smods = ""

@@ -46,7 +46,7 @@ class ExecutableParser(object):
         self._RX_DEPCLEAN = r"(?P<key>[a-z0-9_%]+)\("
         self.RE_DEPCLEAN = re.compile(self._RX_DEPCLEAN, re.I)
 
-        self._RX_CONST = '[^"]+(?P<const>"[^"]+")'
+        self._RX_CONST = '[^"\']+(?P<const>["\'][^\'"]+["\'])'
         self.RE_CONST = re.compile(self._RX_CONST)
 
         self._RX_COMMENTS = r'\s*![^\n"]+?\n'
@@ -223,8 +223,8 @@ class ExecutableParser(object):
         #Fortran allows lines to be continued using &. The easiest way
         #to deal with this is to remove all of those before processing
         #any of the regular expressions
-        cleaned = re.sub("&\s*", "", contents)
-        decommented = "\n".join([ l.split("!")[0] for l in cleaned.split("\n") ])
+        decommented = "\n".join([ self._depend_exec_clean(l) for l in contents.split("\n") ])
+        cleaned = re.sub("&\s*", "", decommented)
 
         #Finally, process the dependencies. These are calls to functions and
         #subroutines from within the executable body
@@ -301,7 +301,7 @@ class ExecutableParser(object):
             newstr = string.replace("!", "_FORTPYEX_")
             unquoted = unquoted.replace(string, newstr)
 
-        requote = unquoted.split("!")[0].replace("_FORTPYDQ", '""').replace("_FORTPYSQ_", "''")
+        requote = unquoted.split("!")[0].replace("_FORTPYDQ_", '""').replace("_FORTPYSQ_", "''")
         result = "(" + requote.replace("_FORTPYEX_", "!").replace(",", ", ") + ")"
         return result
 
