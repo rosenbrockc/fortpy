@@ -101,11 +101,13 @@ class OutcomeTester(object):
     :arg comparer: an instance of FileComparer to compare output files
       to the model ones.
     """
-    def __init__(self, testspec, codefolder, comparer, verbose):
+    def __init__(self, testspec, codefolder, comparer, verbose, compiler):
         self.testspec = testspec
         self.codefolder = codefolder
         self.comparer = comparer
         self.verbose = verbose
+        self.compiler = compiler
+        """Active compiler for the current test whose outcome is being run."""
         
     def test(self, caseid, xresult, uresult):
         """Checks the output of the execution for the specified test specification.
@@ -179,7 +181,7 @@ class OutcomeTester(object):
         #Luckily, there are no nested folders, the files are saved linearly and
         #the filenames contain the recursive complexity of the variable.
         from os import walk, path, mkdir
-        modelpath = outvar.abspath(coderoot, caseid)
+        modelpath = outvar.abspath(coderoot, caseid, self.compiler)
         mfiles = []
         xfiles = []
         for (dirpath, dirnames, filenames) in walk(modelpath):
@@ -265,7 +267,7 @@ class OutcomeTester(object):
         """
         #First get the comparison results, then analyze them using the tolerances
         #etc. from the doctag.
-        targetpath = outvar.abspath(coderoot, caseid)
+        targetpath = outvar.abspath(coderoot, caseid, self.compiler)
         result = self.comparer.compare(exepath, targetpath, outvar.template, outvar.mode)
 
         #Write the results out to file as a record. If the result is none create
@@ -307,7 +309,7 @@ class OutcomeTester(object):
             exe = path.join(exefolder, target.varfile)
 
         if outvar.filemode:
-            abspath = outvar.abspath(self.codefolder, caseid)
+            abspath = outvar.abspath(self.codefolder, caseid, self.compiler)
             exists = ((not outvar.autoclass and path.isfile(abspath)) or
                       (outvar.autoclass and path.isdir(abspath)))
             if not exists:
@@ -702,7 +704,7 @@ class UnitTester(object):
         """
         #We can use the same outcome tester afterwards for all of the cases.
         tester = OutcomeTester(testspec, self._codefolder, self.comparer, 
-                               self.parser.verbose)
+                               self.parser.verbose, self.compiler)
 
         #The execution can either be case-based or once-off.
         if testspec.cases is not None:

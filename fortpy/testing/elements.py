@@ -2365,7 +2365,7 @@ class TestOutput(object):
         a file (as opposed to a hard-coded value)."""
         return (self.value == None)
 
-    def abspath(self, coderoot, caseid=""):
+    def abspath(self, coderoot, caseid="", compiler=None):
         """Returns the absolute path to the output file referenced by this
         output comparison specifier.
 
@@ -2375,19 +2375,26 @@ class TestOutput(object):
         """
         #The caseid is the "testid.case". We only want the 'case' part of it
         from fortpy.tramp import coderelpath
+        from fortpy.testing.compilers import replace
         relpath = coderelpath(coderoot, self.folder)
-
         if caseid != "":
             case = caseid.split(".")[-1]
             if self.autoclass:
-                return relpath.format(case)
+                formpath = relpath.format(case)
             else:
-                return path.join(relpath, self.filename.format(case))
+                formpath = path.join(relpath, self.filename.format(case))
         else:
             if self.autoclass:
-                return relpath
+                formpath = relpath
             else:
-                return path.join(relpath, self.filename)
+                formpath = path.join(relpath, self.filename)
+
+        #Finally, replace the compiler attributes [c] and [f] for the file path.
+        if compiler is not None:
+            cpath = replace(formpath, compiler)
+            return replace(formpath, compiler, True)
+        else:
+            return formpath
 
     def _parse_attributes(self):
         """Extracts output comparsion related attributes from the xml tag."""
