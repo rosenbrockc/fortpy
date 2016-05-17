@@ -1391,7 +1391,7 @@ class AssignmentValue(object):
             if ("pointer" in modifiers and "fvar" not in varname):
                 flines.append(fmtstr.format("_p", rtname, self.commentchar, varname))
             elif ("allocatable" not in modifiers and "fvar" not in varname and D > 0 and
-                  not re.match("[\w]+", dimensions)):
+                  not re.match("[A-Za-z]+", dimensions)):
                 flines.append(fmtstr.format("_f", rtname, self.commentchar, varname))
             else:
                 flines.append(fmtstr.format("", rtname, self.commentchar, varname))
@@ -2318,7 +2318,7 @@ class TestInput(object):
         """
         for child in self.xml:
             if child.tag == "line":
-                self.line = FileLine(child)
+                self.line = FileLine(child, None)
                 break
 
 class TestOutput(object):

@@ -351,8 +351,11 @@ class FileLine(object):
 
             for j in loop:
                 if k >= len(raw):
-                    emsg = "Specified known value index '{}/{}' exceeds line value count ({}). Using template '{}'."
-                    msg.err(emsg.format(k, len(loop)-1, raw, self.parent.filepath))
+                    if self.parent is not None:
+                        emsg = "Specified known value index '{}/{}' exceeds line value count ({}). Using template '{}'."
+                        msg.err(emsg.format(k, len(loop)-1, raw, self.parent.filepath))
+                    else:
+                        msg.err("Specified known value index '{}/{}' exceeds line value count ({}).".format(k, len(loop)-1, raw))
                 val = raw[k]
                 dtype = self.dtypes[i]
                 try:
