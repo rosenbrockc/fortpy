@@ -214,7 +214,8 @@ class ModuleParser(object):
 
         #We can now create the CodeElement
         result = Module(name, modifiers, dependencies, publics, contents, parent)
-        result.filepath = filepath.lower()
+        if filepath is not None:
+            result.filepath = filepath.lower()
         result.start = match.start()
         result.end = match.end()
         result.refstring = match.string

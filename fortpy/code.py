@@ -186,6 +186,10 @@ class CodeParser(object):
             #list. Find out when it was last modified.
             module_mtime = None
             if fname in self._modulefiles:
+                if len(self._modulefiles[fname]) == 0:
+                    msg.warn("Module file {} has no modules defined inside of it!".format(fname))
+                    return None
+                
                 modulename = self._modulefiles[fname][0]
                 if modulename in self.modules:
                     #Make sure that if there are modules with the same name but different

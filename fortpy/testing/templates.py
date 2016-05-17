@@ -169,10 +169,12 @@ class FileLine(object):
     :attr compatibility: a dictionary that maps variable names in one version
       to different names in another version of the template.
     """
-    def __init__(self, element):
+    def __init__(self, element, parent):
         self.xml = element
         self.compatibility = {}
         self.defaults = {}
+        self.parent = parent
+        """The FileTemplate that this FileLine belongs to."""
 
         #Overwrite makes the default values get used *even if* a value was
         #specified in the dictionary for write mode.
@@ -409,6 +411,12 @@ class FileLine(object):
             current = []
 
             for j in loop:
+                if k >= len(raw):
+                    if self.parent is not None:
+                        emsg = "Specified known value index '{}/{}' exceeds line value count ({}). Using template '{}'."
+                        msg.err(emsg.format(k, len(loop)-1, raw, self.parent.filepath))
+                    else:
+                        msg.err("Specified known value index '{}/{}' exceeds line value count ({}).".format(k, len(loop)-1, raw))
                 val = raw[k]
                 dtype = self.dtypes[i]
                 try:
@@ -834,7 +842,7 @@ class FileTemplate(object):
         for child in element:
             versions = xml_get_versions(child)
             if (child.tag == "line" or child.tag == "lines") and "id" in child.attrib:
-                fline = FileLine(child)
+                fline = FileLine(child, self)
             elif child.tag == "group":
                 fline = LineGroup(child)
             else:
