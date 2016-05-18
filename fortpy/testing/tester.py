@@ -712,10 +712,11 @@ class UnitTester(object):
             #We need to run the executable multiple times, once for each case
             #Each case has input files specified relative to the code folder.
             from tqdm import tqdm
-            pbar = tqdm(testspec.cases)
+            pbar = tqdm(testspec.cases) if not self.quiet else testspec.cases
             for case in pbar:
                 caseid = "{}.{}".format(testspec.identifier, case)
-                pbar.set_description("Case {}".format(case))
+                if not self.quiet:
+                    pbar.set_description("Case {}".format(case))
                 if not caseid in result.cases:
                     #Make a separate directory for the case and copy all its inputs.
                     casepath = path.join(testsfolder, caseid)
