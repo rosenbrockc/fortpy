@@ -33,6 +33,7 @@ setup(name='Fortpy',
           "numpy",
           "matplotlib",
           "scipy",
+          "tqdm"
       ],
       packages=['fortpy', 'fortpy.parsers', 'fortpy.isense', 'fortpy.testing',
                 'fortpy.templates', 'fortpy.interop',

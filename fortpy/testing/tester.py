@@ -707,11 +707,15 @@ class UnitTester(object):
                                self.parser.verbose, self.compiler)
 
         #The execution can either be case-based or once-off.
+        msg.okay("Executing {}.x in {}".format(testspec.identifier, testsfolder))
         if testspec.cases is not None:
             #We need to run the executable multiple times, once for each case
             #Each case has input files specified relative to the code folder.
-            for case in testspec.cases:
+            from tqdm import tqdm
+            pbar = tqdm(testspec.cases)
+            for case in pbar:
                 caseid = "{}.{}".format(testspec.identifier, case)
+                pbar.set_description("Executing {}".format(case))
                 if not caseid in result.cases:
                     #Make a separate directory for the case and copy all its inputs.
                     casepath = path.join(testsfolder, caseid)
@@ -750,13 +754,10 @@ class UnitTester(object):
         
         #Save the path to the folder for execution in the result.
         result.paths[caseid] = testpath
-
-        msg.okay("Executing {}.x in folder ./tests{}".format(testspec.identifier, 
-                                                             testpath.split("tests")[1]))
         start_time = clock()                              
         from os import waitpid
         from subprocess import Popen, PIPE
-        command = "cd {}; {}".format(testpath, exepath)
+        command = "cd {}; {} > .fpy.x.out".format(testpath, exepath)
         prun = Popen(command, shell=True, executable="/bin/bash", stdout=PIPE, stderr=PIPE)
         waitpid(prun.pid, 0)        
         if not self.quiet:
