@@ -43,7 +43,7 @@ class ACResult(object):
         total = 0.
         for cres in self.compared:
             if cres is None or cres.common_match < self.tolerance:
-                failures.append(cres)
+                self.failures.append(cres)
             elif cres is not None:
                 total += cres.common_match
 

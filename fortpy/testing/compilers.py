@@ -246,6 +246,10 @@ def _vupdate_compiled_module(compiler, modname, folder, tversion=None, rename=Tr
         for np in vpaths:
             if tversion is None:
                 tversion = get_fortpy_version(compiler, np)
+            if len(tversion) == 0:
+                #Try to get the template version for the module.
+                tversion = template_version(compiler, modname + ".f90")
+
             vp = np + ".v"
             with open(vp, 'w') as f:
                 f.write('#<fortpy version="{}" />'.format('.'.join(map(str, tversion))))

@@ -1,4 +1,4 @@
-!!<fortpy codeversion="1.7.4" />
+!!<fortpy codeversion="1.7.5" />
 !!<summary>Provides an interface for saving the values of multiple variable
 !!types using a single call. Used as part of the FORTPY unit testing framework.</summary>
 module fortpy
@@ -9405,7 +9405,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
@@ -9470,7 +9473,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
@@ -9521,7 +9527,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -9591,7 +9600,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -9662,7 +9674,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -9734,7 +9749,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -9807,7 +9825,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -9880,7 +9901,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
@@ -9945,7 +9969,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
@@ -9996,7 +10023,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -10066,7 +10096,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -10137,7 +10170,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -10209,7 +10245,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -10282,7 +10321,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -10356,7 +10398,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
@@ -10421,7 +10466,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
@@ -10472,7 +10520,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -10542,7 +10593,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -10613,7 +10667,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -10685,7 +10742,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -10758,7 +10818,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -10831,7 +10894,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
@@ -10896,7 +10962,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
@@ -10947,7 +11016,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -11017,7 +11089,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -11088,7 +11163,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -11160,7 +11238,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -11233,7 +11314,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -11306,7 +11390,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
@@ -11371,7 +11458,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
@@ -11422,7 +11512,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -11492,7 +11585,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -11563,7 +11659,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -11635,7 +11734,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -11708,7 +11810,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -11782,7 +11887,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
@@ -11847,7 +11955,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
@@ -11898,7 +12009,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -11968,7 +12082,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -12039,7 +12156,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -12111,7 +12231,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -12184,7 +12307,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -12257,7 +12383,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
@@ -12322,7 +12451,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
@@ -12373,7 +12505,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -12443,7 +12578,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -12514,7 +12652,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -12586,7 +12727,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -12659,7 +12803,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -12733,7 +12880,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues, .true.)
@@ -12798,7 +12948,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues, .true.)
@@ -12849,7 +13002,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -12919,7 +13075,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -12990,7 +13149,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -13062,7 +13224,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -13135,7 +13300,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -13209,7 +13377,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
@@ -13274,7 +13445,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
@@ -13325,7 +13499,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -13395,7 +13572,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -13466,7 +13646,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -13538,7 +13721,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -13611,7 +13797,10 @@ contains
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    if (.not. exists) return
+    if (.not. exists) then
+      variable => null()
+      return
+    end if
 
     if (associated(variable)) variable => null()
 
@@ -15507,11 +15696,9 @@ contains
   !!<summary>Returns the number of lines in the file that aren't comments and
   !!the number of whitespace-separated values on the first non-comment line.</summary>
   !!<parameter name="filename">The name of the file to pass to open.</parameter>
+  !!<parameter name="n">The number of characters in 'filename'.</parameter>
   !!<parameter name="commentchar">A single character which, when present at the start
   !!of a line designates it as a comment.</parameter>
-  !!<parameter name="nlines">Number of lines discovered in the file.</parameter>
-  !!<parameter name="nvalues">Number of values in the first line of the file.</parameter>
-  !!<parameter name="ischar">Are we counting lines and values for a character-valued file.</parameter>
   subroutine fpy_linevalue_count(filename, commentchar, nlines, nvalues, ischar)
     character(len=*), intent(in) :: filename
     character(1), intent(in) :: commentchar
