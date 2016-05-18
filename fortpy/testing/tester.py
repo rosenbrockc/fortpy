@@ -204,7 +204,7 @@ class OutcomeTester(object):
         mx = []
         summary = {}
         for m in mfiles:
-            if m[0] != "_":
+            if m[0] != "_" or ".fpy" in m:
                 #Ignore the files that don't follow the convention; otherwise the
                 #statistics will be messed up.
                 continue
@@ -224,7 +224,7 @@ class OutcomeTester(object):
                         f.write("The result comparison failed. Check the unit test console output.")
             else:
                 onlym.append(m)
-        onlyx = [f for f in xfiles if (f[0] == "_" and f not in mfiles)]
+        onlyx = [f for f in xfiles if (f[0] == "_" and ".fpy" not in f and f not in mfiles)]
 
         #It turns out to be useful to have a summary file that lists the percentage
         #for each file comparison. Otherwise, it is hard to track down where the errors

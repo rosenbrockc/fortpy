@@ -105,7 +105,7 @@ def _get_rsubroutine_recursive(classer, common):
         if member.is_custom:
             if member.kind.lower() == member.customtype.name.lower() and member.D==0:
                 xr = "call fpy_read(prefix//'-{0}', '#', variable_{0}_, fpy_success)"
-                lines.append(xr.format(memname))
+                lines.append(xr.format(member.name))
                 lines.append("if (fpy_success .and. variable_{}_ .gt. 0) then".format(memname))
                 lines.append("  variable%{0} => pointer_stack(variable_{0}_)".format(memname))
                 lines.append("end if")
@@ -114,7 +114,7 @@ def _get_rsubroutine_recursive(classer, common):
                 xr = "call auxread_{varname}{D}d{suffix}(variable%{memname}, prefix//'-{memname}', pointer_stack, stack)"
                 lines.append(xr.format(**{"varname": member.customtype.name,
                                           "D": member.D,
-                                          "memname": memname,
+                                          "memname": member.name,
                                           "suffix": "_p" if "pointer" in member.modifiers else ""}))
         else:
             lines.append("call fpy_read{1}(prefix//'-{0}', '#', variable%{0})".format(memname, _get_suffix(member)))
@@ -254,7 +254,11 @@ def _get_rsubroutine_nested(classer, common):
     type(fpy_address), optional, intent(in) :: rstack(:)
         
     {dtype}{kind}, pointer :: lvar{Dx}
-    lvar => variable
+    if (allocated(variable)) then
+      lvar => variable
+    else
+      lvar => null()
+    end if
     call {xname}_p(lvar, folder, multi_stack, rstack)
     variable = lvar
   end subroutine {xname}
@@ -278,10 +282,10 @@ def _get_rsubroutine_flat(classer, common):
             xr = "call auxread_{varname}{D}d{suffix}(variable%{memname}, lfolder//'-{memname}')"
             lines.append(xr.format(**{"varname": member.customtype.name,
                                       "D": member.D,
-                                      "memname": memname,
+                                      "memname": member.name,
                                       "suffix": _get_suffix(member)}))
         else:
-            lines.append("call fpy_read{1}(lfolder//'-{0}', '#', variable%{0})".format(memname, _get_suffix(member)))
+            lines.append("call fpy_read{1}(lfolder//'-{0}', '#', variable%{0})".format(member.name, _get_suffix(member)))
     common["read"] = '\n    '.join(lines)
     
     template = """  subroutine {xname}(variable, folder, multi_stack, rstack)

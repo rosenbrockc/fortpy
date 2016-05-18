@@ -575,7 +575,7 @@ class AutoClasser(object):
             fstr = "{}call auxsave({}, '{}')"
             lines.append(fstr.format(spacer, self.variable.name, acroot))
         elif position == "assign" and not write:
-            fstr = "{}call auxread({}, '{}')"
+            fstr = "{}call auxread({}, '{}_')"
             lines.append(fstr.format(spacer, self.variable.name, acroot))
     
     def _scan_folder(self, spath):
@@ -863,7 +863,7 @@ class AutoClasser(object):
         elif variable.name.lower() == self.variable.name.lower() and depth==0:
             filevarname = "_"
         else:
-            filevarname = variable.name.lower()
+            filevarname = variable.name
 
         if (variable.is_custom and depth==0):
             custype = variable.customtype
@@ -2713,7 +2713,9 @@ class TestSpecification(object):
         """Returns True if any of the assignments in the test specification require
         auto-class support.
         """
-        return any([a.autoclass for a in self.methods if isinstance(a, Assignment)])
+        reads = any([a.autoclass for a in self.methods if isinstance(a, Assignment)])
+        writes = any([o.autoclass for o in self.outputs.values()])
+        return reads or writes
     
     @property
     def constant(self):
