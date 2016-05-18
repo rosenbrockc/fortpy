@@ -2713,7 +2713,9 @@ class TestSpecification(object):
         """Returns True if any of the assignments in the test specification require
         auto-class support.
         """
-        return any([a.autoclass for a in self.methods if isinstance(a, Assignment)])
+        reads = any([a.autoclass for a in self.methods if isinstance(a, Assignment)])
+        writes = any([o.autoclass for o in self.outputs.values()])
+        return reads or writes
     
     @property
     def constant(self):
