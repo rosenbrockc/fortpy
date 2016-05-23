@@ -114,9 +114,12 @@ class ExecutableGenerator(object):
                 break
 
         lines = []
+        #Determine whether the compilation should produce headers on the output screen.
+        from fortpy.msg import will_print
+        verbose = will_print(2)
         makepath = path.join(self.folder, "Makefile.{}".format(identifier))
         makefile(identifier, allneeds, makepath, self.identifier, precompile,
-                 parser=self.parser, inclfpyaux=self.writer.autoclass)
+                 parser=self.parser, inclfpyaux=self.writer.autoclass, verbose=verbose)
         
     def _get_uses(self, testid):
         """Gets a list of use statements to add to the program code."""

@@ -45,6 +45,8 @@ def do_testing(args):
     t.writeall(args["codedir"])
 
     complist = _get_compilers()
+    totalperc = 0
+    totaltest = 0
     for c in complist:
         result = t.runall(c)
         print("")
@@ -56,7 +58,29 @@ def do_testing(args):
             else:
                 timestr = "<untimed>"
             print_result(idk, result[idk].percent, timestr, result[idk].common)
+            totalperc += result[idk].percent
+            totaltest += 1
 
+    #This section for exit codes helps the continuous integration server to know what's
+    #going on with all the test results.
+
+    if totaltest == 0 and totalperc == 0:
+        _exit_code(0, "No Tests")
+    else:
+        score = totalperc/totaltest
+        
+    if score == 1.:
+        _exit_code(0, "Success")
+    elif score < 1.:
+        _exit_code(2, "Failure")
+    else:
+        _exit_code(3, "Didn't Run")
+
+def _exit_code(i, prefix):
+    """Informs the user of the exit code and then exits."""
+    print("{1}: exiting with code {0:d}".format(i, prefix))
+    exit(i)
+        
 def _get_parser(codedir, modules=None):
     """Gets a CodeParser instance with specified modules loaded from file or cache."""
     from fortpy.code import CodeParser
