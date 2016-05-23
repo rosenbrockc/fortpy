@@ -9,7 +9,8 @@
 - Fixed #78 and #79.
 - Added progress bar to unit tests.
 - Added verbosity to Makefile so that compilation header doesn't show unless verbosity is `2` or higher.
-
+- Fixed #96 and #97.
+- Added symbolic links to unit tests for optimization. Can be disabled using `<config symlink="false">`.
 
 ## Revision 1.7.4
 

@@ -366,7 +366,8 @@ class TestResult(object):
         if case in self.outcomes:
             if isinstance(self.outcomes[case], list):
                 for result in self.outcomes[case]:
-                    result.clean()
+                    if result is not None:
+                        result.clean()
             else:
                 self.outcomes[case].clean()
 
@@ -707,7 +708,12 @@ class UnitTester(object):
         from tqdm import tqdm
         pbar = tqdm(result.cases)
         for case in pbar:
-            pbar.set_description("Checking {}".format(case))
+            if "." in case:
+                pbar.set_description("Checking {}".format(case.split(".")[1]))
+            else:
+                #The default case doesn't have any extra id.
+                pbar.set_description("Checking {}".format(case))
+                
             xres = result.cases[case]
             #This next step generates large representations in memory of all the output
             #files that need to be compared. If we don't clean it up here, then a test

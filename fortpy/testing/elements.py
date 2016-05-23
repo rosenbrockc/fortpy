@@ -5,7 +5,6 @@ from fortpy.printing.formatting import present_params
 from os import path, remove
 from fortpy.utility import copyfile
 import re
-
 def _expand_cases(casestr):
     """Returns a list of case identifiers from the shorthand string.
     """
@@ -1082,23 +1081,36 @@ class AssignmentValue(object):
             and self.testsource is None):
             from fortpy.tramp import coderelpath
             from fortpy.testing.compilers import replace
+            from os import symlink, remove
             relpath = coderelpath(coderoot, self.folder)
             source = replace(path.join(relpath, self.filename.format(case)), compiler)
             source = replace(source, compiler, True)
+            
             #For the cases where multiple files specify the values for different
             #parts of an array, the <value> file specification will have a wildcard
             #at the position where the array index id will go. We just copy *all* the
             #input files over that match that definition.
+            from fortpy.code import config
             if "*" in source:
                 import glob
                 for filename in glob.glob(source):
                     suffix = ".{}".format(case)
                     if filename[-len(suffix)::] == suffix:
                         target = path.join(testroot, filename[0:len(filename)-len(suffix)].split("/")[-1])
-                        copyfile(filename, target)
+                        if config.symlink:
+                            if path.isfile(target):
+                                remove(target)
+                            symlink(filename, target)
+                        else:
+                            copyfile(filename, target)
             else:
                 target = self.livefile(testroot, case)
-                copyfile(source, target)
+                if config.symlink:
+                    if path.isfile(target):
+                        remove(target)
+                    symlink(source, target)
+                else:
+                    copyfile(source, target)
 
         if (self.testsource):
             #We don't want to duplicate lots of files all over the system. If they already
@@ -2272,7 +2284,8 @@ class TestInput(object):
 
     def copy(self, coderoot, testroot, case="", compiler=None, stagedir=None):
         """Copies the input file from the specified code root directory to
-        the folder where the test is being performed.
+        the folder where the test is being performed. Alternatively, the file is
+        just symlinked if that is the global setting.
 
         :arg coderoot: the full path to the folder that houses all the code files.
         :arg testroot: the full path to the folder that the parent test is being
@@ -2293,7 +2306,15 @@ class TestInput(object):
             relpath = coderelpath(coderoot, self.folder)
             source = replace(path.join(relpath, self.filename.format(case)), compiler)
             source = replace(source, compiler, True)
-            copyfile(source, target)
+
+            from fortpy.code import config
+            if config.symlink:
+                from os import symlink, remove
+                if path.isfile(target):
+                    remove(target)
+                symlink(source, target)
+            else:
+                copyfile(source, target)
         else:
             self.testsource.copy(coderoot, testroot, case, compiler, stagedir)
 
