@@ -290,8 +290,15 @@ def _ensure_fileversion(compiler, modname, folder, target, trycompile=True):
                 msg.warn("{} has an old version number.".format(source))
 
             from fortpy.utility import copyfile
-            msg.info("   COPY: {}".format(source))
-            copyfile(source, ftarget)
+            from fortpy.code import config
+            if config.symlink:
+                from os import symlink, remove
+                if path.isfile(ftarget):
+                    remove(ftarget)
+                symlink(source, ftarget)
+            else:
+                msg.info("   COPY: {}".format(source))
+                copyfile(source, ftarget)
             #If the file is a binary, we need to save a .v with version
             #information as well for the next time we want to copy it.
             pre, ext = path.splitext(ftarget)
