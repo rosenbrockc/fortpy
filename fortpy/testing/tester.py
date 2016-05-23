@@ -687,7 +687,10 @@ class UnitTester(object):
         
         #Now that we have run all of the executables, we can analyze their
         #output to see if it matches.
-        for case in result.cases:
+        from tqdm import tqdm
+        pbar = tqdm(result.cases)
+        for case in pbar:
+            pbar.set_description("Checking {}".format(case))
             xres = result.cases[case]
             xres.test(case, result)
 
@@ -716,7 +719,7 @@ class UnitTester(object):
             for case in pbar:
                 caseid = "{}.{}".format(testspec.identifier, case)
                 if not self.quiet:
-                    pbar.set_description("Case {}".format(case))
+                    pbar.set_description("Running {}".format(case))
                 if not caseid in result.cases:
                     #Make a separate directory for the case and copy all its inputs.
                     casepath = path.join(testsfolder, caseid)
