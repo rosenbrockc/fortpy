@@ -357,6 +357,23 @@ class TestResult(object):
         self.failures = {}
         self.overtimes = {}
 
+    def clean(self, case):
+        """Dereferences the test results' memory to the representations of
+        the output and only retains the percent and common matches etc. for
+        aggregate statistics. Should only be called after the *.compare files
+        have been written out for the test case.
+        """
+        if case in self.outcomes:
+            if isinstance(self.outcomes[case], list):
+                for result in self.outcomes[case]:
+                    result.clean()
+            else:
+                self.outcomes[case].clean()
+
+        #Technically, the self.failures dict also has pointers to test result
+        #instances. But these will also be in the outcomes dictionary, so they
+        #will have been cleaned already.
+        
     @property
     def totaltime(self):
         """Returns the total amount of time spent running *only* the unit tested
@@ -689,7 +706,17 @@ class UnitTester(object):
         #output to see if it matches.
         for case in result.cases:
             xres = result.cases[case]
+            #This next step generates large representations in memory of all the output
+            #files that need to be compared. If we don't clean it up here, then a test
+            #with thousands of cases could use lots of memory. Or if you have 100 executables
+            #each with 1000 test cases, then you have 100,000 representations of model and
+            #actual output files, with their differences, etc.
             xres.test(case, result)
+
+            #Now, we should dereference all the test results for this case since we have
+            #the percent matches and the actual comparisions should be written out to
+            #*.compare files in the individual test case directories.
+            result.clean(case)
 
     def _run_folder(self, testspec, testsfolder, result, exepath, testwriter):
         """Runs the executable for the sources in the folder doctag.
