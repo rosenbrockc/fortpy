@@ -101,11 +101,13 @@ class OutcomeTester(object):
     :arg comparer: an instance of FileComparer to compare output files
       to the model ones.
     """
-    def __init__(self, testspec, codefolder, comparer, verbose):
+    def __init__(self, testspec, codefolder, comparer, verbose, compiler):
         self.testspec = testspec
         self.codefolder = codefolder
         self.comparer = comparer
         self.verbose = verbose
+        self.compiler = compiler
+        """Active compiler for the current test whose outcome is being run."""
         
     def test(self, caseid, xresult, uresult):
         """Checks the output of the execution for the specified test specification.
@@ -179,7 +181,7 @@ class OutcomeTester(object):
         #Luckily, there are no nested folders, the files are saved linearly and
         #the filenames contain the recursive complexity of the variable.
         from os import walk, path, mkdir
-        modelpath = outvar.abspath(coderoot, caseid)
+        modelpath = outvar.abspath(coderoot, caseid, self.compiler)
         mfiles = []
         xfiles = []
         for (dirpath, dirnames, filenames) in walk(modelpath):
@@ -202,7 +204,7 @@ class OutcomeTester(object):
         mx = []
         summary = {}
         for m in mfiles:
-            if m[0] != "_":
+            if m[0] != "_" or ".fpy" in m:
                 #Ignore the files that don't follow the convention; otherwise the
                 #statistics will be messed up.
                 continue
@@ -222,7 +224,7 @@ class OutcomeTester(object):
                         f.write("The result comparison failed. Check the unit test console output.")
             else:
                 onlym.append(m)
-        onlyx = [f for f in xfiles if (f[0] == "_" and f not in mfiles)]
+        onlyx = [f for f in xfiles if (f[0] == "_" and ".fpy" not in f and f not in mfiles)]
 
         #It turns out to be useful to have a summary file that lists the percentage
         #for each file comparison. Otherwise, it is hard to track down where the errors
@@ -265,7 +267,7 @@ class OutcomeTester(object):
         """
         #First get the comparison results, then analyze them using the tolerances
         #etc. from the doctag.
-        targetpath = outvar.abspath(coderoot, caseid)
+        targetpath = outvar.abspath(coderoot, caseid, self.compiler)
         result = self.comparer.compare(exepath, targetpath, outvar.template, outvar.mode)
 
         #Write the results out to file as a record. If the result is none create
@@ -307,7 +309,7 @@ class OutcomeTester(object):
             exe = path.join(exefolder, target.varfile)
 
         if outvar.filemode:
-            abspath = outvar.abspath(self.codefolder, caseid)
+            abspath = outvar.abspath(self.codefolder, caseid, self.compiler)
             exists = ((not outvar.autoclass and path.isfile(abspath)) or
                       (outvar.autoclass and path.isdir(abspath)))
             if not exists:
@@ -355,6 +357,24 @@ class TestResult(object):
         self.failures = {}
         self.overtimes = {}
 
+    def clean(self, case):
+        """Dereferences the test results' memory to the representations of
+        the output and only retains the percent and common matches etc. for
+        aggregate statistics. Should only be called after the *.compare files
+        have been written out for the test case.
+        """
+        if case in self.outcomes:
+            if isinstance(self.outcomes[case], list):
+                for result in self.outcomes[case]:
+                    if result is not None:
+                        result.clean()
+            else:
+                self.outcomes[case].clean()
+
+        #Technically, the self.failures dict also has pointers to test result
+        #instances. But these will also be in the outcomes dictionary, so they
+        #will have been cleaned already.
+        
     @property
     def totaltime(self):
         """Returns the total amount of time spent running *only* the unit tested
@@ -685,9 +705,27 @@ class UnitTester(object):
         
         #Now that we have run all of the executables, we can analyze their
         #output to see if it matches.
-        for case in result.cases:
+        from tqdm import tqdm
+        pbar = tqdm(result.cases)
+        for case in pbar:
+            if "." in case:
+                pbar.set_description("Checking {}".format(case.split(".")[1]))
+            else:
+                #The default case doesn't have any extra id.
+                pbar.set_description("Checking {}".format(case))
+                
             xres = result.cases[case]
+            #This next step generates large representations in memory of all the output
+            #files that need to be compared. If we don't clean it up here, then a test
+            #with thousands of cases could use lots of memory. Or if you have 100 executables
+            #each with 1000 test cases, then you have 100,000 representations of model and
+            #actual output files, with their differences, etc.
             xres.test(case, result)
+
+            #Now, we should dereference all the test results for this case since we have
+            #the percent matches and the actual comparisions should be written out to
+            #*.compare files in the individual test case directories.
+            result.clean(case)
 
     def _run_folder(self, testspec, testsfolder, result, exepath, testwriter):
         """Runs the executable for the sources in the folder doctag.
@@ -702,14 +740,19 @@ class UnitTester(object):
         """
         #We can use the same outcome tester afterwards for all of the cases.
         tester = OutcomeTester(testspec, self._codefolder, self.comparer, 
-                               self.parser.verbose)
+                               self.parser.verbose, self.compiler)
 
         #The execution can either be case-based or once-off.
+        msg.okay("Executing {}.x in {}".format(testspec.identifier, testsfolder))
         if testspec.cases is not None:
             #We need to run the executable multiple times, once for each case
             #Each case has input files specified relative to the code folder.
-            for case in testspec.cases:
+            from tqdm import tqdm
+            pbar = tqdm(testspec.cases) if not self.quiet else testspec.cases
+            for case in pbar:
                 caseid = "{}.{}".format(testspec.identifier, case)
+                if not self.quiet:
+                    pbar.set_description("Running {}".format(case))
                 if not caseid in result.cases:
                     #Make a separate directory for the case and copy all its inputs.
                     casepath = path.join(testsfolder, caseid)
@@ -748,13 +791,10 @@ class UnitTester(object):
         
         #Save the path to the folder for execution in the result.
         result.paths[caseid] = testpath
-
-        msg.okay("Executing {}.x in folder ./tests{}".format(testspec.identifier, 
-                                                             testpath.split("tests")[1]))
         start_time = clock()                              
         from os import waitpid
         from subprocess import Popen, PIPE
-        command = "cd {}; {}".format(testpath, exepath)
+        command = "cd {}; {} > .fpy.x.out".format(testpath, exepath)
         prun = Popen(command, shell=True, executable="/bin/bash", stdout=PIPE, stderr=PIPE)
         waitpid(prun.pid, 0)        
         if not self.quiet:

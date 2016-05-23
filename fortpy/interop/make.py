@@ -4,7 +4,7 @@ for the shared libraries required by the ftypes interop package.
 def makefile(identifier, dependencies, makepath, compileid,
              precompile=False, inclfortpy=True, parser=None,
              executable=True, extralinks=None, inclfpyaux=False,
-             makefpyaux=False):
+             makefpyaux=False, verbose=False):
     """Generates a makefile to create the unit testing executable
     for the specified test identifier.
 
@@ -21,6 +21,8 @@ def makefile(identifier, dependencies, makepath, compileid,
       is the default and the executable is set as a different rule for 'identifier'.x.
     :arg extralinks: a list of additional libraries to link in with the explicitly compiled
       f90 files. These aren't checked at all, just added to the linklist.
+    :arg verbose: when True, the full compilation header will be printed with flags and module
+      information; otherwise it won't.
     """
     lines = []
 
@@ -79,8 +81,8 @@ def makefile(identifier, dependencies, makepath, compileid,
 
     main = "$(EXENAME)" if executable == True else "{}.{}".format(identifier, executable)
     lines.append("all:	info {}".format(main))
-    lines.append(_make_info(compileid))
-    lines.append(_make_exe(linklibs, identifier))
+    lines.append(_make_info(compileid, verbose))
+    lines.append(_make_exe(linklibs, identifier, verbose))
 
     from os import path
     makedir, makef = path.split(makepath)
@@ -175,68 +177,70 @@ ERR		= ******************************* ERROR *******************************
 SHOW_LOG	= ( perl -pi -e 's/ [Ee]rror \#/\\n\\n\\n$(ERR)\\n*** error \#/' $(LOG); perl -pi -e 's/^\# 1 \"/\\n\\n$(NEWFILE)\\n\\n\\n/' $(LOG); grep -n -A3 -E "$(ERR)|$(NEWFILE)" $(LOG) )
 """
 
-def _make_exe(linklibs, identifier):
+def _make_exe(linklibs, identifier, verbose):
     """Generates the script to run the compiling."""
     linktxt = "$(LIBS) " if linklibs else ""
+    redirect = "" if verbose else " > /dev/null"
     base = """
 $(EXENAME): $(OBJSF90)
 	-rm $(EXENAME) 2> /dev/null
-	echo -n "Linking... "
+	echo -n "Linking... "{2}
 	-$(F90) $(LDFLAGS) -o $(EXENAME) $(OBJSF90) {0}>> $(LOG) 2>> $(LOG)
-	echo "done."
-	if test -e $(EXENAME); then echo "Produced executable: $(EXENAME)"; else $(SHOW_LOG); echo "Error."; fi
+	echo "done."{2}
+	if test -e $(EXENAME); then echo "Produced executable: $(EXENAME)"{2}; else $(SHOW_LOG); echo "Error."; fi
 
 $(OBJSF90): %.o: %.f90
-	echo -n "Compiling: $^... "
+	echo -n "Compiling: $^... "{2}
 	-$(F90) -c $(FFLAGS) $^ >> $(LOG) 2>> $(LOG)
-	echo "done."
+	echo "done."{2}
 
 {1}.so: $(SLIBF90)
 	-rm {1}.so 2> /dev/null
-	echo -n "Creating shared library..."
+	echo -n "Creating shared library..."{2}
 	-$(F90) -shared -fPIC $(FFLAGS) -o {1}.so {0}$(SLIBF90) >> $(LOG) 2>> $(LOG)
-	echo "done."
+	echo "done."{2}
 
 {1}.a: $(SLIBF90)
-	echo -n "Creating linked library..."
+	echo -n "Creating linked library..."{2}
 	ar ru $@ $?
 	ranlib $@
-	echo "done."
+	echo "done."{2}
 
 clean:
 	-rm *.o *.mod *.i90 $(EXENAME) {1}.so
 remake:
 	-rm *.o *.mod *.i90 $(EXENAME) {1}.so
 """
-    return base.format(linktxt, identifier)
+    return base.format(linktxt, identifier, redirect)
 
-def _make_info(identifier):
+def _make_info(identifier, verbose):
     """Generates the script for displaying compile-time info."""
     module, method = identifier.split(".")
+    redirect = "| tee -a" if verbose else " >>"
     return """
 info: 
 	echo -e "\\nCompile time:" > $(LOG)
 	date >> $(LOG)
-	echo "------------------------------------------------------"| tee -a $(LOG)
-	echo "                     FORTPY"                           | tee -a $(LOG)
-	echo "               >>> version 1.6 <<<                    "| tee -a $(LOG)         
-	echo "------------------------------------------------------"| tee -a $(LOG)
-	echo -e "Compiling on system  : $(UNAME)"                    | tee -a $(LOG)
-	echo -e "             machine : $(HOSTNAME)"                 | tee -a $(LOG)
-	echo "Compiling for module : {0}"                            | tee -a $(LOG)         
-	echo "              method : {1}"                            | tee -a $(LOG)         
-	echo "------------------------------------------------------"| tee -a $(LOG)
-	echo -e "DEBUG mode\\t:\\t$(DEBUG)"                          | tee -a $(LOG)
-	echo -e "GPROF mode\\t:\\t$(GPROF)"                          | tee -a $(LOG)
-	echo "------------------------------------------------------"| tee -a $(LOG)
-	echo "F90    : $(F90)"                                       | tee -a $(LOG)
-	echo "FFLAGS : $(FFLAGS)"                                    | tee -a $(LOG)
-	echo "LDFLAGS: $(LDFLAGS)"                                   | tee -a $(LOG)
-	echo "MKLpath:$(MKL)"                                        | tee -a $(LOG)
-	echo "------------------------------------------------------"| tee -a $(LOG)
-	echo ""                                                      | tee -a $(LOG)
+	echo "------------------------------------------------------"{2} $(LOG)
+	echo "                     FORTPY"                           {2} $(LOG)
+	echo "               >>> version 1.7 <<<                    "{2} $(LOG)         
+	echo "------------------------------------------------------"{2} $(LOG)
+	echo -e "Compiling on system  : $(UNAME)"                    {2} $(LOG)
+	echo -e "             machine : $(HOSTNAME)"                 {2} $(LOG)
+	echo "Compiling for module : {0}"                            {2} $(LOG)         
+	echo "              method : {1}"                            {2} $(LOG)         
+	echo "------------------------------------------------------"{2} $(LOG)
+	echo -e "DEBUG mode\\t:\\t$(DEBUG)"                          {2} $(LOG)
+	echo -e "GPROF mode\\t:\\t$(GPROF)"                          {2} $(LOG)
+	echo "------------------------------------------------------"{2} $(LOG)
+	echo "F90    : $(F90)"                                       {2} $(LOG)
+	echo "FFLAGS : $(FFLAGS)"                                    {2} $(LOG)
+	echo "LDFLAGS: $(LDFLAGS)"                                   {2} $(LOG)
+	echo "MKLpath:$(MKL)"                                        {2} $(LOG)
+	echo "------------------------------------------------------"{2} $(LOG)
+	echo ""                                                      {2} $(LOG)
 
-""".format(module, method)
+""".format(module, method, redirect)
 
 def _get_mapping(parser, mapped):
     """Gets the original file name for a module that was mapped

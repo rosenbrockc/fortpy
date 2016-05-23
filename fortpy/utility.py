@@ -14,13 +14,13 @@ def get_attrib(xml, name, tag=None, cast=str, default=None):
     elif tag is not None:
         raise ValueError("'{}' is a required attribute of <{}> tag.".format(name, tag))
 
-def copyfile(src, dst):
+def copyfile(src, dst, verbose=False):
     """Copies the specified source file to destination *file* if it is newer
     or does not yet exist.
     """
     from os import waitpid
     from subprocess import Popen, PIPE
-    prsync = Popen("rsync -t -u {} {}".format(src, dst),
+    prsync = Popen("rsync {}-t -u {} {}".format("-v " if verbose else "", src, dst),
                    shell=True, executable="/bin/bash", stdout=PIPE, stderr=PIPE)
     waitpid(prsync.pid, 0)
     
@@ -31,8 +31,7 @@ def copyfile(src, dst):
         from fortpy.msg import warn
         warn("Error while copying {} using rsync.\n\n{}".format(src, '\n'.join(error)))
         
-    
-def copy(src, dst):
+def copy(src, dst, verbose=False):
     """Copies the specified source file to destination directory if it is newer
     or does not yet exist.
     """

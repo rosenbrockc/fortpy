@@ -226,8 +226,11 @@ def fpy_read(D, dtype, kind, suffix=None):
     else:
         common["xname"] = "fpy_read_{dtype}{skind}_{D}d{suffix}".format(**common)
 
-    if suffix != "_f":
+    if suffix is None:
         common["noexist"] = "if (.not. exists) return"
+    elif suffix == "_p":
+        #Set pointers to null if they weren't set on construction in their definition.
+        common["noexist"] = "if (.not. exists) then\n      variable => null()\n      return\n    end if"
     else:
         common["noexist"] = "if (.not. exists) then\n      variable = {}\n      return\n    end if".format(common["default"])
         

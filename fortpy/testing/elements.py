@@ -5,7 +5,6 @@ from fortpy.printing.formatting import present_params
 from os import path, remove
 from fortpy.utility import copyfile
 import re
-
 def _expand_cases(casestr):
     """Returns a list of case identifiers from the shorthand string.
     """
@@ -308,7 +307,8 @@ class GlobalDeclaration(object):
     def _kind_check(self, element):
         """Checks whether the kind declaration of the element matches this global."""
         if ("kind" not in self.attributes and "kind" not in element.attributes) or \
-           (self.attributes["kind"].lower() == element.attributes["kind"].lower()):
+           ("kind" in self.attributes and "kind" in element.attributes
+            and self.attributes["kind"].lower() == element.attributes["kind"].lower()):
             return True
         else:
             return False
@@ -574,7 +574,7 @@ class AutoClasser(object):
             fstr = "{}call auxsave({}, '{}')"
             lines.append(fstr.format(spacer, self.variable.name, acroot))
         elif position == "assign" and not write:
-            fstr = "{}call auxread({}, '{}')"
+            fstr = "{}call auxread({}, '{}_')"
             lines.append(fstr.format(spacer, self.variable.name, acroot))
     
     def _scan_folder(self, spath):
@@ -862,7 +862,7 @@ class AutoClasser(object):
         elif variable.name.lower() == self.variable.name.lower() and depth==0:
             filevarname = "_"
         else:
-            filevarname = variable.name.lower()
+            filevarname = variable.name
 
         if (variable.is_custom and depth==0):
             custype = variable.customtype
@@ -1081,23 +1081,36 @@ class AssignmentValue(object):
             and self.testsource is None):
             from fortpy.tramp import coderelpath
             from fortpy.testing.compilers import replace
+            from os import symlink, remove
             relpath = coderelpath(coderoot, self.folder)
             source = replace(path.join(relpath, self.filename.format(case)), compiler)
             source = replace(source, compiler, True)
+            
             #For the cases where multiple files specify the values for different
             #parts of an array, the <value> file specification will have a wildcard
             #at the position where the array index id will go. We just copy *all* the
             #input files over that match that definition.
+            from fortpy.code import config
             if "*" in source:
                 import glob
                 for filename in glob.glob(source):
                     suffix = ".{}".format(case)
                     if filename[-len(suffix)::] == suffix:
                         target = path.join(testroot, filename[0:len(filename)-len(suffix)].split("/")[-1])
-                        copyfile(filename, target)
+                        if config.symlink:
+                            if path.isfile(target):
+                                remove(target)
+                            symlink(filename, target)
+                        else:
+                            copyfile(filename, target)
             else:
                 target = self.livefile(testroot, case)
-                copyfile(source, target)
+                if config.symlink:
+                    if path.isfile(target):
+                        remove(target)
+                    symlink(source, target)
+                else:
+                    copyfile(source, target)
 
         if (self.testsource):
             #We don't want to duplicate lots of files all over the system. If they already
@@ -1390,7 +1403,7 @@ class AssignmentValue(object):
             if ("pointer" in modifiers and "fvar" not in varname):
                 flines.append(fmtstr.format("_p", rtname, self.commentchar, varname))
             elif ("allocatable" not in modifiers and "fvar" not in varname and D > 0 and
-                  not re.match("[\w]+", dimensions)):
+                  not re.match("[A-Za-z]+", dimensions)):
                 flines.append(fmtstr.format("_f", rtname, self.commentchar, varname))
             else:
                 flines.append(fmtstr.format("", rtname, self.commentchar, varname))
@@ -2271,7 +2284,8 @@ class TestInput(object):
 
     def copy(self, coderoot, testroot, case="", compiler=None, stagedir=None):
         """Copies the input file from the specified code root directory to
-        the folder where the test is being performed.
+        the folder where the test is being performed. Alternatively, the file is
+        just symlinked if that is the global setting.
 
         :arg coderoot: the full path to the folder that houses all the code files.
         :arg testroot: the full path to the folder that the parent test is being
@@ -2292,7 +2306,15 @@ class TestInput(object):
             relpath = coderelpath(coderoot, self.folder)
             source = replace(path.join(relpath, self.filename.format(case)), compiler)
             source = replace(source, compiler, True)
-            copyfile(source, target)
+
+            from fortpy.code import config
+            if config.symlink:
+                from os import symlink, remove
+                if path.isfile(target):
+                    remove(target)
+                symlink(source, target)
+            else:
+                copyfile(source, target)
         else:
             self.testsource.copy(coderoot, testroot, case, compiler, stagedir)
 
@@ -2317,7 +2339,7 @@ class TestInput(object):
         """
         for child in self.xml:
             if child.tag == "line":
-                self.line = FileLine(child)
+                self.line = FileLine(child, None)
                 break
 
 class TestOutput(object):
@@ -2364,7 +2386,7 @@ class TestOutput(object):
         a file (as opposed to a hard-coded value)."""
         return (self.value == None)
 
-    def abspath(self, coderoot, caseid=""):
+    def abspath(self, coderoot, caseid="", compiler=None):
         """Returns the absolute path to the output file referenced by this
         output comparison specifier.
 
@@ -2374,19 +2396,26 @@ class TestOutput(object):
         """
         #The caseid is the "testid.case". We only want the 'case' part of it
         from fortpy.tramp import coderelpath
+        from fortpy.testing.compilers import replace
         relpath = coderelpath(coderoot, self.folder)
-
         if caseid != "":
             case = caseid.split(".")[-1]
             if self.autoclass:
-                return relpath.format(case)
+                formpath = relpath.format(case)
             else:
-                return path.join(relpath, self.filename.format(case))
+                formpath = path.join(relpath, self.filename.format(case))
         else:
             if self.autoclass:
-                return relpath
+                formpath = relpath
             else:
-                return path.join(relpath, self.filename)
+                formpath = path.join(relpath, self.filename)
+
+        #Finally, replace the compiler attributes [c] and [f] for the file path.
+        if compiler is not None:
+            cpath = replace(formpath, compiler)
+            return replace(formpath, compiler, True)
+        else:
+            return formpath
 
     def _parse_attributes(self):
         """Extracts output comparsion related attributes from the xml tag."""
@@ -2705,7 +2734,9 @@ class TestSpecification(object):
         """Returns True if any of the assignments in the test specification require
         auto-class support.
         """
-        return any([a.autoclass for a in self.methods if isinstance(a, Assignment)])
+        reads = any([a.autoclass for a in self.methods if isinstance(a, Assignment)])
+        writes = any([o.autoclass for o in self.outputs.values()])
+        return reads or writes
     
     @property
     def constant(self):

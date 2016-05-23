@@ -116,7 +116,7 @@ class ModuleParser(object):
             if member in element.members:
                 del element.members[member]
 
-    def parse(self, string, parent, module=True):
+    def parse(self, string, parent, module=True, filepath=None):
         """Extracts modules *and* programs from a fortran code file.
 
         :arg string: the contents of the fortran code file.
@@ -125,11 +125,12 @@ class ModuleParser(object):
           it will be searched for programs.
         """
         if module:
-            return self._parse_modules(string, parent)
+            result = self._parse_modules(string, parent, filepath)
         else:
-            return self._parse_programs(string, parent)
+            result = self._parse_programs(string, parent, filepath)
+        return result
     
-    def _parse_programs(self, string, parent):
+    def _parse_programs(self, string, parent, filepath=None):
         """Extracts a PROGRAM from the specified fortran code file."""
         #First, get hold of the docstrings  for all the modules so that we can
         #attach them as we parse them.
@@ -140,7 +141,7 @@ class ModuleParser(object):
         for rmodule in matches:
             name = rmodule.group("name").lower()
             contents = re.sub("&[ ]*\n", "", rmodule.group("contents"))
-            module = self._process_module(name, contents, parent, rmodule)
+            module = self._process_module(name, contents, parent, rmodule, filepath)
             #Check whether the docparser found docstrings for the module.
             if name in moddocs:                
                 module.docstring = self.docparser.to_doc(moddocs[name][0], name)
@@ -149,7 +150,7 @@ class ModuleParser(object):
             result.append(module)
         return result
 
-    def _parse_modules(self, string, parent):
+    def _parse_modules(self, string, parent, filepath=None):
         """Extracts any modules from the specified fortran code file."""
         #First, get hold of the docstrings  for all the modules so that we can
         #attach them as we parse them.
@@ -160,7 +161,7 @@ class ModuleParser(object):
         for rmodule in matches:
             name = rmodule.group("name").lower()
             contents = re.sub("&[ ]*\n", "", rmodule.group("contents"))
-            module = self._process_module(name, contents, parent, rmodule)
+            module = self._process_module(name, contents, parent, rmodule, filepath)
             #Check whether the docparser found docstrings for the module.
             if name in moddocs:                
                 module.docstring = self.docparser.to_doc(moddocs[name][0], name)
@@ -194,7 +195,7 @@ class ModuleParser(object):
                 self._dict_increment(result, item.lower())
         return (result, start)
 
-    def _process_module(self, name, contents, parent, match):
+    def _process_module(self, name, contents, parent, match, filepath=None):
         """Processes a regex match for a module to create a CodeElement."""
         #First, get hold of the name and contents of the module so that we can process the other
         #parts of the module.
@@ -213,6 +214,8 @@ class ModuleParser(object):
 
         #We can now create the CodeElement
         result = Module(name, modifiers, dependencies, publics, contents, parent)
+        if filepath is not None:
+            result.filepath = filepath.lower()
         result.start = match.start()
         result.end = match.end()
         result.refstring = match.string

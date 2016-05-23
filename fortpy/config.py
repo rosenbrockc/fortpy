@@ -23,6 +23,12 @@ class _config(types.ModuleType):
         return self.property_get("isense", {})
 
     @property
+    def symlink(self):
+        """Returns whether test inputs should be symlinked (default) or copied.
+        """
+        return self.property_get("symlink", True)
+    
+    @property
     def implicit_XML(self):
         """Returns the path to the XML file that stores the config info."""
         return self.property_get("FORTPY_CONFIG")
@@ -91,7 +97,9 @@ class _config(types.ModuleType):
         if path.isfile(uxpath):
             tree = ET.parse(uxpath)
             root = tree.getroot()
-
+            if "symlink" in root.attrib:
+                self._vardict["symlink"] = root.attrib.lower() == "true"
+                
             for child in root:
                 if child.tag == "codes":
                     self._load_codes(child)

@@ -19,39 +19,61 @@ class ACResult(object):
         """A list of all the file comparisons that failed or had similarities
         below the threshold.
         """
+
+        #These are lazy versions of the properties so that the variables
+        #they depend on don't need to be stored indefinitely.
+        self._has_data = None
+        self._percent_match = None
+        self._common_match = None
+
+    def clean(self):
+        """Dereferences pointers to test results and keeps only the aggregate
+        properties (percent_match, common_match, has_data).
+        """
+        #Make sure that all the properties are calculated.
+        self.percent_match + self.common_match
+        self.compared = None
+        self.onlym = None
+        self.onlyx = None
         
     @property
     def has_data(self):
         """Returns True if this result had actual data to compare (compared
         to two empty sets of data).
         """
-        return len(self.compared) > 0 or len(self.onlym) > 0 or len(self.onlyx) > 0
+        if self._has_data is None:
+            self._has_data = len(self.compared) > 0 or len(self.onlym) > 0 or len(self.onlyx) > 0
+        return self._has_data
     
     @property
     def percent_match(self):
         """Returns a value indicating how similar the two variables are."""
-        total = sum([c.percent_match for c in self.compared if c.percent_match is not None])
-        if self.has_data:
-            return total/(len(self.compared) + len(self.onlym) + len(self.onlyx))
-        else:
-            return 0
+        if self._percent_match is None:
+            total = sum([c.percent_match for c in self.compared if c.percent_match is not None])
+            if self.has_data:
+                self._percent_match = total/(len(self.compared) + len(self.onlym) + len(self.onlyx))
+            else:
+                self._percent_match = 0
+        return self._percent_match
 
     @property
     def common_match(self):
         """Returns a value indicating how similar the overlapping entries
         of the two dictionaries are."""
-        total = 0.
-        for cres in self.compared:
-            if cres is None or cres.common_match < self.tolerance:
-                failures.append(cres)
-            elif cres is not None:
-                total += cres.common_match
+        if self._common_match is None:
+            total = 0.
+            for cres in self.compared:
+                if cres is None or cres.common_match < self.tolerance:
+                    self.failures.append(cres)
+                elif cres is not None:
+                    total += cres.common_match
 
-        if self.has_data:
-            return total/(len(self.compared) + len(self.onlym) + len(self.onlyx))
-        else:
-            return 0
-
+            if self.has_data:
+                self._common_match = total/(len(self.compared) + len(self.onlym) + len(self.onlyx))
+            else:
+                self._common_match = 0
+        return self._common_match
+            
 class DictResult(object):
     """The result of a dictionary comparison between two dicts.
 
@@ -77,19 +99,43 @@ class DictResult(object):
         #the match percent.
         self.outcomes = outcomes
 
-    def __str__(self):
-        return print_dict_result(self)
+        #These are lazy versions of the properties so that the variables
+        #they depend on don't need to be stored indefinitely.
+        self._has_data = None
+        self._percent_match = None
+        self._common_match = None
 
+    def __str__(self):
+        if self.dict1 is None:
+            return "Dereferenced fortpy.testing.results.DictResult<{}>".format(id(self))
+        else:
+            return print_dict_result(self)
+
+    def clean(self):
+        """Dereferences pointers to test results and keeps only the aggregate
+        properties (percent_match, common_match, has_data).
+        """
+        #Make sure that all the properties are calculated.
+        self.percent_match + self.common_match
+        self.different = None
+        self.only1 = None
+        self.only2 = None
+        self._matched = None
+        self.dict1 = None
+        self.dict2 = None
+    
     @property
     def has_data(self):
         """Returns True if this result had actual data to compare (compared
         to two empty sets of data).
         """
-        return not (len(self.dict1) == 0 and len(self.dict2) == 0)
+        if _has_data is None:
+            _has_data = not (len(self.dict1) == 0 and len(self.dict2) == 0)
+        return _has_data        
     
     def add_common(self, key):
         """Adds the specified key to the list of keys AND values that
-        matched betweend the dictionaries."""
+        matched between the dictionaries."""
         self._matched.append(key)
         self.common += 1
 
@@ -108,38 +154,43 @@ class DictResult(object):
         for t in self.different:
             if not self.outcomes.can_ignore(self.label, t[0]):
                 total += 1
+        return total
 
     @property
     def percent_match(self):
         """Returns a value indicating how similar the two dictionaries are."""
-        if self.outcomes.can_ignore(self.label):
-            return 1
-        else:
-            #This is the total number of dictionary entries that can *not* be ignored.
-            intersect = set(self.dict1.keys()).intersection(set(self.dict2.keys()))
-            total = self._ignore_total(intersect)
-            #This is how many of the keys that actually had the same values cannot be ignored.
-            common = self._ignore_total(self._matched)
-            if total == 0 and common == 0:
-                #Everything was told to be ignored, so this is a perfect match!
-                return 1
+        if self._percent_match is None:
+            if self.outcomes.can_ignore(self.label):
+                self._percent_match = 1
             else:
-                return float(common) / total
-
+                #This is the total number of dictionary entries that can *not* be ignored.
+                intersect = set(self.dict1.keys()).intersection(set(self.dict2.keys()))
+                total = self._ignore_total(intersect)
+                #This is how many of the keys that actually had the same values cannot be ignored.
+                common = self._ignore_total(self._matched)
+                if total == 0 and common == 0:
+                    #Everything was told to be ignored, so this is a perfect match!
+                    self._percent_match = 1
+                else:
+                    self._percent_match = float(common) / total
+        return self._percent_match
+                
     @property
     def common_match(self):
         """Returns a value indicating how similar the overlapping entries
         of the two dictionaries are."""
-        if self.outcomes.can_ignore(self.label):
-            return 1
-        else:
-            common = self._ignore_total(self._matched)
-            diff = self._ignore_total([ k[0] for k in self.different ])
-            if common + diff != 0:
-                return float(common) / (common + diff)
+        if self._common_match is None:
+            if self.outcomes.can_ignore(self.label):
+                self._common_match = 1
             else:
-                #There was nothing to compare, return 1
-                return 1
+                common = self._ignore_total(self._matched)
+                diff = self._ignore_total([ k[0] for k in self.different ])
+                if common + diff != 0:
+                    self._common_match = float(common) / (common + diff)
+                else:
+                    #There was nothing to compare, return 1
+                    self._common_match = 1
+        return self._common_match
     
 class ListResult(object):
     """The result of comparing two lists."""
@@ -154,37 +205,62 @@ class ListResult(object):
         self.list1 = list1
         self.list2 = list2
 
-    def __str__(self):
-        return print_list_result(self)
+        #These are lazy versions of the properties so that the variables
+        #they depend on don't need to be stored indefinitely.
+        self._has_data = None
+        self._percent_match = None
+        self._common_match = None
 
+    def __str__(self):
+        if self.list1 is None:
+            return "Dereferenced fortpy.testing.results.ListResult<{}>".format(id(self))
+        else:
+            return print_list_result(self)
+
+    def clean(self):
+        """Dereferences pointers to test results and keeps only the aggregate
+        properties (percent_match, common_match, has_data).
+        """
+        #Make sure that all the properties are calculated.
+        self.percent_match + self.common_match
+        self.different = None
+        self.list1 = None
+        self.list2 = None
+    
     @property
     def has_data(self):
         """Returns True if this result had actual data to compare (compared
         to two empty sets of data).
         """
-        return not (len(self.list1) == 0 and len(self.list2) == 0)
+        if self._has_data is None:
+            self._has_data = not (len(self.list1) == 0 and len(self.list2) == 0)
+        return self._has_data
 
     @property
     def percent_match(self):
         """Returns a value indicating how similar the two lists are."""
-        if self.outcomes is not None and self.outcomes.can_ignore(self.label):
-            return 1
-        else:
-            total = len(self.list1) + len(self.list2)
-            if total > 0:
-                return float(2 * self.common) / total
+        if self._percent_match is None:
+            if self.outcomes is not None and self.outcomes.can_ignore(self.label):
+                self._percent_match = 1
             else:
-                #If both the lists had no elements, it is a perfect match.
-                return 1
+                total = len(self.list1) + len(self.list2)
+                if total > 0:
+                    self._percent_match = float(2 * self.common) / total
+                else:
+                    #If both the lists had no elements, it is a perfect match.
+                    self._percent_match = 1
+        return self._percent_match
 
     @property
     def common_match(self):
         """Returns the same value as the percent match since lists
         don't have a definition of "common"."""
-        if not self.sharedkey:
-            return self.percent_match
-        else:
-            return 1
+        if self._common_match is None:
+            if not self.sharedkey:
+                self._common_match = self.percent_match
+            else:
+                self._common_match = 1
+        return self._common_match
 
 class CompatibilityResult(object):
     """The result of a compatibility comparison between two blocks."""
@@ -198,8 +274,23 @@ class CompatibilityResult(object):
         #the match percent.
         self.outcomes = outcomes
 
+        #These are lazy versions of the properties so that the variables
+        #they depend on don't need to be stored indefinitely.
+        self._common_match = None
+
+    def clean(self):
+        """Dereferences pointers to test results and keeps only the aggregate
+        properties (percent_match, common_match, has_data).
+        """
+        #Make sure that all the properties are calculated.
+        self.percent_match + self.common_match
+        self.key_errors = None
+
     def __str__(self):
-        return print_compat_result(self)
+        if self.key_errors is None:
+            return "Dereferenced fortpy.testing.results.CompatibilityResult<{}>".format(id(self))
+        else:
+            return print_compat_result(self)
 
     #TODO, the compatibility results don't have very good granularity because
     #it is a pain to implement. If it is ever needed, we can come back.
@@ -212,7 +303,9 @@ class CompatibilityResult(object):
     def common_match(self):
         """Returns a value indicating how similar the overlapping entries
         of the two blocks are."""
-        return float(2 * self.common) / (self.total - len(self.key_errors))
+        if self._common_match is None:
+            self._common_match = float(2 * self.common) / (self.total - len(self.key_errors))
+        return self._common_match
 
 def accumulate_matches(results, outcomes = None, ispercent = True):
     """Calculates the average of all the entries matches in the dict."""
@@ -263,8 +356,26 @@ class BlockResult(object):
         #the match percent.
         self.outcomes = outcomes
 
+        #These are lazy versions of the properties so that the variables
+        #they depend on don't need to be stored indefinitely.
+        self._has_results = None
+        self._percent_match = None
+        self._common_match = None
+
+    def clean(self):
+        """Dereferences pointers to test results and keeps only the aggregate
+        properties (percent_match, common_match, has_data).
+        """
+        #Make sure that all the properties are calculated.
+        self.percent_match + self.common_match
+        bool(self.has_results)
+        self.results = None
+
     def __str__(self):
-        return print_block_result(self, False)
+        if self.results is None:
+            return "Dereferenced fortpy.testing.results.BlockResult<{}>".format(id(self))
+        else:
+            return print_block_result(self, False)
 
     @property
     def has_data(self):
@@ -276,20 +387,26 @@ class BlockResult(object):
     @property 
     def has_results(self):
         """Returns True if this block result has any child results."""
-        return len(list(self.results.keys())) > 0
+        if self._has_results is None:
+            self._has_results = len(list(self.results.keys())) > 0
+        return self._has_results
 
     @property
     def percent_match(self):
         """Calculates the combined percent match for the whole
         block from its constituent results."""
-        return accumulate_matches(self.results, self.outcomes)
+        if self._percent_match is None:
+            self._percent_match = accumulate_matches(self.results, self.outcomes)
+        return self._percent_match
 
     @property
     def common_match(self):
         """Calculates the combined match for the block by taking
         only those overlapping keys into account from named and compatibility
         comparisons."""
-        return accumulate_matches(self.results, self.outcomes, False)
+        if self._common_match is None:
+            self._common_match = accumulate_matches(self.results, self.outcomes, False)
+        return self._common_match
 
 class BodyResult(object):
     """The result of comparing all the body entries using the template."""
@@ -299,38 +416,68 @@ class BodyResult(object):
         self.only2 = {}
         self.rep1 = rep1
         self.rep2 = rep2
-        """Pointer to the parent file representation that has template information.
+        """Pointer to the parent file representation that has template information
+        and the contents of the files in python variables.
         """
 
+        #These are lazy versions of the properties so that the variables
+        #they depend on don't need to be stored indefinitely.
+        self._has_data = None
+        self._percent_match = None
+        self._common_match = None
+
+    def clean(self):
+        """Dereferences pointers to test results and keeps only the aggregate
+        properties (percent_match, common_match, has_data).
+        """
+        #Make sure that all the properties are calculated.
+        for block in self.blocks.values():
+            block.clean()
+            
+        self.percent_match + self.common_match
+        self.only1 = None
+        self.only2 = None
+        self.rep1 = None
+        self.rep2 = None
+
     def __str__(self):
-        return print_body_result(self)
+        if self.rep1 is None:
+            return "Dereferenced fortpy.testing.results.BodyResult<{}>".format(id(self))
+        else:
+            return print_body_result(self)
 
     @property
     def has_data(self):
         """Returns True if this result had actual data to compare (compared
         to two empty sets of data).
         """
-        return not (len(self.blocks) == 0 and len(self.only1) == 0 and len(self.only2) == 0)
+        if self._has_data is None:
+            self._has_data = not (len(self.blocks) == 0 and len(self.only1) == 0 and len(self.only2) == 0)
+        return self._has_data
         
     @property
     def percent_match(self):
         """Calculates the combined percent match for the whole
         body from its constituent results."""
-        #We need to reduce the match based on how many blocks actually
-        #overlapped in the body.
-        overlap = len(list(self.blocks.keys()))
-        total = overlap + len(list(self.only1.keys())) + len(list(self.only2.keys()))
-        if total == 0: #Since both have zero entries, we have a perfect match
-            return 1
-        else:
-            return accumulate_matches(self.blocks) * float(overlap) / total
-
+        if self._percent_match is None:
+            #We need to reduce the match based on how many blocks actually
+            #overlapped in the body.
+            overlap = len(list(self.blocks.keys()))
+            total = overlap + len(list(self.only1.keys())) + len(list(self.only2.keys()))
+            if total == 0: #Since both have zero entries, we have a perfect match
+                self._percent_match = 1
+            else:
+                self._percent_match = accumulate_matches(self.blocks) * float(overlap) / total
+        return self._percent_match
+    
     @property
     def common_match(self):
         """Calculates the combined match for the body by taking
         only those overlapping blocks into account from named and compatibility
         comparisons."""
-        return accumulate_matches(self.blocks, False)
+        if self._common_match is None:
+            self._common_match = accumulate_matches(self.blocks, False)
+        return self._common_match
 
 class CompareResult(object):
     """The results from comparing two files using a file template."""
@@ -340,8 +487,18 @@ class CompareResult(object):
         self.file1 = file1
         self.file2 = file2
 
+    def clean(self):
+        """Dereferences pointers to test results and keeps only the aggregate
+        properties (percent_match, common_match, has_data).
+        """
+        self.preamble.clean()
+        self.body.clean()
+
     def __str__(self):
-        return print_compare_result(self)
+        if self.body.rep1 is None:
+            return "Dereferenced fortpy.testing.results.CompareResult<{}>".format(id(self))
+        else:
+            return print_compare_result(self)
 
     @property
     def has_data(self):

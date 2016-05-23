@@ -1,5 +1,17 @@
 # FORTPY: Revision History
 
+## Revision 1.7.5
+
+- Added enhancement #87
+- Addressed unit test issue where executables weren't being made public if they existed in interfaces, depending on the spacing around the `interface` keyword.
+- Fixed #88 and #89.
+- Added a `<group>` tag to output templates for more advanced file comparisons.
+- Fixed #78 and #79.
+- Added progress bar to unit tests.
+- Added verbosity to Makefile so that compilation header doesn't show unless verbosity is `2` or higher.
+- Fixed #96 and #97.
+- Added symbolic links to unit tests for optimization. Can be disabled using `<config symlink="false">`.
+
 ## Revision 1.7.4
 
 - Fixed a bug where if `dimension` keyword was specified all-caps, the dimension parsing would fail.

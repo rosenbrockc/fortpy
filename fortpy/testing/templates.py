@@ -101,6 +101,51 @@ class LineValues(object):
         self.stored = {}
         self.values = []
 
+class LineGroup(object):
+    """Represents a logical grouping of <line> entries in an output template
+    that should be repeated a *variable* number of times.
+    """
+    def __init__(self, xml):
+        self.identifier = "default" if "name" not in xml.attrib else xml.attrib["name"]
+        if "repeat" not in xml.attrib:
+            raise ValueError("'repeat' is a required attribute of <group> in an output template.")
+        else:
+            #We have to do some fancy things here with stored/named values etc.
+            self.count = xml.attrib["repeat"]
+        self.comment = None if "comment" not in xml.attrib else xml.attrib["comment"]
+
+        self.lines = []
+        for child in xml:
+            if (child.tag == "line" or child.tag == "lines") and "id" in child.attrib:
+                fline = FileLine(child)
+                self.lines.append(fline)
+
+        self.line_counts = None
+        """List of integer line counts, one for each FileLine in self.lines.
+        """
+        self._line_cum = None
+        """Cumulative number of times to use each FileLine. Makes it easier to
+        pick which one we should be using.
+        """
+
+    def update_counts(self, lcounts, gcount):
+        """Updates the list of counts describing how often each FileLine should be repeated.
+
+        :arg counts: a list of integer values, one for each FileLine in self.lines.
+        """
+        self.line_counts = counts
+        self._line_cum = [sum(a[0:i]) for i in range(1, len(self.lines))]
+
+    def parse(self, line, i):
+        """Parses the specified line using the relevant FileLine object, based on the global line
+        counter 'i'.
+        """
+        #i is zero-based. However, once we reach sum(self.line_counts), we need to repeat
+        #the line templates again. igroup is the index within the group (instead of global).
+        igroup = i % sum(self.line_counts)
+        iline = [0 if c < i else 1 for c in self._line_cum].index(1)
+        return self.lines[iline].parse(line)
+                
 class FileLine(object):
     """Represents a template line specification in a file.
 
@@ -108,10 +153,12 @@ class FileLine(object):
     :attr compatibility: a dictionary that maps variable names in one version
       to different names in another version of the template.
     """
-    def __init__(self, element):
+    def __init__(self, element, parent):
         self.xml = element
         self.compatibility = {}
         self.defaults = {}
+        self.parent = parent
+        """The FileTemplate that this FileLine belongs to."""
 
         #Overwrite makes the default values get used *even if* a value was
         #specified in the dictionary for write mode.
@@ -348,6 +395,12 @@ class FileLine(object):
             current = []
 
             for j in loop:
+                if k >= len(raw):
+                    if self.parent is not None:
+                        emsg = "Specified known value index '{}/{}' exceeds line value count ({}). Using template '{}'."
+                        msg.err(emsg.format(k, len(loop)-1, raw, self.parent.filepath))
+                    else:
+                        msg.err("Specified known value index '{}/{}' exceeds line value count ({}).".format(k, len(loop)-1, raw))
                 val = raw[k]
                 dtype = self.dtypes[i]
                 try:
@@ -773,9 +826,11 @@ class FileTemplate(object):
         for child in element:
             versions = xml_get_versions(child)
             if (child.tag == "line" or child.tag == "lines") and "id" in child.attrib:
-                fline = FileLine(child)
+                fline = FileLine(child, self)
+            elif child.tag == "group":
+                fline = LineGroup(child)
             else:
-                msg.warn("non line-type tag in preamble/body {}".format(element))
+                msg.warn("non line-type tag in <{0}>\n{1}\n</{0}>".format(element.tag, element.text))
 
             for v in versions:
                 if element.tag == "preamble":
@@ -793,7 +848,7 @@ def xml_get_modes(element):
 def xml_get_versions(element):
     """Returns a list of versions referenced in the XML element."""
     if "versions" in element.attrib:
-        return [ int(n) for n in  element.attrib["versions"].split(",") ]
+        return [ int(n.strip()) for n in  element.attrib["versions"].split(",") ]
     else:
         #There are not multiple versions, so this is the first!
         return [ 1 ]                
