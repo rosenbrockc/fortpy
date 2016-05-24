@@ -1,21 +1,19 @@
 #!/usr/bin/env python
-from termcolor import cprint
 import argparse
-
 def print_result(testkey, percent, time, common):
     """Prints the specified result to the terminal with coloring based
     on how successful it was.
     """
     printkey = testkey.replace("|", " | ")
     if percent > .99:
-        color = "green"
+        pfun = lambda m: msg.okay(m, level=0)
     elif percent > .50:
-        color = "yellow"
+        pfun = lambda m: msg.warn(m, level=0, prefix=False)
     else:
-        color = "red"
+        pfun = lambda m: msg.err(m, level=0, prefix=False)
 
     text = "RESULT: {0} \n\t{1:.2%} success ({3:.2%} common) in {2} ms\n"
-    cprint(text.format(printkey, percent, time, common), color)
+    pfun(text.format(printkey, percent, time, common))
 
 def _get_compilers():
     """Returns a list of compilers from the command-line arguments."""
@@ -147,6 +145,9 @@ parser.add_argument("-strict", action="store_true",
 parser.add_argument("-compileaux", action="store_true",
                     help=("Also compile the fpy_auxiliary.f90 into .o, .mod and .so library. "
                           "Requires -stagedir to be specified."))
+parser.add_argument("-nocolor", action="store_true",
+                    help=("Don't output using termcolor. Useful when redirecting stdout so that "
+                          "it is easier to read."))
 
 if __name__ == "__main__":
     #Parse the args from the commandline that ran the script, call initialize
@@ -166,6 +167,8 @@ if __name__ == "__main__":
 
     from fortpy import msg
     msg.set_verbosity(args["verbose"])
+    if args["nocolor"]:
+        msg.nocolor = True
         
     testing = not (args["auxiliary"])
     if testing:

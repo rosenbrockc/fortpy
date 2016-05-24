@@ -1,5 +1,11 @@
 # FORTPY: Revision History
 
+## Revision 1.7.6
+
+- Added symlinks for `fortpy.o` and `fortpy.mod` since they don't need to be copied.
+- Added `-nocolor` option to the `fortpy.msg` module for tidier `stdout` redirects.
+- Fixed a bug introduced last time by renaming `compile.log` for each test identifier separately.
+
 ## Revision 1.7.5
 
 - Added enhancement #87
