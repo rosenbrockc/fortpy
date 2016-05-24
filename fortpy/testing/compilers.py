@@ -377,7 +377,7 @@ def compile(folder, compiler=None, identifier=None, debug=False, profile=False,
     #check for the existence of errors in the 'compile.log' file.
     lcount = 0
     errors = []
-    log = path.join(folder, "compile.log")
+    log = path.join(folder, "compile.{}.log".format(identifier))
     with open(log) as f:
         for line in f:
             lcount += 1
