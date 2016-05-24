@@ -642,17 +642,26 @@ class FortpyShell(cmd.Cmd):
             var, fxn = sargs
             if not self._validate_var(var):
                 msg.err("Variable '{}' is not a valid variable|property combination.")
-        
-            from importlib import import_module
-            lib = fxn.split(".")
-            fun = lib.pop()
-            numpy = import_module('.'.join(lib))
-            if not hasattr(numpy, fun):
-                msg.err("Function '{}' is not a valid numpy function.".format(fun))
-            else:
-                self.curargs["functions"][var] = fxn
-                #Give the user some feedback so that they know it was successful.
-                self.do_postfix("list")
+
+            if "." in fxn and not ":" in fxn:
+                from importlib import import_module
+                lib = fxn.split(".")
+                fun = lib.pop()
+                numpy = import_module('.'.join(lib))
+                if not hasattr(numpy, fun):
+                    msg.err("Function '{}' is not a valid numpy function.".format(fun))
+                else:
+                    self.curargs["functions"][var] = fxn
+                    #Give the user some feedback so that they know it was successful.
+                    self.do_postfix("list")
+            elif ":" in fxn:
+                fvals = fxn.split(":")
+                if len(fvals) == 3:
+                    self.curargs["functions"][var] = fxn
+                    self.do_postfix("list")
+                else:
+                    msg.err("Lambda functions should have the form 'lambda:varname:python_expr(varname)'.")
+                
     def complete_postfix(self, text, line, istart, iend):
         els = line.split()
         if len(els) == 1 or (len(els) == 2 and line[-1] != " "):
@@ -660,24 +669,27 @@ class FortpyShell(cmd.Cmd):
             if text in "list" and "|" not in line:
                 varlist.append("list")
             return varlist
-        elif line[-1] == " ":
-            return ["numpy."]
+        elif len(els) == 2 and line[-1] == " ":
+            return ["numpy.", "lambda:"]
         else:
-            if "." not in els[-1]:
-                return ["numpy."]
-            libs = els[-1].split(".")
-            from importlib import import_module
-            partial = libs.pop()
-            prefix = '.'.join(libs)
-            module = import_module(prefix)
-            alldir = [a for a in dir(module) if a[0] != "_"]
+            if "." not in els[-1] or ":" not in els[-1]:
+                return [a for a in ["numpy.", "lambda:"] if a.startswith(text)]
+            if "." in els[-1]:
+                libs = els[-1].split(".")
+                from importlib import import_module
+                partial = libs.pop()
+                prefix = '.'.join(libs)
+                module = import_module(prefix)
+                alldir = [a for a in dir(module) if a[0] != "_"]
 
-            if partial == "":
-                result = alldir
-            else:
-                result = [a for a in alldir if a.startswith(partial)]                
+                if partial == "":
+                    result = alldir
+                else:
+                    result = [a for a in alldir if a.startswith(partial)]
+                return [prefix + '.' + a for a in result]
+            elif ":" in els[-1]:
+                return ["lambda:x:"]
 
-            return [prefix + '.' + a for a in result]
     def help_postfix(self):
         lines = [("Sets the postfix function for a specific variable (either dependent or "
                   "independent). The postfix function is applied to the variable's value "
@@ -1867,15 +1879,25 @@ class FortpyShell(cmd.Cmd):
                 return [p for p in propkeys if p.startswith(part)]
 
     def do_limit(self, arg):
+        import re
         vals = arg.split()
-        if len(vals) == 3:
+        if len(vals) >= 2:
             if vals[0] in ["x", "y", "z", "x-twin", "y-twin"]:
-                self.curargs["limits"][vals[0]] = tuple(map(float, vals[1:3]))
+                if re.match("[\d.]+", vals[1]):
+                    self.curargs["limits"][vals[0]] = tuple(map(float, vals[1:3]))
+                elif vals[1] == "rm":
+                    del self.curargs["limits"][vals[0]]
+                elif vals[1] == "auto":
+                    self.curargs["limits"][vals[0]] = "auto"
+                self.do_limit("list")
             else:
-                msg.err("Only 'x', 'y' and 'z' are valid axis designations.")                
+                msg.err("Only 'x', 'y', 'z', 'x-twin' and 'y-twin' are valid axis designations.")                
         elif arg == "list":
             for dim in self.curargs["limits"]:
-                msg.info("{0} LIMITS: {1[0]}-{1[1]}".format(dim.upper(), self.curargs["limits"][dim]))
+                if isinstance(self.curargs["limits"][dim], tuple):
+                    msg.info("{0} LIMITS: {1[0]}-{1[1]}".format(dim.upper(), self.curargs["limits"][dim]))
+                else:
+                    msg.info("{0} LIMITS: {1}".format(dim.upper(), self.curargs["limits"][dim]))
         else:
             msg.warn("Enter the axis type ('x', 'y', 'z', 'x-twin', 'y-twin') and the"
                      " start and end values. E.g. \"limit x 0 20\"")
@@ -1891,6 +1913,12 @@ class FortpyShell(cmd.Cmd):
                 return [a for a in axes if a.startswith(els[1])]
             else:
                 return axes
+        elif (len(els) == 2 and line[-1] == " ") or len(els) == 3:
+            opts = ["<float>", "rm", "auto"]
+            if len(els) == 3:
+                return [o for o in opts if o.startswith(text)]
+            else:
+                return opts
 
     def do_figsize(self, arg):
         vals = arg.split()

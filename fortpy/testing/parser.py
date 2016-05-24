@@ -215,11 +215,16 @@ class Analysis(object):
         #or printing the values.
         if functions is not None and fullvar in functions:
             if isinstance(functions[fullvar], str) or isinstance(functions[fullvar], unicode):
-                from importlib import import_module
-                module = functions[fullvar].split(".")
-                fname = module.pop()
-                numpy = import_module('.'.join(module))
-                fx = getattr(numpy, fname)
+                if "." in functions[fullvar] and ":" not in functions[fullvar]:
+                    from importlib import import_module
+                    module = functions[fullvar].split(".")
+                    fname = module.pop()
+                    numpy = import_module('.'.join(module))
+                    fx = getattr(numpy, fname)
+                elif ":" in functions[fullvar]:
+                    fvals = functions[fullvar].split(":")
+                    varn, varval = fvals[1:3]
+                    fx = eval("lambda {}: {}".format(varn, varval))
             else:
                 fx = functions[fullvar]
         else:
@@ -530,11 +535,20 @@ class Analysis(object):
         for dim in ["x", "y", "z", "x-twin", "y-twin"]:
             if limits is not None and dim in limits:
                 if dim == "x-twin" and axx is not None:
-                    axx.set_ylim(limits[dim])
+                    if isinstance(limits[dim], tuple):
+                        axx.set_ylim(limits[dim])
+                    elif limits[dim] == "auto":
+                        axx.set_ylim(auto=True)
                 elif dim == "y-twin" and axy is not None:
-                    axy.set_ylim(limits[dim])
+                    if isinstance(limits[dim], tuple):
+                        axy.set_ylim(limits[dim])
+                    elif limits[dim] == "auto":
+                        axy.set_ylim(auto=True)                        
                 elif "-" not in dim:
-                    getattr(ax, "set_{}lim".format(dim))(limits[dim])
+                    if isinstance(limits[dim], tuple):
+                        getattr(ax, "set_{}lim".format(dim))(limits[dim])
+                    elif limits[dim] == "auto":
+                        getattr(ax, "set_{}lim".format(dim))(auto=True)
 
         if len(dependents) > 1:
             plt.legend(loc='upper right', prop=self._get_font(dfont, fonts, "legend"))
