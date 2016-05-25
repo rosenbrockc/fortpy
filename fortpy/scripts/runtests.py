@@ -30,6 +30,11 @@ def _get_compilers():
     
 def do_testing(args):
     """Runs the unit tests for all the modules in the code directory."""
+    from os import path
+    if not path.isdir(args["codedir"]):
+        msg.err("The source code directory '{}' does not exist.".format(args["codedir"]))
+        exit(2)
+    
     from fortpy.msg import set_quiet
     from fortpy.testing.tester import UnitTester
     set_quiet(args["quiet"])
@@ -45,6 +50,7 @@ def do_testing(args):
     complist = _get_compilers()
     totalperc = 0
     totaltest = 0
+    msg.info("Running for compilers: {}".format(', '.join(complist)))
     for c in complist:
         result = t.runall(c)
         print("")
