@@ -18,9 +18,9 @@ def print_result(testkey, percent, time, common):
 def _get_compilers():
     """Returns a list of compilers from the command-line arguments."""
     complist = []
-    if args["compiler"] and args["compiler"] != "*":
-        complist.append(args["compiler"])
-    elif args["compiler"] == "*":
+    if args["compiler"] and args["compiler"][0] != "*":
+        complist.extend(args["compiler"])
+    elif args["compiler"] and args["compiler"][0] == "*":
         from fortpy.testing.compilers import compilers
         for c in compilers:
             complist.append(c)
@@ -133,7 +133,8 @@ parser.add_argument("-rerun",
                           "When a test is rerun, it is recompiled and tested, even if the code base "
                           "has not changed since the last test. Value '*' reruns the unit "
                           "tests of *all* modules in the code directory."))
-parser.add_argument("-compiler", help="Specify the compiler to use for the unit testing")
+parser.add_argument("-compiler", nargs="+",
+                    help="Specify the compiler(s) to use for the unit testing")
 parser.add_argument("-pypath", help="Specify a path to add to sys.path before running the tests.")
 parser.add_argument("-nodebug", 
                     help=("Compile the executables with DEBUG=false; the default behavior is to "
