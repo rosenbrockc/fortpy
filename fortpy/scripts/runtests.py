@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import argparse
-def print_result(testkey, percent, time, common):
+def print_result(testkey, percent, time, common, compiler):
     """Prints the specified result to the terminal with coloring based
     on how successful it was.
     """
@@ -12,8 +12,8 @@ def print_result(testkey, percent, time, common):
     else:
         pfun = lambda m: msg.err(m, level=0, prefix=False)
 
-    text = "RESULT: {0} \n\t{1:.2%} success ({3:.2%} common) in {2} ms\n"
-    pfun(text.format(printkey, percent, time, common))
+    text = "RESULT: {0} | {4} \n\t{1:.2%} success ({3:.2%} common) in {2} ms\n"
+    pfun(text.format(printkey, percent, time, common, compiler))
 
 def _get_compilers():
     """Returns a list of compilers from the command-line arguments."""
@@ -61,18 +61,18 @@ def do_testing(args):
                 timestr = "{0:.4f}".format(totaltime*1000)
             else:
                 timestr = "<untimed>"
-            print_result(idk, result[idk].percent, timestr, result[idk].common)
+            print_result(idk, result[idk].percent, timestr, result[idk].common, c)
             totalperc += result[idk].percent
             totaltest += 1
 
     #This section for exit codes helps the continuous integration server to know what's
     #going on with all the test results.
-
     if totaltest == 0 and totalperc == 0:
         _exit_code(0, "No Tests")
     else:
         score = totalperc/totaltest
-        
+
+    print("@CI: {0:.2%}".format(score))        
     if score == 1.:
         _exit_code(0, "Success")
     elif score < 1.:

@@ -706,13 +706,14 @@ class UnitTester(object):
         #Now that we have run all of the executables, we can analyze their
         #output to see if it matches.
         from tqdm import tqdm
-        pbar = tqdm(result.cases)
+        pbar = tqdm(result.cases) if not self.quiet else result.cases
         for case in pbar:
-            if "." in case:
-                pbar.set_description("Checking {}".format(case.split(".")[1]))
-            else:
-                #The default case doesn't have any extra id.
-                pbar.set_description("Checking {}".format(case))
+            if not self.quiet:
+                if "." in case:
+                    pbar.set_description("Checking {}".format(case.split(".")[1]))
+                else:
+                    #The default case doesn't have any extra id.
+                    pbar.set_description("Checking {}".format(case))
                 
             xres = result.cases[case]
             #This next step generates large representations in memory of all the output
