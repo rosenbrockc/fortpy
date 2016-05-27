@@ -759,8 +759,11 @@ class UnitTester(object):
                     result.warnings.append("Duplicate CASES specified for unit testing:" + 
                                            " {}".format(caseid))
                     continue
-
-                self._initialize_testpath(testspec, testwriter, casepath, result, caseid, case)
+                try:
+                    self._initialize_testpath(testspec, testwriter, casepath, result, caseid, case)
+                except OSError:
+                    msg.err("Error initializing '{}' in '{}'.".format(testspec.identifier, testsfolder))
+                    raise
                 runlist.append((casepath, exepath, self.quiet, case))
                 
             #We need to run the executable multiple times, once for each case
