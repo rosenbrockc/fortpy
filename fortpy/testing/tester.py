@@ -463,7 +463,7 @@ class UnitTester(object):
     """
     def __init__(self, libraryroot=None, verbose=False, compare_templates=None,
                  fortpy_templates=None, rerun=None , compiler=None,
-                 debug=False, profile=False, quiet=False, strict=False):
+                 debug=False, profile=False, quiet=False, strict=False, nprocs=1):
         self.parser = CodeParser()
         self.parser.verbose = verbose
         from fortpy.utility import set_fortpy_templates
@@ -481,7 +481,9 @@ class UnitTester(object):
         self.debug = debug == True
         self.set_compiler(compiler)
         self.profile = self._profiler_exists(profile)
-        
+        self.nprocs = nprocs
+        """The number of processors to use for multi-threading test case execution.
+        """
         #A flag to track whether the generator has already written
         #the executables.
         self._written = False
@@ -746,31 +748,61 @@ class UnitTester(object):
         #The execution can either be case-based or once-off.
         msg.okay("Executing {}.x in {}".format(testspec.identifier, testsfolder))
         if testspec.cases is not None:
-            #We need to run the executable multiple times, once for each case
-            #Each case has input files specified relative to the code folder.
-            from tqdm import tqdm
-            pbar = tqdm(testspec.cases) if not self.quiet else testspec.cases
-            for case in pbar:
+            casedict = {}
+            runlist = []
+            for case in testspec.cases:
+                #Make a separate directory for the case and copy all its inputs.
                 caseid = "{}.{}".format(testspec.identifier, case)
-                if not self.quiet:
-                    pbar.set_description("Running {}".format(case))
-                if not caseid in result.cases:
-                    #Make a separate directory for the case and copy all its inputs.
-                    casepath = path.join(testsfolder, caseid)
-                    self._execute_testpath(testspec, testwriter, casepath, exepath, 
-                                           result, tester, caseid, case)
-                else:
+                casepath = path.join(testsfolder, caseid)
+                casedict[case] = (caseid, casepath)
+                if caseid in result.cases:
                     result.warnings.append("Duplicate CASES specified for unit testing:" + 
                                            " {}".format(caseid))
+                    continue
+
+                self._initialize_testpath(testspec, testwriter, casepath, result, caseid, case)
+                runlist.append((casepath, exepath, self.quiet, case))
+                
+            #We need to run the executable multiple times, once for each case
+            #Each case has input files specified relative to the code folder.
+            execodes = {}
+            from tqdm import tqdm
+            if self.nprocs == 1:
+                pbar = tqdm(testspec.cases) if not self.quiet else testspec.cases
+                for case in pbar:
+                    if not self.quiet:
+                        pbar.set_description("Running {}".format(case))
+                    caseid, casepath = casedict[case]
+                    (case, start_time, code) = _execute_testpath(casepath, exepath, self.quiet, case)
+                    execodes[case] = (code, start_time)
+            else:
+                from multiprocessing import Pool
+                xpool = Pool(self.nprocs)
+                chunks = len(casedict)/self.nprocs #Integer division on purpose.
+                if not self.quiet:
+                    for (case, start_time, code) in tqdm(xpool.imap_unordered(_parallel_execute, runlist, chunks)):
+                        execodes[case] = (code, start_time)
+                else:
+                    for (case, start_time, code) in xpool.map(_parallel_execute, runlist, chunks):
+                        execodes[case] = (code, start_time)
+                
+            for case, casevals in casedict.items():
+                caseid, casepath = casevals
+                code, start_time = execodes[case]
+                self._finalize_testpath(result, caseid, casepath, exepath, testspec, code,
+                                        start_time, tester, case)
         else:
             #Create a folder for this test specification to run in.
             testpath = path.join(testsfolder, testspec.identifier)
-            self._execute_testpath(testspec, testwriter, testpath, exepath, result, 
-                                   tester, testspec.identifier)
+            self._initialize_testpath(testspec, testwriter, testpath, result, testspec.identifier)
+            (case, start_time, code) = _execute_testpath(testpath, exepath, self.quiet)
+            self._finalize_testpath(result, testspec.identifier, testpath, exepath, testspec, code,
+                                    start_time, tester)
 
-    def _execute_testpath(self, testspec, testwriter, testpath, exepath, result, 
-                          tester, caseid, case=""):
-        """Executes the unit test in the specified testing folder for 'case'."""
+    def _initialize_testpath(self, testspec, testwriter, testpath, result, caseid, case=""):
+        """Sets up the directories with input files etc. so that the executable
+        can execute.
+        """
         if not path.exists(testpath):
             mkdir(testpath)
 
@@ -792,24 +824,11 @@ class UnitTester(object):
         
         #Save the path to the folder for execution in the result.
         result.paths[caseid] = testpath
-        start_time = clock()                              
-        from os import waitpid
-        from subprocess import Popen, PIPE
-        command = "cd {}; {} > .fpy.x.out".format(testpath, exepath)
-        prun = Popen(command, shell=True, executable="/bin/bash", stdout=PIPE, stderr=PIPE)
-        waitpid(prun.pid, 0)        
-        if not self.quiet:
-            output = prun.stdout.readlines()
-            if len(output) > 0:
-                msg.std(''.join(output))
-        #else: #We don't need to get these lines since we are purposefully redirecting them.
-        error = prun.stderr.readlines()
-        if len(error) > 0:
-            if self.quiet:
-                msg.info("With Executable at {}".format(exepath), 1)
-            msg.err('\n  '+'  '.join(error))
-        code = len(error)
-        
+
+    def _finalize_testpath(self, result, caseid, testpath, exepath, testspec, code,
+                           start_time, tester, case=""):
+        """Cleans up and sets results for the test that ran.
+        """
         if case == "":
             result.cases[caseid] = ExecutionResult(testpath, code, clock() - start_time, tester)
         else:
@@ -820,7 +839,7 @@ class UnitTester(object):
         if self.profile:
             profiling.profile(testpath, testspec.testgroup.method_fullname, 
                               exepath, self.compiler)
-
+        
     def _write_success(self, testpath, code):
         """Creates a SUCCESS file in the specified testpath if code==0 that has
         the time of the last execution. If code != 0, any existing SUCCESS file
@@ -833,3 +852,25 @@ class UnitTester(object):
         else:
             if path.isfile(sucpath):
                 remove(sucpath)
+
+def _parallel_execute(args):
+    return _execute_testpath(*args)               
+def _execute_testpath(testpath, exepath, quiet, case=""):
+    """Executes the unit test in the specified testing folder for 'case'."""
+    start_time = clock()                              
+    from os import waitpid
+    from subprocess import Popen, PIPE
+    command = "cd {}; {} > .fpy.x.out".format(testpath, exepath)
+    prun = Popen(command, shell=True, executable="/bin/bash", stderr=PIPE, close_fds=True)
+    waitpid(prun.pid, 0)        
+    #else: #We don't need to get these lines since we are purposefully redirecting them.
+    error = prun.stderr.readlines()
+    if len(error) > 0:
+        if quiet:
+            msg.info("With Executable at {}".format(exepath), 1)
+        msg.err('\n  '+'  '.join(error))
+    code = len(error)
+    prun.stderr.close()
+    
+    return (case, start_time, code)
+        

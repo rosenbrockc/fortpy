@@ -41,7 +41,7 @@ def do_testing(args):
     
     t = UnitTester(args["stagedir"], args["verbose"], args["templates"], args["fortpy"],
                    args["rerun"], debug=(not args["nodebug"]), profile=args["profile"],
-                   strict=args["strict"], quiet=args["quiet"])
+                   strict=args["strict"], quiet=args["quiet"], nprocs=args["nprocs"])
 
     #We only have to write the testing folder once; it gets copied for all
     #the remaining tests that need to be run for different compilers.
@@ -76,9 +76,9 @@ def do_testing(args):
     if score == 1.:
         _exit_code(0, "Success")
     elif score < 1.:
-        _exit_code(2, "Failure")
+        _exit_code(4, "Failure")
     else:
-        _exit_code(3, "Didn't Run")
+        _exit_code(5, "Didn't Run")
 
 def _exit_code(i, prefix):
     """Informs the user of the exit code and then exits."""
@@ -155,6 +155,8 @@ parser.add_argument("-compileaux", action="store_true",
 parser.add_argument("-nocolor", action="store_true",
                     help=("Don't output using termcolor. Useful when redirecting stdout so that "
                           "it is easier to read."))
+parser.add_argument("-nprocs", type=int, default=1,
+                    help="Specify the number of processors to use for parallel execution.")
 
 if __name__ == "__main__":
     #Parse the args from the commandline that ran the script, call initialize

@@ -25,7 +25,7 @@ def detect_compiler(exepath):
 
     #Append any trailing / that we need to get rsync to work correctly.
     xpath = path.abspath(path.expanduser(exepath))
-    pgfort = Popen("{} --version".format(xpath),
+    pgfort = Popen("{} --version".format(xpath), close_fds=True,
                     shell=True, executable="/bin/bash", stdout=PIPE, stderr=PIPE)
     waitpid(pgfort.pid, 0)
     #Redirect the output and errors so that we don't pollute stdout.
@@ -33,7 +33,9 @@ def detect_compiler(exepath):
     error = pgfort.stderr.readlines()
     if len(output) == 0:
         raise ValueError("Unable to determine the family of compiler at {}.".format(exepath))
-
+    pgfort.stdout.close()
+    pgfort.stderr.close()
+    
     if "gnu" in output[0].decode("UTF-8").lower():
         return "gfortran"
     else:
@@ -221,7 +223,10 @@ def _compile_simple(compiler, modnames, folder):
     from subprocess import Popen, PIPE
     codefiles = ' '.join(["{}.f90".format(m) for m in modnames])
     command = "cd {0}; {1} {2}; {1} -c {2}".format(folder, executor(compiler), codefiles)
-    pcompile = Popen(command, shell=True, executable="/bin/bash", stdout=PIPE, stderr=PIPE)
+    pcompile = Popen(command, shell=True, executable="/bin/bash",
+                     stdout=PIPE, stderr=PIPE, close_fds=True)
+    pcompile.stdout.close()
+    pcompile.stderr.close()
     waitpid(pcompile.pid, 0)
 
 def _vupdate_compiled_module(compiler, modname, folder, tversion=None, rename=True):
@@ -360,7 +365,8 @@ def compile(folder, compiler=None, identifier=None, debug=False, profile=False,
     #to wrap the execution in a subprocess and redirect the std* to PIPE
     from os import waitpid, path
     from subprocess import Popen, PIPE
-    pcompile = Popen(command, shell=True, executable="/bin/bash", stdout=PIPE, stderr=PIPE)
+    pcompile = Popen(command, shell=True, executable="/bin/bash", stdout=PIPE, stderr=PIPE,
+                     close_fds=True)
     waitpid(pcompile.pid, 0)
     
     if not quiet:
@@ -372,6 +378,8 @@ def compile(folder, compiler=None, identifier=None, debug=False, profile=False,
     if code != 0:
         msg.err(''.join(error))
 
+    pcompile.stdout.close()
+    pcompile.stderr.close()
     #It turns out that the compiler still returns a code of zero, even if the compile
     #failed because the actual compiler didn't fail; it did its job properly. We need to
     #check for the existence of errors in the 'compile.log' file.
