@@ -557,7 +557,7 @@ def _prepare_dir(parser, modnames, auxdir):
     from os import path
     from fortpy.interop.make import makefile
     lines = []
-    makepath = path.join(auxdir, "Makefile")
+    makepath = path.join(auxdir, "Makefile.fpy_aux")
     makefile("fpy_aux", modnames, makepath, "fpy_auxiliary.all", precompile,
              parser=parser, executable="so", makefpyaux=True)
 
@@ -570,7 +570,7 @@ def _compile(auxdir, compiler=None, debug=False, profile=False):
     :arg compiler: the key of the compiler from the compilers.xml or None for default.
     """
     from fortpy.testing.compilers import compile_general
-    return compile_general(auxdir, compiler, None, debug, profile, vupdates=["fpy_auxiliary"], quiet=True)
+    return compile_general(auxdir, compiler, "fpy_aux", debug, profile, vupdates=["fpy_auxiliary"], quiet=True)
 
 def _should_recompile(auxdir, parser, modules, compiler):
     """Determines whether the fpy_auxiliary module should be rewritten and recompiled.

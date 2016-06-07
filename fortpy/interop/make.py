@@ -31,7 +31,7 @@ def makefile(identifier, dependencies, makepath, compileid,
     lines.append("SHELL\t\t= /bin/bash")
     lines.append("UNAME\t\t= $(shell uname)")
     lines.append("HOSTNAME\t= $(shell hostname)")
-    lines.append("LOG\t\t= compile.{}.log".format(identifier))
+    lines.append("LOG\t\t= compile.{}.log".format(identifier if identifier is not None else "default"))
     lines.append("")
 
     #Now the standard entries for ifort. We will just have the ifort include

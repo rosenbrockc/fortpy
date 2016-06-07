@@ -298,8 +298,11 @@ def _ensure_fileversion(compiler, modname, folder, target, trycompile=True):
             from fortpy.code import config
             if config.symlink:
                 from os import symlink, remove
-                if path.isfile(ftarget):
+                if path.isfile(ftarget) or path.islink(ftarget):
                     remove(ftarget)
+                elif path.isdir(ftarget):
+                    msg.warn("Cannot auto-delete directory '{}' for symlinking.".format(ftarget))
+                    continue
                 symlink(source, ftarget)
             else:
                 msg.info("   COPY: {}".format(source))
@@ -385,7 +388,7 @@ def compile(folder, compiler=None, identifier=None, debug=False, profile=False,
     #check for the existence of errors in the 'compile.log' file.
     lcount = 0
     errors = []
-    log = path.join(folder, "compile.{}.log".format(identifier))
+    log = path.join(folder, "compile.{}.log".format(identifier if identifier is not None else "default"))
     with open(log) as f:
         for line in f:
             lcount += 1
