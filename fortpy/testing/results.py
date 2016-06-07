@@ -129,9 +129,9 @@ class DictResult(object):
         """Returns True if this result had actual data to compare (compared
         to two empty sets of data).
         """
-        if _has_data is None:
-            _has_data = not (len(self.dict1) == 0 and len(self.dict2) == 0)
-        return _has_data        
+        if self._has_data is None:
+            self._has_data = not (len(self.dict1) == 0 and len(self.dict2) == 0)
+        return self._has_data        
     
     def add_common(self, key):
         """Adds the specified key to the list of keys AND values that

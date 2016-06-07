@@ -211,7 +211,10 @@ class OutcomeTester(object):
             if m in xfiles:
                 xpath = path.join(exepath, m)
                 mpath = path.join(modelpath, m)
-                mxres = self.comparer.compare(xpath, mpath, outvar.template, outvar.mode)
+                #We can't use the outvar template for autoclass because the contents
+                #probably all have different types. Instead, we have to detect the
+                #template from the file headers.
+                mxres = self.comparer.compare(xpath, mpath, None, outvar.mode)
                 mx.append(mxres)
                 summary[m] = (mxres.percent_match, mxres.common_match)
 
