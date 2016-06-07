@@ -207,8 +207,16 @@ $(OBJSF90): %.o: %.f90
 	echo "done."{2}
 
 clean:
-	-rm *.o *.mod *.i90 $(EXENAME) {1}.so
-remake:
+	-mv fpy_auxiliary.mod fpy_auxiliary.modt 2> /dev/null
+	-mv fpy_auxiliary.o fpy_auxiliary.ot 2> /dev/null
+	-mv fortpy.o fortpy.ot
+	-mv fortpy.mod fortpy.modt
+	-rm *.o *.mod *.i90 $(EXENAME) initializeTree.so 2> /dev/null
+	-mv fpy_auxiliary.modt fpy_auxiliary.mod 2> /dev/null
+	-mv fpy_auxiliary.ot fpy_auxiliary.o 2> /dev/null
+	-mv fortpy.ot fortpy.o
+	-mv fortpy.modt fortpy.mod
+remake: clean
 	-rm *.o *.mod *.i90 $(EXENAME) {1}.so
 """
     return base.format(linktxt, identifier, redirect)
