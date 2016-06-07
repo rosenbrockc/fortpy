@@ -777,8 +777,8 @@ class Executable(ValueElement, Decoratable):
             self._is_type_target = False
             for tkey in self.module.types:
                 custype = self.module.types[tkey]
-                for execkey in custype.executables:
-                    if custype.executables[execkey].target is self:
+                for execkey, execinst in custype.executables.items():
+                    if execinst.target is self:
                         self._is_type_target = custype
                         break
                 if self._is_type_target:

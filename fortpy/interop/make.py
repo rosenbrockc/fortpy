@@ -71,7 +71,7 @@ def makefile(identifier, dependencies, makepath, compileid,
         if inclfortpy:
             lines.append("\t\tfortpy.o \\")
         if inclfpyaux:
-            lines.append("\t\tfpy_auxiliary.o \\")
+            lines.append("\t\tfpy_aux.so \\")
 
     lines.append("")
 

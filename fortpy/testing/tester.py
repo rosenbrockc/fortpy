@@ -597,8 +597,8 @@ class UnitTester(object):
 
             from fortpy.testing.compilers import replace
             from fortpy.testing.auxiliary import generate
-            from fortpy.utility import copy
-
+            from fortpy.utility import symlink
+            from fortpy.code import config
             #Run them each individually and return a dictionary of all the
             #test results
             result = {}
@@ -608,14 +608,19 @@ class UnitTester(object):
                 #Compile and copy fpy_auxiliary if it isn't in the identifiers directory yet.
                 source = path.join(self.libraryroot(identifier), identifier)
                 target = replace(source + ".[c]", self.compiler)
+                if not path.isdir(target):
+                    from os import mkdir
+                    mkdir(target)
                 if self.writer(identifier).autoclass and identifier not in fpyauxs:
                     code, success, fpytarget = generate(self.parser, self._codefolder,
                                                         self.libraryroot(identifier), self.compiler,
                                                         self.debug, self.profile, self.strict)
-                    opath = path.join(fpytarget, "fpy_auxiliary.o")
+                    sopath = path.join(fpytarget, "fpy_aux.so")
+                    sotarget = path.join(target, "fpy_aux.so")
                     mpath = path.join(fpytarget, "fpy_auxiliary.mod")
-                    copy(opath, target)
-                    copy(mpath, target)
+                    mtarget = path.join(target, "fpy_auxiliary.mod")
+                    symlink(sopath, sotarget)
+                    symlink(mpath, mtarget)
                     fpyauxs.append(identifier)
                 
                 oneresult = self._run_single(identifier, testid, source)
@@ -861,9 +866,10 @@ def _parallel_execute(args):
 def _execute_testpath(testpath, exepath, quiet, case=""):
     """Executes the unit test in the specified testing folder for 'case'."""
     start_time = clock()                              
-    from os import waitpid
+    from os import waitpid, path
     from subprocess import Popen, PIPE
-    command = "cd {}; {} > .fpy.x.out".format(testpath, exepath)
+    dyld = path.dirname(exepath)
+    command = "cd {}; DYLD_LIBRARY_PATH={} {} > .fpy.x.out".format(testpath, dyld, exepath)
     prun = Popen(command, shell=True, executable="/bin/bash", stderr=PIPE, close_fds=True)
     waitpid(prun.pid, 0)        
     #else: #We don't need to get these lines since we are purposefully redirecting them.

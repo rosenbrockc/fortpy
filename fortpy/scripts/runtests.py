@@ -116,49 +116,49 @@ def do_auxiliary():
     for c in complist:
         generate(parser, codedir, args["stagedir"], c, debug=(not args["nodebug"]),
                  profile=args["profile"], strict=args["strict"], docompile=args["compileaux"])
-    
-#Create a parser so that the script can receive arguments
-parser = argparse.ArgumentParser(description="Fortpy Automated Unit Testing Tool")
+        
+if __name__ == "__main__":    
+    #Create a parser so that the script can receive arguments
+    parser = argparse.ArgumentParser(description="Fortpy Automated Unit Testing Tool")
 
-#Add arguments to decide which of the systems and penalties to process.
-parser.add_argument("codedir", help="Specify the path to the directory of code files to run tests for.")
-parser.add_argument("-stagedir", help="Sets the directory in which to stage the unit tests.")
-parser.add_argument("-templates", help="Specify the path to the folder that houses the XML templates.")
-parser.add_argument("-outfile", help="Specify a path to save the comparison reports to.")
-parser.add_argument("-verbose", help="Sets whether the comparison output is verbose.", type=int, default=1)
-parser.add_argument("-mode", help="Sets the strictness of the comparison.", default="default")
-parser.add_argument("-fortpy", help="The path to the fortpy templates directory.")
-parser.add_argument("-rerun",
-                    help=("Specifies a filter for *module* names whose unit tests will be rerun. "
-                          "When a test is rerun, it is recompiled and tested, even if the code base "
-                          "has not changed since the last test. Value '*' reruns the unit "
-                          "tests of *all* modules in the code directory."))
-parser.add_argument("-compiler", nargs="+",
-                    help="Specify the compiler(s) to use for the unit testing")
-parser.add_argument("-pypath", help="Specify a path to add to sys.path before running the tests.")
-parser.add_argument("-nodebug", 
-                    help=("Compile the executables with DEBUG=false; the default behavior is to "
-                          "always compile with DEBUG on to check bounds and overflow errors etc."), 
-                    action="store_true")
-parser.add_argument("-profile", help="Compile and link with profiling enabled. Analyze profile.",
-                    action="store_true")
-parser.add_argument("-quiet", help="Run in quiet mode; only essential output appears on stdout.",
-                    action="store_true")
-parser.add_argument("-auxiliary", action="store_true",
-                    help=("Generate an auxiliary f90 module with interfaces to save user-derived "
-                          "type variables."))
-parser.add_argument("-strict", action="store_true",
-                    help="Enable all warnings for the compilers.")
-parser.add_argument("-compileaux", action="store_true",
-                    help=("Also compile the fpy_auxiliary.f90 into .o, .mod and .so library. "
-                          "Requires -stagedir to be specified."))
-parser.add_argument("-nocolor", action="store_true",
-                    help=("Don't output using termcolor. Useful when redirecting stdout so that "
-                          "it is easier to read."))
-parser.add_argument("-nprocs", type=int, default=1,
-                    help="Specify the number of processors to use for parallel execution.")
+    #Add arguments to decide which of the systems and penalties to process.
+    parser.add_argument("codedir", help="Specify the path to the directory of code files to run tests for.")
+    parser.add_argument("-stagedir", help="Sets the directory in which to stage the unit tests.")
+    parser.add_argument("-templates", help="Specify the path to the folder that houses the XML templates.")
+    parser.add_argument("-outfile", help="Specify a path to save the comparison reports to.")
+    parser.add_argument("-verbose", help="Sets whether the comparison output is verbose.", type=int, default=1)
+    parser.add_argument("-mode", help="Sets the strictness of the comparison.", default="default")
+    parser.add_argument("-fortpy", help="The path to the fortpy templates directory.")
+    parser.add_argument("-rerun",
+                        help=("Specifies a filter for *module* names whose unit tests will be rerun. "
+                              "When a test is rerun, it is recompiled and tested, even if the code base "
+                              "has not changed since the last test. Value '*' reruns the unit "
+                              "tests of *all* modules in the code directory."))
+    parser.add_argument("-compiler", nargs="+",
+                        help="Specify the compiler(s) to use for the unit testing")
+    parser.add_argument("-pypath", help="Specify a path to add to sys.path before running the tests.")
+    parser.add_argument("-nodebug", 
+                        help=("Compile the executables with DEBUG=false; the default behavior is to "
+                              "always compile with DEBUG on to check bounds and overflow errors etc."), 
+                        action="store_true")
+    parser.add_argument("-profile", help="Compile and link with profiling enabled. Analyze profile.",
+                        action="store_true")
+    parser.add_argument("-quiet", help="Run in quiet mode; only essential output appears on stdout.",
+                        action="store_true")
+    parser.add_argument("-auxiliary", action="store_true",
+                        help=("Generate an auxiliary f90 module with interfaces to save user-derived "
+                              "type variables."))
+    parser.add_argument("-strict", action="store_true",
+                        help="Enable all warnings for the compilers.")
+    parser.add_argument("-compileaux", action="store_true",
+                        help=("Also compile the fpy_auxiliary.f90 into .o, .mod and .so library. "
+                              "Requires -stagedir to be specified."))
+    parser.add_argument("-nocolor", action="store_true",
+                        help=("Don't output using termcolor. Useful when redirecting stdout so that "
+                              "it is easier to read."))
+    parser.add_argument("-nprocs", type=int, default=1,
+                        help="Specify the number of processors to use for parallel execution.")
 
-if __name__ == "__main__":
     #Parse the args from the commandline that ran the script, call initialize
     args = vars(parser.parse_args())
 

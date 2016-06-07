@@ -1081,7 +1081,7 @@ class AssignmentValue(object):
             and self.testsource is None):
             from fortpy.tramp import coderelpath
             from fortpy.testing.compilers import replace
-            from os import symlink, remove
+            from fortpy.utility import symlink
             relpath = coderelpath(coderoot, self.folder)
             source = replace(path.join(relpath, self.filename.format(case)), compiler)
             source = replace(source, compiler, True)
@@ -1090,27 +1090,16 @@ class AssignmentValue(object):
             #parts of an array, the <value> file specification will have a wildcard
             #at the position where the array index id will go. We just copy *all* the
             #input files over that match that definition.
-            from fortpy.code import config
             if "*" in source:
                 import glob
                 for filename in glob.glob(source):
                     suffix = ".{}".format(case)
                     if filename[-len(suffix)::] == suffix:
                         target = path.join(testroot, filename[0:len(filename)-len(suffix)].split("/")[-1])
-                        if config.symlink:
-                            if path.isfile(target):
-                                remove(target)
-                            symlink(filename, target)
-                        else:
-                            copyfile(filename, target)
+                        symlink(filename, target)
             else:
                 target = self.livefile(testroot, case)
-                if config.symlink:
-                    if path.isfile(target):
-                        remove(target)
-                    symlink(source, target)
-                else:
-                    copyfile(source, target)
+                symlink(source, target)
 
         if (self.testsource):
             #We don't want to duplicate lots of files all over the system. If they already
@@ -2307,14 +2296,8 @@ class TestInput(object):
             source = replace(path.join(relpath, self.filename.format(case)), compiler)
             source = replace(source, compiler, True)
 
-            from fortpy.code import config
-            if config.symlink:
-                from os import symlink, remove
-                if path.isfile(target):
-                    remove(target)
-                symlink(source, target)
-            else:
-                copyfile(source, target)
+            from fortpy.utility import symlink
+            symlink(source, target)
         else:
             self.testsource.copy(coderoot, testroot, case, compiler, stagedir)
 
@@ -3531,17 +3514,37 @@ class MethodFinder(object):
 
         spacing = len(list(prefix)) + len(list(self.executable.name)) + len(spacer)
 
+        #Unfortunately, the fpy_auxiliary module freaks out if we call a public
+        #method directly which is *also* a module procedure for the type (since
+        #the .mod files vary because of the extra public subroutine on the type,
+        #the compiler dies with Abort trap 6 error. So, we need to call embedded
+        #methods using the %-syntax.
+        if not self.executable.is_type_target:
+            callname = self.executable.name
+            xtype = None
+        else:
+            xtype = self.executable.is_type_target
+            for emname, emexec in xtype.executables.items():
+                if emexec.target is self.executable:
+                    callname = emname
+                    break
+            else:
+                callname = self.executable.name
+        
         if "paramlist" in self.attributes:
             #The developer has decided on an alternate call signature from
             #the one that gets auto-generated.
             specified = re.split(",\s*", self.attributes["paramlist"])
+            if xtype is not None and len(specified) == len(self.executable.ordered_parameters):
+                msg.warn("Explicit parameter list for embedded executable should *exclude* the "
+                         "reference to 'self' in the first argument.")
             cleaned = present_params(specified, spacing, 90)
-            lines.append("{}{}{}({})".format(spacer, prefix, self.executable.name, cleaned))
+            lines.append("{}{}{}({})".format(spacer, prefix, callname, cleaned))
         else:
             #We can construct the actual list of parameters to use in the call
             #and substitute mappings where appropriate.
             calllist = []
-            for param in self.executable.ordered_parameters:
+            for ip, param in enumerate(self.executable.ordered_parameters):
                 #Because of ignorable parameters, if the parameter is optional, explicitly
                 #specify its name.
                 if "optional" in param.modifiers:
@@ -3550,7 +3553,12 @@ class MethodFinder(object):
                     optstr = ""
                     
                 if self.group is not None and param in self.group.mappings:
-                    calllist.append(optstr + self.group.mappings[param])
+                    #The first parameter name will also be the name of the variable that gets
+                    #created and called.
+                    if xtype is not None and ip == 0:
+                        callname = "{}%{}".format(self.group.mappings[param], callname)
+                    else:
+                        calllist.append(optstr + self.group.mappings[param])
                 else:
                     var = None
                     pname = param.name.lower()
@@ -3559,12 +3567,16 @@ class MethodFinder(object):
                         var = self.test.variables[pname]
                     if var is None and self.group is not None and pname in self.group.variables:
                         var = self.group.variables[pname]
-                    if var is not None and not var.ignore:
-                        calllist.append(optstr + param.name)
-                    elif var is None:
-                        calllist.append(optstr + param.name)
+                    
+                    if xtype is not None and ip == 0:
+                        callname = "{}%{}".format(param.name, callname)
+                    else:
+                        if var is not None and not var.ignore:
+                            calllist.append(optstr + param.name)
+                        elif var is None:
+                            calllist.append(optstr + param.name)
 
-            lines.append("{}{}{}({})".format(spacer, prefix, self.executable.name,
+            lines.append("{}{}{}({})".format(spacer, prefix, callname,
                                               present_params(calllist, spacing, 90)))        
 
         if self.timed(testid):

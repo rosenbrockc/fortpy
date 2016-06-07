@@ -14,6 +14,30 @@ def get_attrib(xml, name, tag=None, cast=str, default=None):
     elif tag is not None:
         raise ValueError("'{}' is a required attribute of <{}> tag.".format(name, tag))
 
+def symlink(source, target, isfile=True):
+    """Creates a symlink at target *file* pointing to source.
+
+    :arg isfile: when True, if symlinking is disabled in the global config, the file
+      is copied instead with fortpy.utility.copyfile; otherwise fortpy.utility.copy
+      is used and the target is considered a directory.
+    """
+    from fortpy.code import config
+    from os import path
+    if config.symlink:
+        from os import symlink, remove
+        if path.isfile(target) or path.islink(target):
+            remove(target)
+        elif path.isdir(target):
+            msg.warn("Cannot auto-delete directory '{}' for symlinking.".format(target))
+            return
+        symlink(source, target)
+    else:
+        msg.info("   COPY: {}".format(source))
+        if isfile:
+            copyfile(source, target)
+        else:
+            copy(source, target)
+    
 def copyfile(src, dst, verbose=False):
     """Copies the specified source file to destination *file* if it is newer
     or does not yet exist.

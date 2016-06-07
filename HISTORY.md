@@ -9,6 +9,8 @@
 - Added legend formatting options to the analysis shell.
 - Added `multiprocessing` support to execution of test cases for unit tests.
 - Added more useful exception message for test initialization failures.
+- Bug fixes outlined in Issue #100.
+- Fixed a bug with symlinking when the link already exists.
 
 ## Revision 1.7.5
 

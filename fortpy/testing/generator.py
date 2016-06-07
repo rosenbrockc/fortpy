@@ -172,7 +172,7 @@ class TestGenerator(object):
             target = os.path.join(self.xgenerator.folder, dfile)
             dversion = self.tester.get_fortpy_version(target)
             tversion = self.tester.template_version(dfile)
-            if config.symlink and os.path.isfile(target):
+            if config.symlink and (os.path.isfile(target) or os.path.islink(target)):
                 os.remove(target)
                 
             if not os.path.exists(target) or dversion != tversion:
