@@ -21,12 +21,13 @@ def copyfile(src, dst, verbose=False):
     from os import waitpid
     from subprocess import Popen, PIPE
     prsync = Popen("rsync {}-t -u {} {}".format("-v " if verbose else "", src, dst),
-                   shell=True, executable="/bin/bash", stdout=PIPE, stderr=PIPE)
+                   shell=True, executable="/bin/bash", stdout=PIPE, stderr=PIPE, close_fds=True)
     waitpid(prsync.pid, 0)
     
     #Redirect the output and errors so that we don't pollute stdout.
     error = prsync.stderr.readlines()
-
+    prsync.stderr.close()
+    prsync.stdout.close()
     if len(error) > 0:
         from fortpy.msg import warn
         warn("Error while copying {} using rsync.\n\n{}".format(src, '\n'.join(error)))
@@ -42,13 +43,15 @@ def copy(src, dst, verbose=False):
         from os import mkdir
         mkdir(desti)
 
-    prsync = Popen("rsync -t -u {} {}".format(src, desti),
+    prsync = Popen("rsync -t -u {} {}".format(src, desti), close_fds=True,
                    shell=True, executable="/bin/bash", stdout=PIPE, stderr=PIPE)
     waitpid(prsync.pid, 0)
     
     #Redirect the output and errors so that we don't pollute stdout.
     #output = prsync.stdout.readlines()
     error = prsync.stderr.readlines()
+    prsync.stderr.close()
+    prsync.stdout.close()
 
     if len(error) > 0:
         from fortpy.msg import warn
@@ -68,12 +71,14 @@ def copytree(src, dst):
         from os import mkdir
         mkdir(desti)
     
-    prsync = Popen("rsync -t -u -r {} {}".format(source, desti),
+    prsync = Popen("rsync -t -u -r {} {}".format(source, desti), close_fds=True,
                     shell=True, executable="/bin/bash", stdout=PIPE, stderr=PIPE)
     waitpid(prsync.pid, 0)
     #Redirect the output and errors so that we don't pollute stdout.
     #output = prsync.stdout.readlines()
     error = prsync.stderr.readlines()
+    prsync.stderr.close()
+    prsync.stdout.close()
 
     if len(error) > 0:
         from fortpy.msg import warn

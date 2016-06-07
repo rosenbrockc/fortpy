@@ -3,7 +3,7 @@
 from multiple cases of an individual test."""
 import cmd
 import argparse
-
+import re
 class FortpyShell(cmd.Cmd):
     """Shell for interacting with fortpy unit test results."""
     def __init__(self):
@@ -17,7 +17,7 @@ class FortpyShell(cmd.Cmd):
         self.group = None
         """The name of the analysis group in the current unit test being worked on."""
         self._template_args = {
-            "version": 6,
+            "version": 7,
             "xscale": None,
             "yscale": None,
             "tfilter": ["*"],
@@ -35,7 +35,8 @@ class FortpyShell(cmd.Cmd):
             "lines": {},
             "plottypes": {},
             "limits": {},
-            "twinplots": {}
+            "twinplots": {},
+            "legend": {}
         }
         """A dictionary of template arguments that can be set to affect the plotting/tabulating 
         behavior of the shell for a unit test analysis group. This gets duplicated for each
@@ -78,6 +79,24 @@ class FortpyShell(cmd.Cmd):
             "white": "w"
         }
         """A dict of possible matplotlib colors and their corresponding codes."""
+        self.legend_locs = {'upper_right'  : 1,
+                            'upper_left'   : 2,
+                            'lower_left'   : 3,
+                            'lower_right'  : 4,
+                            'right'        : 5,
+                            'center_left'  : 6,
+                            'center_right' : 7,
+                            'lower_center' : 8,
+                            'upper_center' : 9,
+                            'center'       : 10}
+        """Dict of legend locations and their corresponding numerical values."""
+        self.legend_opts = {'loc': self.legend_locs, 'numpoints': int, 'markerscale': float, 'markerfirst': bool,
+                            'scatterpoints': int, 'scatteryoffsets': (list, float),
+                            'fontsize': float, 'borderpad': float, 'labelspacing': float, 'handlelength': float,
+                            'handleheight': float, 'handletextpad': float, 'borderaxespad': float,
+                            'columnspacing': float, 'ncol': int, 'fancybox': bool, 'shadow': bool,
+                            'title': str, 'framealpha': float, 'frameon': bool}
+        """Dict of legend options and their corresponding types expected by the plotter."""
         from matplotlib.markers import MarkerStyle
         self._possible_markers = MarkerStyle.markers 
         """A dict of possible marker styles to use on plots."""
@@ -424,8 +443,6 @@ class FortpyShell(cmd.Cmd):
             return [p for p in (self.allprops[var]+extra) if p.startswith(text)]
 
     def _complete_fullvar(self, text, line, istart, iend, wfilter=True):
-        #Determine if we have a bar in the text, if we do then we are completing attributes;
-        #otherwise we are completing variables.
         value = line.split()
         if len(value) == 1:
             value = ""
@@ -438,6 +455,9 @@ class FortpyShell(cmd.Cmd):
             else:
                 #This handles the case where we don't want to complete on filters.
                 rest = value
+                
+            #Determine if we have a bar in the text, if we do then we are completing attributes;
+            #otherwise we are completing variables.
             if "|" in rest:
                 var, prop = rest.split("|")
                 if wfilter:
@@ -638,46 +658,102 @@ class FortpyShell(cmd.Cmd):
         sargs = usable.split()
         if len(sargs) == 1 and sargs[0] == "list":
             self._print_map_dict("functions", filename, append)
-        elif len(sargs) == 2:
-            var, fxn = sargs
-            if not self._validate_var(var):
-                msg.err("Variable '{}' is not a valid variable|property combination.")
-        
-            from importlib import import_module
-            lib = fxn.split(".")
-            fun = lib.pop()
-            numpy = import_module('.'.join(lib))
-            if not hasattr(numpy, fun):
-                msg.err("Function '{}' is not a valid numpy function.".format(fun))
-            else:
-                self.curargs["functions"][var] = fxn
-                #Give the user some feedback so that they know it was successful.
-                self.do_postfix("list")
+        elif len(sargs) >= 2:
+            defvars = self._postfix_varlist("postfix " + arg)
+            for var in defvars.values():
+                if not self._validate_var(var):
+                    msg.err("Variable '{}' is not a valid variable|property combination.")
+                    return
+
+            fxn = arg.split()[-1]
+            if ":" not in fxn:
+                msg.err("{} is not a valid postfix function expression.")
+                self.help_postfix()
+                return
+
+            modvar = fxn.split(":")[0]
+            if modvar not in defvars:
+                msg.err("Invalid postfix function: variable '{}' not defined.".format(modvar))
+                return
+            
+            defvars["lambda"] = fxn
+            self.curargs["functions"][defvars[modvar]] = defvars
+            #Give the user some feedback so that they know it was successful.
+            self.do_postfix("list")
+    def _postfix_varlist(self, line):
+        """Returns a dictionary of the global variable names (keys) and their local 
+        name for the lambda function.
+        """
+        els = line.split()
+        result = {}
+        if len(els) >= 2:
+            defvars = [v for v in els if "=" in v]
+            varlist = []
+            for dvar in defvars:
+                gvar, lvar = dvar.split("=")
+                if lvar != "":
+                    result[lvar] = gvar
+        return result
+    
     def complete_postfix(self, text, line, istart, iend):
         els = line.split()
-        if len(els) == 1 or (len(els) == 2 and line[-1] != " "):
+        if len(els) >= 2:
+            if ":" in els[-1]:
+                #We are completing the lambda function. Find a list of the variables that
+                #they have defined so far.
+                defvars = self._postfix_varlist(line)
+                if len(defvars) == 0:
+                    return []
+                else:
+                    #We want to complete for the numpy functions and the variable names
+                    #that we know they have defined.
+                    comptext = re.split(r"[()\]\-\^\\/[+*:]+", els[-1])[-1]
+                    left = els[-1][:els[-1].rfind(comptext)]
+                    if "." in comptext:
+                        libs = comptext.split(".")
+                        from importlib import import_module
+                        partial = libs.pop()
+                        prefix = '.'.join(libs)
+                        module = import_module(prefix)
+                        alldir = [a for a in dir(module) if a[0] != "_"]
+
+                        if partial == "":
+                            result = alldir
+                        else:
+                            result = [a for a in alldir if a.startswith(partial)]
+                        return [left + prefix + '.' + a for a in result]
+                    else:
+                        varlist = list(defvars.keys()) + ["numpy.", "math."]
+                        return [left + a for a in varlist if a.startswith(comptext)]
+            else:
+                #We are compiling the list of variables to be used in the lambda.
+                defvars = self._postfix_varlist(line)
+                if "=" in els[-1] and line[-1] != " ":
+                    #They are choosing a variable name, return the generic variable name.
+                    gvar, lvar = els[-1].split("=")
+                    if len(lvar) == 0:
+                        varlist = [els[-1] + chr(97+len(defvars))]
+                    else:
+                        varlist = [els[-1] + " "]
+                elif "=" in els[-1] and line[-1] == " ":
+                    #Auto-complete on the variable name.
+                    defvars = self._postfix_varlist(line)
+                    varlist = self._complete_fullvar("", "postfix ", 0, 0)
+                    varlist.extend([v + ':' for v in defvars])
+                else:
+                    varlist = self._complete_fullvar(els[-1], "postfix {}".format(els[-1]).format(els[-1]), 0, 0)
+                    if len(varlist) == 1 and varlist[0] == els[-1]:
+                        varlist = [els[-1] + '=']
+                    varlist.extend([v + ':' for v in defvars if v.startswith(els[-1])])
+                    if "list".startswith(els[-1]):
+                        varlist.append("list")
+                return varlist
+        else:
             varlist = self._complete_fullvar(text, line, istart, iend)
             if text in "list" and "|" not in line:
                 varlist.append("list")
             return varlist
-        elif line[-1] == " ":
-            return ["numpy."]
-        else:
-            if "." not in els[-1]:
-                return ["numpy."]
-            libs = els[-1].split(".")
-            from importlib import import_module
-            partial = libs.pop()
-            prefix = '.'.join(libs)
-            module = import_module(prefix)
-            alldir = [a for a in dir(module) if a[0] != "_"]
-
-            if partial == "":
-                result = alldir
-            else:
-                result = [a for a in alldir if a.startswith(partial)]                
-
-            return [prefix + '.' + a for a in result]
+                
     def help_postfix(self):
         lines = [("Sets the postfix function for a specific variable (either dependent or "
                   "independent). The postfix function is applied to the variable's value "
@@ -688,8 +764,16 @@ class FortpyShell(cmd.Cmd):
 
     def do_rmpostfix(self, arg):
         """Removes a postfix function from a variable. See 'postfix'."""
+        altered = False
         if arg in self.curargs["functions"]:
-            del self.curargs["functions"][arg]     
+            del self.curargs["functions"][arg]
+            altered = True
+        elif arg == "*":
+            for varname in list(self.curargs["functions"].keys()):
+                del self.curargs["functions"][varname]
+            altered = True
+        if altered:
+            self.do_postfix("list")
     def complete_rmpostfix(self, text, lines, istart, iend):
         return [p for p in list(self.curargs["functions"].keys()) if p.startswith(text)]
 
@@ -916,6 +1000,29 @@ class FortpyShell(cmd.Cmd):
                   "to the specified PDF file."),
                  ("See also: 'loglogplot', 'plot'.")]
         self._fixed_width_info(lines)
+        
+    def do_semilogxplot(self, arg):
+        """Plots the current state of the shell's independent vs. dependent variables on the
+        same set of axes with the y-scale set to logarithmic. Give filename to save to as
+        argument or leave blank to show.
+        """        
+        usable, filename, append = self._redirect_split(arg)
+        self.curargs["xscale"] = "log"
+        self.curargs["yscale"] = None
+        self._plot_generic(filename)
+    def help_semilogxplot(self):
+        lines = [("Plots the behavior of the dependent variables as functions of the independent "
+                  "variable for the current analysis group. The x-scale is set to logarithmic. To "
+                  "save the plot to a file, redirect the output."),
+                 ("You can control the appearance of the plot using the following commands: "
+                  "'xlabel', 'ylabel'. Consider using separate analysis groups for each plot "
+                  "you need to create so that you don't waste time overwriting property values. "
+                  "You can save a sessions settings using 'save' if you want to return and "
+                  "redo the plots later or make adjustments (highly recommended)."),
+                 ("EXAMPLE \"semilogxplot > plot.pdf\" creates a log plot of the data and saves it "
+                  "to the specified PDF file."),
+                 ("See also: 'loglogplot', 'plot', 'logplot'.")]
+        self._fixed_width_info(lines)
 
     def do_loglogplot(self, arg):
         """Plots the current state of the shell's independent vs. dependent variables on the
@@ -938,7 +1045,7 @@ class FortpyShell(cmd.Cmd):
                   "redo the plots later or make adjustments (highly recommended)."),
                  ("EXAMPLE \"loglogplot > plot.pdf\" creates a log-log plot of the data and saves it "
                   "to the specified PDF file."),
-                 ("See also: 'logplot', 'plot'.")]
+                 ("See also: 'logplot', 'plot', 'semilogx'.")]
         self._fixed_width_info(lines)
 
     def do_plot(self, arg):
@@ -960,7 +1067,7 @@ class FortpyShell(cmd.Cmd):
                   "redo the plots later or make adjustments (highly recommended)."),
                  ("EXAMPLE \"plot > plot.pdf\" creates a plot of the data and saves it "
                   "to the specified PDF file."),
-                 ("See also: 'logplot', 'loglogplot'.")]
+                 ("See also: 'logplot', 'loglogplot', 'semilogx'.")]
         self._fixed_width_info(lines)
 
     def _set_def_prompt(self):
@@ -1412,22 +1519,22 @@ class FortpyShell(cmd.Cmd):
         self.lasterr = '\n'.join(format_exception(e[0], e[1], e[2]))
 
     def cmdloop(self):
-        try:
-            cmd.Cmd.cmdloop(self)
-        except Exception as exsimple:
-            msg.err(exsimple.message)
-            self._store_lasterr()
-            if self._errcount < self._maxerr:
-                self._errcount += 1
-                msg.err("The shell has caught {} unhandled exceptions so far.\n".format(self._errcount) + 
-                        "When that value reaches {}, the shell will save a ".format(self._maxerr) + 
-                        "recovery file and exit.")
-                self.postloop()
-                self.cmdloop()
-            else:
-                self.do_save("#fortpy.shell#")
-                msg.err("Something unexpected happened. The shell has died. Your session "
-                        "has been saved as '#fortpy.shell#' in the current directory.")
+#        try:
+        cmd.Cmd.cmdloop(self)
+        # except Exception as exsimple:
+        #     msg.err(exsimple.message)
+        #     self._store_lasterr()
+        #     if self._errcount < self._maxerr:
+        #         self._errcount += 1
+        #         msg.err("The shell has caught {} unhandled exceptions so far.\n".format(self._errcount) + 
+        #                 "When that value reaches {}, the shell will save a ".format(self._maxerr) + 
+        #                 "recovery file and exit.")
+        #         self.postloop()
+        #         self.cmdloop()
+        #     else:
+        #         self.do_save("#fortpy.shell#")
+        #         msg.err("Something unexpected happened. The shell has died. Your session "
+        #                 "has been saved as '#fortpy.shell#' in the current directory.")
 
     def precmd(self, line):
         """Makes sure that the command specified in the line is valid given the current
@@ -1867,15 +1974,25 @@ class FortpyShell(cmd.Cmd):
                 return [p for p in propkeys if p.startswith(part)]
 
     def do_limit(self, arg):
+        import re
         vals = arg.split()
-        if len(vals) == 3:
+        if len(vals) >= 2:
             if vals[0] in ["x", "y", "z", "x-twin", "y-twin"]:
-                self.curargs["limits"][vals[0]] = tuple(map(float, vals[1:3]))
+                if re.match("[\d.]+", vals[1]):
+                    self.curargs["limits"][vals[0]] = tuple(map(float, vals[1:3]))
+                elif vals[1] == "rm":
+                    del self.curargs["limits"][vals[0]]
+                elif vals[1] == "auto":
+                    self.curargs["limits"][vals[0]] = "auto"
+                self.do_limit("list")
             else:
-                msg.err("Only 'x', 'y' and 'z' are valid axis designations.")                
+                msg.err("Only 'x', 'y', 'z', 'x-twin' and 'y-twin' are valid axis designations.")                
         elif arg == "list":
             for dim in self.curargs["limits"]:
-                msg.info("{0} LIMITS: {1[0]}-{1[1]}".format(dim.upper(), self.curargs["limits"][dim]))
+                if isinstance(self.curargs["limits"][dim], tuple):
+                    msg.info("{0} LIMITS: {1[0]}-{1[1]}".format(dim.upper(), self.curargs["limits"][dim]))
+                else:
+                    msg.info("{0} LIMITS: {1}".format(dim.upper(), self.curargs["limits"][dim]))
         else:
             msg.warn("Enter the axis type ('x', 'y', 'z', 'x-twin', 'y-twin') and the"
                      " start and end values. E.g. \"limit x 0 20\"")
@@ -1891,6 +2008,12 @@ class FortpyShell(cmd.Cmd):
                 return [a for a in axes if a.startswith(els[1])]
             else:
                 return axes
+        elif (len(els) == 2 and line[-1] == " ") or len(els) == 3:
+            opts = ["<float>", "rm", "auto"]
+            if len(els) == 3:
+                return [o for o in opts if o.startswith(text)]
+            else:
+                return opts
 
     def do_figsize(self, arg):
         vals = arg.split()
@@ -1916,7 +2039,95 @@ class FortpyShell(cmd.Cmd):
                 return [a for a in options if a.startswith(els[1])]
             else:
                 return options
-        
+
+    def do_legend(self, arg):
+        usable, filename, append = self._redirect_split(arg)
+        vals = usable.split()
+        if len(vals) == 1 and vals[0] == "list":
+            self._print_map_dict("legend", filename, append)
+        elif len(vals) >= 1:
+            if len(vals) >= 2 and vals[0] == "rm":
+                if vals[1] == "*":
+                    for pkey in list(self.curargs["legend"].keys()):
+                        del self.curargs["legend"][pkey]
+                else:
+                    for pkey in vals[1:]:
+                        if pkey in self.curargs["legend"]:
+                            del self.curargs["legend"][pkey]
+            else:
+                for pkey in vals:
+                    if "=" in pkey:
+                        prop, val = pkey.split("=")
+                        if val == "none":
+                            value = None
+                        elif val in ["true", "false"]:
+                            value = val == "true"
+                        else:
+                            #Check what the plotter expects and cast the value.
+                            dst = self.legend_opts[prop]
+                            if isinstance(dst, tuple):
+                                #We are expecting a list, cast each value and return a list.
+                                value = list(map(dst[1], val[1:-1].split(",")))
+                            elif isinstance(dst, dict):
+                                value = val.replace("_", " ")
+                            else:
+                                value = dst(val)
+                        self.curargs["legend"][prop] = value
+                    else:
+                        msg.err("'{}' is an invalid property-value combination.".format(pkey))
+            self.do_legend("list")
+    def help_legend(self):
+        lines = [("Sets the properties for displaying the legend."),
+                 ("EXAMPLE \"legend pos=right shadow=true\" sets the legend position to the right "
+                  "of the figure and includes a shadow around the box.")]
+    def complete_legend(self, text, line, istart, iend):
+        suggest = {
+            str: ["<string>"],
+            bool: ["true", "false"],
+            int: ["<int>"],
+            float: ["<float>"]
+        }
+        defaults = {
+            "markerfirst": True,
+            "ncol": 1
+        }
+        els = line.split()
+        if line[-1] == " ":
+            if len(els) <= 2:
+                return list(self.legend_opts.keys()) + ["list", "rm"]
+            else:
+                return list(self.legend_opts.keys())
+        elif len(els) >= 2:
+            if els[1] == "rm":
+                #Return the list of properties that are set so far.
+                return [k for k in self.curargs["legend"] if k.startswith(els[-1])] + ["*"]
+            else:
+                #We specify keyword value combinations.
+                if "=" in els[-1] and line[-1] != " ":
+                    prop, val = els[-1].split("=")
+                    if prop not in self.legend_opts:
+                        msg.warn("'{}' is not a valid legend property.".format(prop))
+                    else:
+                        skey = self.legend_opts[prop]
+                        if isinstance(skey, dict):
+                            return ["{}={}".format(prop, k) for k in skey if k.startswith(val)]
+                        elif isinstance(skey, tuple):
+                            return ["{0}=[{1},{1},...]".format(prop, str(skey[1]).replace("type ", "").replace("'", "")),
+                                    "{}=none".format(prop)]
+                        else:
+                            if skey in defaults:
+                                oplist = suggest[skey] + [defaults[skey]]
+                            else:
+                                oplist = suggest[skey] + ["none"]
+                            return ["{}={}".format(prop, o) for o in oplist if o.startswith(val)]
+                else:
+                    oplist = [p + '=' for p in self.legend_opts if p.startswith(els[-1])]
+                    if "list".startswith(els[-1]) and len(els) == 2:
+                        oplist.append("list")
+                    if "rm".startswith(els[-1]) and len(els) == 2:
+                        oplist.append("rm")
+                    return oplist
+            
 parser = argparse.ArgumentParser(description="Fortpy Automated Test Result Analyzer")
 parser.add_argument("-pypath", help="Specify a path to add to sys.path before running the tests.")
            

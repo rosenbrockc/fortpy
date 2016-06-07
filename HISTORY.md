@@ -1,5 +1,15 @@
 # FORTPY: Revision History
 
+## Revision 1.7.6
+
+- Added symlinks for `fortpy.o` and `fortpy.mod` since they don't need to be copied.
+- Added `-nocolor` option to the `fortpy.msg` module for tidier `stdout` redirects.
+- Fixed a bug introduced last time by renaming `compile.log` for each test identifier separately.
+- Updated `postfix` support in the analysis shell. Any combination of variables and functions is now possible.
+- Added legend formatting options to the analysis shell.
+- Added `multiprocessing` support to execution of test cases for unit tests.
+- Added more useful exception message for test initialization failures.
+
 ## Revision 1.7.5
 
 - Added enhancement #87
