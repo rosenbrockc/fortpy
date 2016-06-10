@@ -1,4 +1,4 @@
-!!<fortpy version="__version__" codeversion="1.7.0" />
+!!<fortpy version="__version__" codeversion="1.7.6" />
 !!<summary>Auto-generated auxiliary module exposing interfaces to save
 !!instances of user-derived types.</summary>
 module fpy_auxiliary
@@ -96,6 +96,9 @@ __fxauxread__
        end if
 
        memexists = .false.
+       !Because of the treatment of blank entries in vectors of allocated size, we have to check
+       !for the special '.fpy.blank' suffix/member name.
+       inquire(file=prefix//catstr//'-.fpy.blank', exist=memexists)
        j = 1
        do while (j .le. size(members) .and. .not. memexists)
           inquire(file=prefix//catstr//'-'//trim(members(j)), exist=memexists)
@@ -131,6 +134,7 @@ __fxauxread__
           end do
 
           memexists = .false.
+          inquire(file=prefix//catstr//'-.fpy.blank', exist=memexists)
           j = 1
           do while (j .le. size(members) .and. .not. memexists)
              inquire(file=prefix//catstr//'-'//trim(members(j)), exist=memexists)

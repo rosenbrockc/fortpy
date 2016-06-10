@@ -774,6 +774,8 @@ class AutoClasser(object):
                 for v in self._vars:
                     if "_acps" in v:
                         lines.append("{}character(100) :: {}".format(spacer, v))
+                    elif "_wrote" in v:
+                        lines.append("{}logical :: {}".format(spacer, v))
                     else:
                         lines.append("{}integer :: {}".format(spacer, v))
                 self._is_vcoded = []
@@ -904,16 +906,22 @@ class AutoClasser(object):
                     self.variable.customtype.name.lower() == variable.kind.lower()):
                     rl = []
                     rl.append("nprefix = {}".format(filename))
-                    rl.append("call auxsave_{}0d_({}, nprefix, stack)".format(self.variable.customtype.name,
+                    rl.append("call auxsave_{}0d_({}, nprefix, stack, wrote)".format(self.variable.customtype.name,
                                                                                  varname))
                     result.extend([spacing + l for l in rl])
                 elif variable.is_custom:
                     if "private contents" not in variable.customtype.modifiers:
-                        result.append("{}call auxsave({}, {}, .true.)".format(spacing, varname, filename))
+                        loopvars.append("{}_wrote".format(variable.name))
+                        result.append("{}call auxsave({}, {}, .true., {}_wrote)".format(spacing, varname, filename, variable.name))
+                        result.append("{}wrote = wrote .or. {}_wrote".format(spacing, variable.name))
+                        result.append("{}if (.not. {}_wrote) then".format(spacing, variable.name))
+                        result.append("{}  call pysave(.false., {}//'-.fpy.blank')".format(spacing, filename))
+                        result.append("{}end if".format(spacing))
                 else:
                     if filename[-2]=="'":
                         print(filename, filecontext, filevarname)
                     result.append("{}call pysave({}, {})".format(spacing, varname, filename))
+                    result.append("{}wrote = .true.".format(spacing))
 
                 if "allocatable" in variable.modifiers or "pointer" in variable.modifiers:
                     spacing = spacing[0:-2]
@@ -965,7 +973,7 @@ class AutoClasser(object):
             flines.append("end do")
             self._rcode.extend([spacer + l for l in flines])
             self._rcode.extend(icode)
-            
+
         if len(self._vars) == 0 and len(ivars) > 0:
             self._vars = ivars
         

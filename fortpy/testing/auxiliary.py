@@ -137,22 +137,32 @@ def _get_rsubroutine_recursive(classer, common):
     {read}
   end subroutine {xname}_
 
-  subroutine {xname}(variable, folder, multi_stack, rstack)
+  subroutine {xname}(variable, folder, multi_stack, rstack, nested_)
     {dtype}{kind}, pointer, intent(inout) :: variable
     character(len=*), intent(in) :: folder
     type(fpy_address), optional, allocatable, intent(in) :: rstack(:)
     {dtype}{kind}, optional, pointer, intent(in) :: multi_stack(:)
+    logical, optional, intent(in) :: nested_
 
     type(fpy_address), allocatable :: stack(:)
     {dtype}{kind}, pointer :: pointer_stack(:)
     character(len=:), allocatable :: lfolder
     integer :: iloc
+    logical :: nested
 
-    if (present(multi_stack) .and. present(rstack)) then
-       stack = rstack
+    if (present(nested_)) then
+      nested = nested_
+    else
+      nested = .false.
+    end if
+
+    if ((present(multi_stack) .and. present(rstack)) .or. nested) then
        lfolder = folder
-       iloc = fpy_address_index(stack, lfolder)
-       pointer_stack => multi_stack
+       if (present(multi_stack) .and. present(rstack)) then
+         stack = rstack
+         iloc = fpy_address_index(stack, lfolder)
+         pointer_stack => multi_stack
+       end if
     else
        lfolder = folder//'_'
        call fpy_read_address(stack, lfolder)
@@ -219,7 +229,7 @@ def _get_rsubroutine_nested(classer, common):
         lines.append("{}call fpy_period_join_indices(pslist".format(spacing) +
                      ", (/ {} /), {})".format(vsplice, member.D))
         lines.append("{}tempvar => variable({})".format(spacing, vsplice))
-        xr = "{}call {}(tempvar, folder//'-'//trim(adjustl(pslist)), pointer_stack, stack)"
+        xr = "{}call {}(tempvar, folder//'-'//trim(adjustl(pslist)), pointer_stack, stack, .true.)"
         lines.append(xr.format(spacing, nname))
 
         for i in range(member.D, 0, -1):
@@ -227,14 +237,22 @@ def _get_rsubroutine_nested(classer, common):
             lines.append("{}end do".format(spacing))
         common["read"] = '\n'.join(lines)
         
-        template = """  subroutine {xname}_p(variable, folder, multi_stack, rstack)
+        template = """  subroutine {xname}_p(variable, folder, multi_stack, rstack, nested_)
     character(len=*), intent(in) :: folder
     {dtype}{kind}, pointer, intent(inout) :: variable{Dx}
     {dtype}{kind}, pointer, optional, intent(in) :: multi_stack(:)
     type(fpy_address), optional, intent(in) :: rstack(:)
-    
+    logical, optional, intent(in) :: nested_
+
     {dtype}{kind}, pointer :: pointer_stack(:)
     {vars}
+    logical :: nested
+
+    if (present(nested_)) then
+      nested = nested_
+    else
+      nested = .false.
+    end if
 
     if (present(multi_stack) .and. present(rstack)) then
       stack = rstack
@@ -247,19 +265,28 @@ def _get_rsubroutine_nested(classer, common):
 {read}
   end subroutine {xname}_p
 
-  subroutine {xname}(variable, folder, multi_stack, rstack)
+  subroutine {xname}(variable, folder, multi_stack, rstack, nested_)
     character(len=*), intent(in) :: folder
     {dtype}{kind}, allocatable, target, intent(inout) :: variable{Dx}
     {dtype}{kind}, pointer, optional, intent(in) :: multi_stack(:)
     type(fpy_address), optional, intent(in) :: rstack(:)
-        
+    logical, optional, intent(in) :: nested_
+
     {dtype}{kind}, pointer :: lvar{Dx}
+    logical :: nested
+
+    if (present(nested_)) then
+      nested = nested_
+    else
+      nested = .false.
+    end if
+
     if (allocated(variable)) then
       lvar => variable
     else
       lvar => null()
     end if
-    call {xname}_p(lvar, folder, multi_stack, rstack)
+    call {xname}_p(lvar, folder, multi_stack, rstack, nested)
     variable = lvar
   end subroutine {xname}
 """
@@ -279,7 +306,7 @@ def _get_rsubroutine_flat(classer, common):
             if "allocatable" in member.modifiers:
                 d0 = ', '.join(['0' for i in range(member.D)])
                 lines.append("allocate(variable%{}({}))".format(memname, d0))
-            xr = "call auxread_{varname}{D}d{suffix}(variable%{memname}, lfolder//'-{memname}')"
+            xr = "call auxread_{varname}{D}d{suffix}(variable%{memname}, lfolder//'-{memname}', nested_=.true.)"
             lines.append(xr.format(**{"varname": member.customtype.name,
                                       "D": member.D,
                                       "memname": member.name,
@@ -288,15 +315,23 @@ def _get_rsubroutine_flat(classer, common):
             lines.append("call fpy_read{1}(lfolder//'-{0}', '#', variable%{0})".format(member.name, _get_suffix(member)))
     common["read"] = '\n    '.join(lines)
     
-    template = """  subroutine {xname}(variable, folder, multi_stack, rstack)
+    template = """  subroutine {xname}(variable, folder, multi_stack, rstack, nested_)
     character(len=*), intent(in) :: folder
     {dtype}{kind}, intent(inout) :: variable{Dx}
     {dtype}{kind}, pointer, optional, intent(in) :: multi_stack(:)
     type(fpy_address), allocatable, intent(in), optional :: rstack(:)
+    logical, optional, intent(in) :: nested_
 
     character(len=:), allocatable :: lfolder
+    logical :: nested
 
-    if (present(multi_stack) .and. present(rstack)) then
+    if (present(nested_)) then
+      nested = nested_
+    else
+      nested = .false.
+    end if
+
+    if ((present(multi_stack) .and. present(rstack)) .or. nested) then
        lfolder = folder
     else
        lfolder = folder//'_'
@@ -320,11 +355,11 @@ def _get_wsubroutine_recursive(classer, common):
     classer.code(lines, "assign", "  ")
     common["write"] = '\n  '.join(lines)
 
-    template = """  recursive subroutine {xname}_(variable, prefix, stack)
+    template = """  recursive subroutine {xname}_(variable, prefix, stack, wrote)
     {dtype}{kind}, pointer, intent(in) :: variable{Dx}
     type(fpy_address), allocatable, intent(inout) :: stack(:)
     character(len=*), intent(in) :: prefix
-
+    logical, intent(out) :: wrote
     integer :: ploc
     type(fpy_address) :: tadd
     character(len=:), allocatable :: nprefix
@@ -343,13 +378,15 @@ def _get_wsubroutine_recursive(classer, common):
   {write}
   end subroutine {xname}_
 
-  subroutine {xname}(variable, pfolder, nested_)
+  subroutine {xname}(variable, pfolder, nested_, wrote_)
     character(len=*), intent(in) :: pfolder
     {dtype}{kind}, pointer, intent(in) :: variable{Dx}
     logical, optional, intent(in) :: nested_
+    logical, optional, intent(out) :: wrote_
     type(fpy_address), allocatable :: stack_(:)
-
+    
     character(len=:), allocatable :: folder
+    logical :: wrote
 
     if (present(nested_)) then
       folder = pfolder
@@ -360,8 +397,12 @@ def _get_wsubroutine_recursive(classer, common):
     end if
 
     allocate(stack_(0))
-    call {xname}_(variable, folder, stack_)
+    call {xname}_(variable, folder, stack_, wrote)
     call fpy_save_addresses(stack_, folder)
+
+    if (present(wrote_)) then
+      wrote_ = wrote
+    end if
   end subroutine {xname}
 """
     return ((common["xname"],), template.format(**common))
@@ -404,18 +445,19 @@ def _get_wsubroutine_nested(classer, common):
         nname = "auxsave_{varname}0d".format(**common)
         lines.append("{}call fpy_period_join_indices(pslist".format(spacing) +
                      ", (/ {} /), {})".format(vsplice, member.D))
-        lines.append("{}call {}(variable({}), folder//'-'//trim(adjustl(pslist)), .true.)".format(spacing, nname, vsplice))
+        lines.append("{}call {}(variable({}), folder//'-'//trim(adjustl(pslist)), .true., wrote)".format(spacing, nname, vsplice))
 
         for i in range(member.D, 0, -1):
             spacing = spacing[:-2]
             lines.append("{}end do".format(spacing))
         common["write"] = '\n'.join(lines)
         
-        template = """  subroutine {xname}_p(variable, pfolder, nested_)
+        template = """  subroutine {xname}_p(variable, pfolder, nested_, wrote_)
     character(len=*), intent(in) :: pfolder
     {dtype}{kind}, pointer, intent(in) :: variable{Dx}
     logical, optional, intent(in) :: nested_
-
+    logical, optional, intent(out) :: wrote_
+    logical :: wrote
     character(len=:), allocatable :: folder
     {vars}
 
@@ -428,15 +470,23 @@ def _get_wsubroutine_nested(classer, common):
     end if
 
 {write}
+    if (present(wrote_)) then
+      wrote_ = wrote
+    end if
   end subroutine {xname}_p
 
-  subroutine {xname}(variable, folder)
+  subroutine {xname}(variable, folder, wrote_)
     character(len=*), intent(in) :: folder
     {dtype}{kind}, allocatable, target, intent(in) :: variable{Dx}
+    logical, optional, intent(out) :: wrote_
     {dtype}{kind}, pointer :: lvar{Dx}
-        
+    logical :: wrote
     lvar => variable
-    call {xname}_p(lvar, folder)
+    call {xname}_p(lvar, folder, wrote)
+
+    if (present(wrote_)) then
+      wrote_ = wrote
+    end if
   end subroutine {xname}
 """
         return ((common["xname"], common["xname"]+"_p"), template.format(**common))
@@ -456,11 +506,12 @@ def _get_wsubroutine_flat(classer, common):
     classer.code(lines, "assign", "  ")
     common["write"] = '\n  '.join(lines)
 
-    template = """  subroutine {xname}(variable, pfolder, nested_)
+    template = """  subroutine {xname}(variable, pfolder, nested_, wrote_)
     character(len=*), intent(in) :: pfolder
     {dtype}{kind}, intent(in) :: variable{Dx}
+    logical, optional, intent(out) :: wrote_
     logical, optional, intent(in) :: nested_
-
+    logical :: wrote
     character(len=:), allocatable :: folder
   {vars}
 
@@ -471,8 +522,11 @@ def _get_wsubroutine_flat(classer, common):
       folder = pfolder//'_'
       call pysave('{hierarchy}', folder//'.fpy.type')
     end if
-
+    wrote = .false.
   {write}
+    if (present(wrote_)) then
+      wrote_ = wrote
+    end if
   end subroutine {xname}
 """
     return ((common["xname"],), template.format(**common))
