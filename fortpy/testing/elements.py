@@ -574,7 +574,7 @@ class AutoClasser(object):
             fstr = "{}call auxsave({}, '{}')"
             lines.append(fstr.format(spacer, self.variable.name, acroot))
         elif position == "assign" and not write:
-            fstr = "{}call auxread({}, '{}_')"
+            fstr = "{}call auxread({}, '{}')"
             lines.append(fstr.format(spacer, self.variable.name, acroot))
     
     def _scan_folder(self, spath):
