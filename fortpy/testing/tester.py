@@ -15,12 +15,12 @@ class ExecutionResult(object):
     """The result of running the executable on the system, NOT the
     result of the unit test file comparisons.
 
-    :arg folder: the folder in which the executable ran.
-    :arg exitcode: the system exit code after the process terminated.
-    :arg runtime: a python datetime for the execution run time.
-    :arg tester: an OutcomeTester that can test the outcome of this
+    :arg str folder: the folder in which the executable ran.
+    :arg int exitcode: the system exit code after the process terminated.
+    :arg datetime.datetime runtime: execution run time.
+    :arg OutcomeTester tester: instance to test the outcome of this
       execution.
-    :arg case: the case identifier if this was part of a series of
+    :arg str case: the case identifier if this was part of a series of
       cases run for the same outcome.
     """
     def __init__(self, folder, exitcode, runtime, tester, case = None):
@@ -55,7 +55,9 @@ class ExecutionResult(object):
     def test(self, caseid, uresult):
         """Tests the outcome of this executable using its tester attribute.
 
-        :arg uresult: the overall TestResult for the test.
+        :arg str caseid: identifier for the specific case to test.
+        :arg TestResult uresult: the overall result for the test; modified with the
+          results of outcome testing for `caseid`.
         """
         #The first thing to check is the contents of the files
         self.tester.test(caseid, self, uresult)
@@ -65,7 +67,13 @@ class ExecutionResult(object):
 
 class ValueCompareResult(object):
     """The result of comparing the contents of a file to an explicit
-    value hard-coded in the testing XML tags."""
+    value hard-coded in the testing XML tags.
+
+    :ivar str path: path to the file whose contents will be checked.
+    :ivar str value: explicit value to compare the file contents to; is passed
+      to :func:`eval` before comparison.
+    :ivar bool equal: `True` if the file contents are identical to `value`.
+    """
     def __init__(self, path, value):
         self.path = path
         self.value = value
@@ -95,7 +103,7 @@ class ValueCompareResult(object):
 class OutcomeTester(object):
     """Performs outcomes tests for a single 'test' DocString.
 
-    :arg testspec: the TestSpecification for the <test> tag.
+    :arg testspec: the :class:fortpy.testing.elements.TestSpecification for the <test> tag.
     :arg codefolder: the path to the folder that has all the modules from which
       the unit tests were built.
     :arg comparer: an instance of FileComparer to compare output files
@@ -211,7 +219,10 @@ class OutcomeTester(object):
             if m in xfiles:
                 xpath = path.join(exepath, m)
                 mpath = path.join(modelpath, m)
-                mxres = self.comparer.compare(xpath, mpath, outvar.template, outvar.mode)
+                #We can't use the outvar template for autoclass because the contents
+                #probably all have different types. Instead, we have to detect the
+                #template from the file headers.
+                mxres = self.comparer.compare(xpath, mpath, None, outvar.mode)
                 mx.append(mxres)
                 summary[m] = (mxres.percent_match, mxres.common_match)
 
@@ -325,21 +336,22 @@ class OutcomeTester(object):
 class TestResult(object):
     """Represents a set of unit test results.
 
-    :arg identifier: the module.method identifier for this unit test.
-    :arg testid: the identifier of the <test> tag for the specific test that this
+    :arg identifier: the `module.method` identifier for this unit test.
+    :arg testid: the identifier of the `<test>` tag for the specific test that this
       result represents.
-    :attr cases: a dictionary of ExecutionResult objects with detail
-      on how the system execution went for each case. Key is caseId
-    :attr paths: a dictionary of paths to the folders that were executed for each case.
-    :attr outcomes: a dictionary of CompareResult objects with detail
+    :ivar cases: a dictionary of :class:`ExecutionResult` objects with detail
+      on how the system execution went for each case. Key is `caseId`.
+    :ivar paths: a dictionary of paths to the folders that were executed for each case.
+      Keys match those in `self.cases`.
+    :ivar outcomes: a dictionary of :py:class:~`fortpy.testing.results.CompareResult` objects with detail
       on how similar the new output files are to the model ones. Keys
-      are the same caseIds used in self.cases.
-    :attr compiled: specifies whether the executable associated with
+      are the same caseIds used in `self.cases`.
+    :ivar compiled: specifies whether the executable associated with
       this identifier compiled successfully.
-    :attr failures: CompareResult or ValueResult instances that failed the
+    :ivar failures: CompareResult or ValueResult instances that failed the
       tests outlined by the relevant test specification. Keys are the
       caseIds used by all the other dicts.
-    :attr overtimes: a tuple of (actual runtime, desired runtime range) for
+    :ivar overtimes: a tuple of (actual runtime, desired runtime range) for
       tests that were outside of the range for runtime.
     """
     def __init__(self, identifier, testid):
@@ -463,7 +475,7 @@ class UnitTester(object):
     """
     def __init__(self, libraryroot=None, verbose=False, compare_templates=None,
                  fortpy_templates=None, rerun=None , compiler=None,
-                 debug=False, profile=False, quiet=False, strict=False):
+                 debug=False, profile=False, quiet=False, strict=False, nprocs=1):
         self.parser = CodeParser()
         self.parser.verbose = verbose
         from fortpy.utility import set_fortpy_templates
@@ -481,7 +493,9 @@ class UnitTester(object):
         self.debug = debug == True
         self.set_compiler(compiler)
         self.profile = self._profiler_exists(profile)
-        
+        self.nprocs = nprocs
+        """The number of processors to use for multi-threading test case execution.
+        """
         #A flag to track whether the generator has already written
         #the executables.
         self._written = False
@@ -595,8 +609,8 @@ class UnitTester(object):
 
             from fortpy.testing.compilers import replace
             from fortpy.testing.auxiliary import generate
-            from fortpy.utility import copy
-
+            from fortpy.utility import symlink
+            from fortpy.code import config
             #Run them each individually and return a dictionary of all the
             #test results
             result = {}
@@ -606,14 +620,19 @@ class UnitTester(object):
                 #Compile and copy fpy_auxiliary if it isn't in the identifiers directory yet.
                 source = path.join(self.libraryroot(identifier), identifier)
                 target = replace(source + ".[c]", self.compiler)
+                if not path.isdir(target):
+                    from os import mkdir
+                    mkdir(target)
                 if self.writer(identifier).autoclass and identifier not in fpyauxs:
                     code, success, fpytarget = generate(self.parser, self._codefolder,
                                                         self.libraryroot(identifier), self.compiler,
                                                         self.debug, self.profile, self.strict)
-                    opath = path.join(fpytarget, "fpy_auxiliary.o")
+                    sopath = path.join(fpytarget, "fpy_aux.so")
+                    sotarget = path.join(target, "fpy_aux.so")
                     mpath = path.join(fpytarget, "fpy_auxiliary.mod")
-                    copy(opath, target)
-                    copy(mpath, target)
+                    mtarget = path.join(target, "fpy_auxiliary.mod")
+                    symlink(sopath, sotarget)
+                    symlink(mpath, mtarget)
                     fpyauxs.append(identifier)
                 
                 oneresult = self._run_single(identifier, testid, source)
@@ -706,13 +725,14 @@ class UnitTester(object):
         #Now that we have run all of the executables, we can analyze their
         #output to see if it matches.
         from tqdm import tqdm
-        pbar = tqdm(result.cases)
+        pbar = tqdm(result.cases) if not self.quiet else result.cases
         for case in pbar:
-            if "." in case:
-                pbar.set_description("Checking {}".format(case.split(".")[1]))
-            else:
-                #The default case doesn't have any extra id.
-                pbar.set_description("Checking {}".format(case))
+            if not self.quiet:
+                if "." in case:
+                    pbar.set_description("Checking {}".format(case.split(".")[1]))
+                else:
+                    #The default case doesn't have any extra id.
+                    pbar.set_description("Checking {}".format(case))
                 
             xres = result.cases[case]
             #This next step generates large representations in memory of all the output
@@ -745,31 +765,64 @@ class UnitTester(object):
         #The execution can either be case-based or once-off.
         msg.okay("Executing {}.x in {}".format(testspec.identifier, testsfolder))
         if testspec.cases is not None:
-            #We need to run the executable multiple times, once for each case
-            #Each case has input files specified relative to the code folder.
-            from tqdm import tqdm
-            pbar = tqdm(testspec.cases) if not self.quiet else testspec.cases
-            for case in pbar:
+            casedict = {}
+            runlist = []
+            for case in testspec.cases:
+                #Make a separate directory for the case and copy all its inputs.
                 caseid = "{}.{}".format(testspec.identifier, case)
-                if not self.quiet:
-                    pbar.set_description("Running {}".format(case))
-                if not caseid in result.cases:
-                    #Make a separate directory for the case and copy all its inputs.
-                    casepath = path.join(testsfolder, caseid)
-                    self._execute_testpath(testspec, testwriter, casepath, exepath, 
-                                           result, tester, caseid, case)
-                else:
+                casepath = path.join(testsfolder, caseid)
+                casedict[case] = (caseid, casepath)
+                if caseid in result.cases:
                     result.warnings.append("Duplicate CASES specified for unit testing:" + 
                                            " {}".format(caseid))
+                    continue
+                try:
+                    self._initialize_testpath(testspec, testwriter, casepath, result, caseid, case)
+                except OSError:
+                    msg.err("Error initializing '{}' in '{}'.".format(testspec.identifier, testsfolder))
+                    raise
+                runlist.append((casepath, exepath, self.quiet, case, self.debug))
+                
+            #We need to run the executable multiple times, once for each case
+            #Each case has input files specified relative to the code folder.
+            execodes = {}
+            from tqdm import tqdm
+            if self.nprocs == 1:
+                pbar = tqdm(testspec.cases) if not self.quiet else testspec.cases
+                for case in pbar:
+                    if not self.quiet:
+                        pbar.set_description("Running {}".format(case))
+                    caseid, casepath = casedict[case]
+                    (case, start_time, code) = _execute_testpath(casepath, exepath, self.quiet, case, self.debug)
+                    execodes[case] = (code, start_time)
+            else:
+                from multiprocessing import Pool
+                xpool = Pool(self.nprocs)
+                chunks = len(casedict)/self.nprocs #Integer division on purpose.
+                if not self.quiet:
+                    for (case, start_time, code) in tqdm(xpool.imap_unordered(_parallel_execute, runlist, chunks)):
+                        execodes[case] = (code, start_time)
+                else:
+                    for (case, start_time, code) in xpool.map(_parallel_execute, runlist, chunks):
+                        execodes[case] = (code, start_time)
+                
+            for case, casevals in casedict.items():
+                caseid, casepath = casevals
+                code, start_time = execodes[case]
+                self._finalize_testpath(result, caseid, casepath, exepath, testspec, code,
+                                        start_time, tester, case)
         else:
             #Create a folder for this test specification to run in.
             testpath = path.join(testsfolder, testspec.identifier)
-            self._execute_testpath(testspec, testwriter, testpath, exepath, result, 
-                                   tester, testspec.identifier)
+            self._initialize_testpath(testspec, testwriter, testpath, result, testspec.identifier)
+            (case, start_time, code) = _execute_testpath(testpath, exepath, self.quiet)
+            self._finalize_testpath(result, testspec.identifier, testpath, exepath, testspec, code,
+                                    start_time, tester)
 
-    def _execute_testpath(self, testspec, testwriter, testpath, exepath, result, 
-                          tester, caseid, case=""):
-        """Executes the unit test in the specified testing folder for 'case'."""
+    def _initialize_testpath(self, testspec, testwriter, testpath, result, caseid, case=""):
+        """Sets up the directories with input files etc. so that the executable
+        can execute.
+        """
         if not path.exists(testpath):
             mkdir(testpath)
 
@@ -791,24 +844,11 @@ class UnitTester(object):
         
         #Save the path to the folder for execution in the result.
         result.paths[caseid] = testpath
-        start_time = clock()                              
-        from os import waitpid
-        from subprocess import Popen, PIPE
-        command = "cd {}; {} > .fpy.x.out".format(testpath, exepath)
-        prun = Popen(command, shell=True, executable="/bin/bash", stdout=PIPE, stderr=PIPE)
-        waitpid(prun.pid, 0)        
-        if not self.quiet:
-            output = prun.stdout.readlines()
-            if len(output) > 0:
-                msg.std(''.join(output))
-        #else: #We don't need to get these lines since we are purposefully redirecting them.
-        error = prun.stderr.readlines()
-        if len(error) > 0:
-            if self.quiet:
-                msg.info("With Executable at {}".format(exepath), 1)
-            msg.err('\n  '+'  '.join(error))
-        code = len(error)
-        
+
+    def _finalize_testpath(self, result, caseid, testpath, exepath, testspec, code,
+                           start_time, tester, case=""):
+        """Cleans up and sets results for the test that ran.
+        """
         if case == "":
             result.cases[caseid] = ExecutionResult(testpath, code, clock() - start_time, tester)
         else:
@@ -819,7 +859,7 @@ class UnitTester(object):
         if self.profile:
             profiling.profile(testpath, testspec.testgroup.method_fullname, 
                               exepath, self.compiler)
-
+        
     def _write_success(self, testpath, code):
         """Creates a SUCCESS file in the specified testpath if code==0 that has
         the time of the last execution. If code != 0, any existing SUCCESS file
@@ -832,3 +872,26 @@ class UnitTester(object):
         else:
             if path.isfile(sucpath):
                 remove(sucpath)
+
+def _parallel_execute(args):
+    return _execute_testpath(*args)               
+def _execute_testpath(testpath, exepath, quiet, case="", debug=False):
+    """Executes the unit test in the specified testing folder for 'case'."""
+    start_time = clock()                              
+    from os import waitpid, path
+    from subprocess import Popen, PIPE
+    dyld = path.dirname(exepath)
+    command = "cd {}; DYLD_LIBRARY_PATH={} {}{} > .fpy.x.out".format(testpath, dyld, exepath, " 1" if debug else "")
+    prun = Popen(command, shell=True, executable="/bin/bash", stderr=PIPE, close_fds=True)
+    waitpid(prun.pid, 0)        
+    #else: #We don't need to get these lines since we are purposefully redirecting them.
+    error = prun.stderr.readlines()
+    if len(error) > 0:
+        if quiet:
+            msg.info("With Executable at {}".format(exepath), 1)
+        msg.err('\n  '+'  '.join(error))
+    code = len(error)
+    prun.stderr.close()
+    
+    return (case, start_time, code)
+        

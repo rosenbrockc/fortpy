@@ -122,6 +122,18 @@ class MethodWriter(object):
         if self.tests[testid].constant:
             result.append("  integer :: fpy_repeat")
 
+        #Add the verbosity flag read-in from the command-line. This is only necessary
+        #for the auto-class stuff that uses auxiliary module.
+        if self.autoclass:
+            result.append("\n  !Verbosity read-in for auxiliary debug mode.")
+            result.append("  character :: sverbose")
+            result.append("  integer :: verbose")
+            result.extend(["  if (iargc()>=1) then",
+                           "    call getarg(1, sverbose)",
+                           "    read(sverbose, *) verbose",
+                           "    call fpy_set_verbosity(verbose)",
+                           "  end if"])
+            
         self._code_init(result, "  ", testid)
 
         #Before we can run the tests, we need to validate the input selection for
@@ -176,7 +188,8 @@ class MethodWriter(object):
         :arg anexec: the instance of fortpy.elements.Executable that needs to be public.
         """
         module = anexec.module
-        if module is not None:
+        #Type targets get tested by calling the embedded method using the %-syntax.
+        if module is not None and not anexec.is_type_target:
             if not ("public" in anexec.modifiers or anexec.name.lower() in module.publics):
                 target = self.testgen.get_module_target(module.name)
                 with open(target) as f:
@@ -206,7 +219,7 @@ class MethodWriter(object):
                     contents.insert(module.public_linenum[0], "public {}\n".format(anexec.name))
                     with open(target, 'w') as f:
                         f.writelines(contents)
-        else:
+        elif module is None:
             raise ValueError("Can't find the module for {};".format(anexec.name) + 
                              "unable to check public declaration for unit testing.")            
 

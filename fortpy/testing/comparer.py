@@ -532,6 +532,10 @@ class FileComparer(object):
         svalues = self.get_representation(source, template)
         tvalues = self.get_representation(target, template)
 
+        #Since we re-use the comparer for multiple unit tests, we need to reset
+        #the currently active template.
+        self.template = None
+
         #We can't compare representations that don't exist...
         if svalues is not None and tvalues is not None:
             result = compare_representations(svalues, tvalues, mode)
@@ -582,10 +586,6 @@ class FileComparer(object):
         else:
             svalues = FileRepresentation(slines, stemplate, sv, source)
 
-        #Since we re-use the comparer for multiple unit tests, we need to reset
-        #the currently active template.
-        self.template = None
-
         if not svalues.extracted:
             msg.err("ouput file does not have the same format as template.\n{}".format(source))
             return None
@@ -614,10 +614,10 @@ class FileComparer(object):
                     return None
             except ET.ParseError as err:
                 msg.warn(err.msg, 2)
-                msg.warn("no version information found in the file. Assuming version 1.", 2)
+                msg.info("no version information found in the file. Assuming version 1.", 2)
                 return None
         else:
-            msg.warn("no version information found in the file. Assuming version 1.", 2)
+            msg.info("no version information found in the file. Assuming version 1.", 2)
             return None
 
     def _get_file_version(self, fortpyxml):
@@ -649,10 +649,11 @@ class FileComparer(object):
             template = fortpyxml.attrib["template"]
             from fortpy.utility import get_dir_relpath
             xmlpath = get_dir_relpath(self.folder, template)
+            if xmlpath[-4:] != ".xml":
+                xmlpath += ".xml"
             xmlname = os.path.split(xmlpath)[1]
             if not os.path.isfile(xmlpath):
                 #This could be one of fortpy's built-in templates
-                xmlname = template
                 xmlpath = os.path.join(self.fortpy_templates, xmlname)
         elif filepath != "" and filepath is not None:
             #The xml template file will have the same name as the files do
@@ -668,7 +669,6 @@ class FileComparer(object):
 
         if xmlname in self.templates:
             return self.templates[xmlname]
-
         if os.path.exists(xmlpath):
             msg.info("Using {} as the XML file template for comparison.".format(xmlpath), 2)
             self.templates[xmlname] = FileTemplate(xmlpath)    

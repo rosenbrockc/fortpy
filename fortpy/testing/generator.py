@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 import os
 import datetime
 import dateutil.parser
+from fortpy.code import config
 
 class TestGenerator(object):
     """Generates automatic unit tests based on docstrings in the fortran
@@ -171,10 +172,15 @@ class TestGenerator(object):
             target = os.path.join(self.xgenerator.folder, dfile)
             dversion = self.tester.get_fortpy_version(target)
             tversion = self.tester.template_version(dfile)
+            if config.symlink and (os.path.isfile(target) or os.path.islink(target)):
+                os.remove(target)
+                
             if not os.path.exists(target) or dversion != tversion:
                 source = os.path.join(self._fortpy, dfile)
-                msg.info("   COPY: {}".format(source))
-                copy(source, self.xgenerator.folder)
+                if config.symlink:
+                    os.symlink(source, target)
+                else:
+                    copy(source, self.xgenerator.folder)
                 different = True
 
         #We also need to rewrite the files if the user deleted the testid.f90

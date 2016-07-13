@@ -14,6 +14,30 @@ def get_attrib(xml, name, tag=None, cast=str, default=None):
     elif tag is not None:
         raise ValueError("'{}' is a required attribute of <{}> tag.".format(name, tag))
 
+def symlink(source, target, isfile=True):
+    """Creates a symlink at target *file* pointing to source.
+
+    :arg isfile: when True, if symlinking is disabled in the global config, the file
+      is copied instead with fortpy.utility.copyfile; otherwise fortpy.utility.copy
+      is used and the target is considered a directory.
+    """
+    from fortpy.code import config
+    from os import path
+    if config.symlink:
+        from os import symlink, remove
+        if path.isfile(target) or path.islink(target):
+            remove(target)
+        elif path.isdir(target):
+            msg.warn("Cannot auto-delete directory '{}' for symlinking.".format(target))
+            return
+        symlink(source, target)
+    else:
+        msg.info("   COPY: {}".format(source))
+        if isfile:
+            copyfile(source, target)
+        else:
+            copy(source, target)
+    
 def copyfile(src, dst, verbose=False):
     """Copies the specified source file to destination *file* if it is newer
     or does not yet exist.
@@ -21,12 +45,13 @@ def copyfile(src, dst, verbose=False):
     from os import waitpid
     from subprocess import Popen, PIPE
     prsync = Popen("rsync {}-t -u {} {}".format("-v " if verbose else "", src, dst),
-                   shell=True, executable="/bin/bash", stdout=PIPE, stderr=PIPE)
+                   shell=True, executable="/bin/bash", stdout=PIPE, stderr=PIPE, close_fds=True)
     waitpid(prsync.pid, 0)
     
     #Redirect the output and errors so that we don't pollute stdout.
     error = prsync.stderr.readlines()
-
+    prsync.stderr.close()
+    prsync.stdout.close()
     if len(error) > 0:
         from fortpy.msg import warn
         warn("Error while copying {} using rsync.\n\n{}".format(src, '\n'.join(error)))
@@ -42,13 +67,15 @@ def copy(src, dst, verbose=False):
         from os import mkdir
         mkdir(desti)
 
-    prsync = Popen("rsync -t -u {} {}".format(src, desti),
+    prsync = Popen("rsync -t -u {} {}".format(src, desti), close_fds=True,
                    shell=True, executable="/bin/bash", stdout=PIPE, stderr=PIPE)
     waitpid(prsync.pid, 0)
     
     #Redirect the output and errors so that we don't pollute stdout.
     #output = prsync.stdout.readlines()
     error = prsync.stderr.readlines()
+    prsync.stderr.close()
+    prsync.stdout.close()
 
     if len(error) > 0:
         from fortpy.msg import warn
@@ -68,12 +95,14 @@ def copytree(src, dst):
         from os import mkdir
         mkdir(desti)
     
-    prsync = Popen("rsync -t -u -r {} {}".format(source, desti),
+    prsync = Popen("rsync -t -u -r {} {}".format(source, desti), close_fds=True,
                     shell=True, executable="/bin/bash", stdout=PIPE, stderr=PIPE)
     waitpid(prsync.pid, 0)
     #Redirect the output and errors so that we don't pollute stdout.
     #output = prsync.stdout.readlines()
     error = prsync.stderr.readlines()
+    prsync.stderr.close()
+    prsync.stdout.close()
 
     if len(error) > 0:
         from fortpy.msg import warn

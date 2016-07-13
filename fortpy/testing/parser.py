@@ -170,9 +170,9 @@ class Analysis(object):
             return (("*" in tfilter and fnmatch(caseid, tfilter)) or
                     (not "*" in tfilter and tfilter == caseid))
 
-    def _get_data(self, variable, fullvar, order=None, threshold=1., tfilter=None, functions=None,
+    def _get_data(self, variable, fullvar, order=None, threshold=1., tfilter=None,
                   independent=None, x=None):
-        """Returns a list of the valid data points for the specified variable.
+        """Returns a raw list of the valid data points for the specified variable.
 
         :arg variable: a string indentifying the variable's filename and the
           appropriate property of the data in the file. For example: "concs.in|depth" would
@@ -211,20 +211,6 @@ class Analysis(object):
         else:
             details = self.details
 
-        #Handle cases where the values need to have functions applied to them before tabulating
-        #or printing the values.
-        if functions is not None and fullvar in functions:
-            if isinstance(functions[fullvar], str) or isinstance(functions[fullvar], unicode):
-                from importlib import import_module
-                module = functions[fullvar].split(".")
-                fname = module.pop()
-                numpy = import_module('.'.join(module))
-                fx = getattr(numpy, fname)
-            else:
-                fx = functions[fullvar]
-        else:
-            fx = None
-
         for testcase in details:
             if not self._case_filter(testcase, tfilter):
                 #We don't consider test cases that are blocked by the filter.
@@ -251,24 +237,8 @@ class Analysis(object):
                             ival = x[len(values)]
                             value = self.fits[key]["function"](ival)
 
-            #We need the arrays to be the same length for plotting; if we are following
-            #an existing independent variable, we still need to append zero to the list
-            #for the values we don't have.
             if isinstance(value, ndarray) or value != 0 or order is not None:
-                if fx is not None:
-                    value = fx(value)
-
-                #Handle the case where we are plotting an entire row as a single point
-                #and an aggregrate function should have been specified
-                if isinstance(value, list):
-                    if len(value) == 1:
-                        values.append(value[0] if value[0] is not None else 0)
-                    else:
-                        msg.err("Can't coerce an array to a single value without an aggregation "
-                                "function such as numpy.mean or numpy.sum")
-                        return ([0], "Array Aggregation Error")
-                else:
-                    values.append(value if value is not None else 0)
+                values.append(value if value is not None else 0)
                 cases.append(testcase)
 
         return (values, cases)
@@ -291,24 +261,89 @@ class Analysis(object):
                              "for consistency and completeness.")
                     break
 
-        ys = []
-        xs = []
-        for variable in dependents:
+        rawvars = {}
+        oseries = []
+        icases = {}
+        def _load_raw(variable, rawvars):
+            if variable in rawvars:
+                return
+            
             tfilter, depvar = variable.split("/")
             fullindvar = "{}/{}".format(tfilter, independent)
-            x, cases = self._get_data(independent, fullindvar, None, threshold, tfilter, functions)
-            if (len(x) == 1 and isinstance(x[0], list) and 
-                ("rowvals" in independent or "colvals" in independent)):
-                x = x[0]
-            xs.append((x, fullindvar))
+            cases = None if fullindvar not in icases else icases[fullindvar]
+            if fullindvar not in rawvars:
+                x, cases = self._get_data(independent, fullindvar, None, threshold, tfilter)
+                if (len(x) == 1 and isinstance(x[0], list) and 
+                    ("rowvals" in independent or "colvals" in independent)):
+                    x = x[0]
+                rawvars[fullindvar] = x
 
-            ypts, names = self._get_data(depvar, variable, cases, threshold, tfilter, functions,
-                                         independent, x)
-            if (len(ypts) == 1 and isinstance(ypts[0], list) and
-                ("rowvals" in variable or "colvals" in variable)):
-                ypts = ypts[0]
-            ys.append((ypts, variable))
+            if cases is not None:
+                x = rawvars[fullindvar]
+                ypts, names = self._get_data(depvar, variable, cases, threshold, tfilter, independent, x)
+                if (len(ypts) == 1 and isinstance(ypts[0], list) and
+                    ("rowvals" in variable or "colvals" in variable)):
+                    ypts = ypts[0]
+                rawvars[variable] = ypts
+            return (fullindvar, cases)
 
+        for variable in dependents:
+            fullindvar, cases = _load_raw(variable, rawvars)
+            icases[fullindvar] = cases
+            oseries.append((fullindvar, variable))                    
+        #Next, we need to apply any postfix functions and then check that the data sizes
+        #are commensurate (i.e. same number of points for dependent and independent series).
+        ys = []
+        xs = []        
+        if functions is not None:
+            for postfix, fixdef in functions.items():
+                fxn = None
+                vorder = [v for v in fixdef.keys() if v != "lambda"]
+                values = {}
+                if postfix not in rawvars:
+                    msg.err("Variable '{}' to be postfixed has no data series.".format(postfix))
+                    break
+                
+                N = len(rawvars[postfix])
+                for lvar, gvar in fixdef.items():
+                    if lvar == "lambda":
+                        #This is the function definition for each item, create a lambda for it.
+                        import numpy
+                        import math
+                        try:
+                            evals = gvar.split(":")[1]
+                            lambstr = "lambda {}: {}".format(", ".join(vorder), evals)
+                            fxn = eval(lambstr)
+                        except:
+                            msg.err("Could not evaluate function '{}'.".format(gvar))
+                    else:
+                        if gvar not in rawvars:
+                            _load_raw(gvar, rawvars)
+                        if gvar in rawvars:
+                            values[lvar] = rawvars[gvar]
+                        else:
+                            emsg = "Variable '{}' in the lambda function postfix for '{}' is missing data."
+                            msg.err(emsg.format(gvar, postfix))
+
+                #Now if we have a valid function defined and data to operate on, just
+                #evaluate the postfix one value at a time.
+                if fxn is not None and N > 0:
+                    for i in range(N):
+                        args = [values[v][i] for v in vorder]
+                        pval = fxn(*args)
+                        rawvars[postfix][i] = pval
+
+        #Now we can use the adjusted/postfixed raw values to construct the data series
+        for indepvar, depvar in oseries:
+            xs.append((rawvars[indepvar], indepvar))
+            #We need the arrays to be the same length for plotting; if we are following
+            #an existing independent variable, we still need to append zero to the list
+            #for the values we don't have.
+            if len(rawvars[depvar]) != len(rawvars[indepvar]):
+                msg.err("Can't coerce an array to a single value without an aggregation "
+                        "function such as numpy.mean or numpy.sum")
+            ys.append((rawvars[depvar], depvar))
+            
         return (xs, ys)
 
     def _get_font(self, dfont, fonts, option):
@@ -364,7 +399,7 @@ class Analysis(object):
     def plot(self, independent=None, dependents=None, threshold=1.,
              savefile=None, functions=None, xscale=None, yscale=None,
              colors=None, labels=None, fonts=None, markers=None, lines=None, ticks=None,
-             plottypes=None, limits=None, twinplots=None, **kwargs):
+             plottypes=None, limits=None, twinplots=None, legend=None, **kwargs):
         """Plots the specified dependent variables as functions of the independent one.
 
         :arg independent: a string indentifying the independent variable's filename and the
@@ -377,9 +412,7 @@ class Analysis(object):
         :arg xlabel: the label for the x-axis of the plot.
         :arg ylabel: the label for the y-axis of the plot.
         :arg functions: a dictionary of functions to apply to the values of each variable. E.g.
-          {"group.in|depth": "numpy.log"} would apply the numpy.log function to each value extracted
-          from the depth property of the data in 'group.in' before plotting it. If the value
-          is not a string, it must be callable with some argument.
+          {"group.in|depth": {lambda dict}}. See the help text help_postfix() for details.
         """
         if independent is None or dependents is None:
             raise ValueError("Must specify at least the variables to plot.")
@@ -530,14 +563,26 @@ class Analysis(object):
         for dim in ["x", "y", "z", "x-twin", "y-twin"]:
             if limits is not None and dim in limits:
                 if dim == "x-twin" and axx is not None:
-                    axx.set_ylim(limits[dim])
+                    if isinstance(limits[dim], tuple):
+                        axx.set_ylim(limits[dim])
+                    elif limits[dim] == "auto":
+                        axx.set_ylim(auto=True)
                 elif dim == "y-twin" and axy is not None:
-                    axy.set_ylim(limits[dim])
+                    if isinstance(limits[dim], tuple):
+                        axy.set_ylim(limits[dim])
+                    elif limits[dim] == "auto":
+                        axy.set_ylim(auto=True)                        
                 elif "-" not in dim:
-                    getattr(ax, "set_{}lim".format(dim))(limits[dim])
+                    if isinstance(limits[dim], tuple):
+                        getattr(ax, "set_{}lim".format(dim))(limits[dim])
+                    elif limits[dim] == "auto":
+                        getattr(ax, "set_{}lim".format(dim))(auto=True)
 
         if len(dependents) > 1:
-            plt.legend(loc='upper right', prop=self._get_font(dfont, fonts, "legend"))
+            if legend is not None:
+                plt.legend(prop=self._get_font(dfont, fonts, "legend"), **legend)
+            else:
+                plt.legend(loc='upper right', prop=self._get_font(dfont, fonts, "legend"))
         if savefile is None:
             plt.show(block=False)
         else:

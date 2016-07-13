@@ -381,12 +381,22 @@ class CodeParser(object):
             files.extend(filenames)
             break
 
+        #Check if the .fpyignore file exists in the folder.
+        patterns = [".#*"]
+        if ".fpyignore" in files:
+            for line in self.tramp.read(os.path.join(path, ".fpyignore")).split('\n'):
+                sline = line.strip()
+                if len(sline) > 0 and sline[0] != '#':
+                    patterns.append(sline)
+                    
         #Filter them to find the fortran code files
+        from fnmatch import fnmatch
         for fname in files:
-            if os.path.splitext(fname)[1].lower() == ".f90" and fname[0:2] != ".#":
-                self._pathfiles[fname.lower()] = os.path.join(path, fname)
-                if result is not None:
-                    result[fname.lower()] = os.path.join(path, fname)
+            if fnmatch(fname, "*.f90"):
+                if all([not fnmatch(fname, p) for p in patterns]):
+                    self._pathfiles[fname.lower()] = os.path.join(path, fname)
+                    if result is not None:
+                        result[fname.lower()] = os.path.join(path, fname)
                     
     def type_search(self, basetype, symbolstr, origin):
         """Recursively traverses the module trees looking for the final

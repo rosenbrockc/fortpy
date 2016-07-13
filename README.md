@@ -1,3 +1,5 @@
+[![PyPI](https://img.shields.io/pypi/v/fortpy.svg)](https://pypi.python.org/pypi/fortpy/)
+
 # FORTPY
 
 ## Python Emacs Intellisense and Unit Testing Support for Fortran

@@ -6,10 +6,13 @@ module fortpy
   private
   public pysave, fdp, fsp, fsi, fli, fpy_linevalue_count, fpy_newunit, fpy_read, &
        fpy_value_count, fpy_period_join_indices, fpy_linevalue_count_all, fpy_read_p, &
-       fpy_read_f, fpy_vararray, autoclass_analyze
+       fpy_read_f, fpy_vararray, autoclass_analyze, fpy_set_verbosity, fpy_verbose
 
   !!<member name="fileunit">I/O unit for the file to write the output to.</member>
   integer :: fileunit
+  !!<member>Output/debugging verbosity for auxiliary reads/writes.</member>
+  integer :: fpy_verbose
+  
   !!<member name="seeded">Specifies whether the random number generator has
   !!already been seeded for this program execution.</member>
   logical :: seeded
@@ -59,6 +62,13 @@ module fortpy
     procedure, public :: init => vararray_init
   end type fpy_vararray
 contains
+  !!<summary>Sets the global verbosity for the auxiliary reads/writes.</summary>
+  subroutine fpy_set_verbosity(v)
+    integer, intent(in) :: v
+    fpy_verbose = v
+    if (v > 0) write (*, *) "Fortpy F90 verbosity set to", v, "."
+  end subroutine fpy_set_verbosity
+
   !!<summary>Analyzes the specified .fortpy.analysis file to determine the
   !!actual dimensionality of the data being read in via auto-class.</summary>
   subroutine autoclass_analyze(filename, analysis)
@@ -401,7 +411,7 @@ contains
 
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit, i, firstnval
-    character(150000) :: line
+    character(250000) :: line
     logical :: ischar_
 
     if (present(ischar)) then
@@ -451,7 +461,7 @@ contains
     
     character(len=:), allocatable :: cleaned
     integer :: ioerr, funit
-    character(150000) :: line
+    character(250000) :: line
     logical :: ischar_, exists
 
     if (present(ischar)) then
@@ -475,6 +485,9 @@ contains
           read(funit, "(A)", iostat=ioerr) line
           if (ioerr == 0) then
              cleaned = trim(adjustl(line))
+             if (abs(len(cleaned) - len(line)) < 10) write (*,*) "Number of characters in line ", len(cleaned), &
+                  & " likely exceeds the hard-coded limit of ", len(line), " in file '", filename, "'."
+
              if (len(cleaned) .gt. 0) then
                 if (cleaned(1:1) /= commentchar) then
                    nlines = nlines + 1
@@ -486,10 +499,15 @@ contains
                 end if
              end if
           else
+             if (ioerr .ne. -1) then
+                write(*,*) "IO error (", ioerr, ") counting file lines and values. Found ", &
+                     & nlines, " and ", nvalues, " in '", filename, "'."
+             end if
              exit
           end if
        end do
     end if
+    if (fpy_verbose > 0) write (*,*) "Found ", nlines, " lines and ", nvalues, " values in '", filename, "'."
     close(funit)
   end subroutine fpy_linevalue_count
 

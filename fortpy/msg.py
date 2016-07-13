@@ -1,5 +1,6 @@
 """This module handles writing to the terminal or a log file with support
 for coloring for warnings, errors, etc."""
+from __future__ import print_function
 from termcolor import cprint
 verbosity = None
 """The verbosity level of messages being printed by the module."""
@@ -19,6 +20,24 @@ cenum = {
 lines in the arb().
 """
 icols = ["red", "yellow", "cyan", "blue", "white", "green"]
+nocolor = False
+"""When true, the colored outputs all use the regular print() instead 
+so that the stdout looks ordinary.
+"""
+def printer(text, color=None, **kwargs):
+    """Prints using color or standard print() depending on the value
+    of 'nocolor'.
+    """
+    if nocolor:
+        # import sys
+        # sys.stdout.write(text + "" if ("end" in kwargs and kwargs["end"] == "") else '\n')
+        # sys.stdout.flush()
+        print(text, **kwargs)
+    else:
+        if color is None:
+            cprint(text, **kwargs)
+        else:
+            cprint(text, color, **kwargs)
 
 def arb(text, cols, split):
     """Prints a line of text in arbitrary colors specified by the numeric
@@ -28,11 +47,11 @@ def arb(text, cols, split):
     words = stext.split(split)
     for i, word in enumerate(words):
         col = icols[cols[i]]
-        cprint(word, col, end="")
+        printer(word, col, end="")
         if i < len(words)-1:
-            cprint(split, end="")
+            printer(split, end="")
         else:
-            cprint(split)
+            printer(split)
 
 def set_verbosity(level):
     """Sets the modules message verbosity level for *all* messages printed.
@@ -66,29 +85,29 @@ def warn(msg, level=0, prefix=True):
     the message, so that can be left off.
     """
     if will_print(level):
-        cprint(("WARNING: " if prefix else "") + msg, "yellow")
+        printer(("WARNING: " if prefix else "") + msg, "yellow")
 
 def err(msg, level=-1, prefix=True):
     """Prints the specified message as an error; prepends "ERROR" to
     the message, so that can be left off.
     """
     if will_print(level) or verbosity is None:
-        cprint(("ERROR: " if prefix else "") + msg, "red")
+        printer(("ERROR: " if prefix else "") + msg, "red")
 
 def info(msg, level=1):
     """Prints the specified message as information."""
     if will_print(level):
-        cprint(msg, "cyan")
+        printer(msg, "cyan")
 
 def okay(msg, level=1):
     """Prints the specified message as textual progress update."""
     if will_print(level):
-        cprint(msg, "green")
+        printer(msg, "green")
 
 def gen(msg, level=1):
     """Prints the message as generic output to terminal."""
     if will_print(level):
-        cprint(msg, "blue")
+        printer(msg, "blue")
 
 def blank(n=1, level=2):
     """Prints a blank line to the terminal."""
