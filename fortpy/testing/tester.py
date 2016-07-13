@@ -15,12 +15,12 @@ class ExecutionResult(object):
     """The result of running the executable on the system, NOT the
     result of the unit test file comparisons.
 
-    :arg folder: the folder in which the executable ran.
-    :arg exitcode: the system exit code after the process terminated.
-    :arg runtime: a python datetime for the execution run time.
-    :arg tester: an OutcomeTester that can test the outcome of this
+    :arg str folder: the folder in which the executable ran.
+    :arg int exitcode: the system exit code after the process terminated.
+    :arg datetime.datetime runtime: execution run time.
+    :arg OutcomeTester tester: instance to test the outcome of this
       execution.
-    :arg case: the case identifier if this was part of a series of
+    :arg str case: the case identifier if this was part of a series of
       cases run for the same outcome.
     """
     def __init__(self, folder, exitcode, runtime, tester, case = None):
@@ -55,7 +55,9 @@ class ExecutionResult(object):
     def test(self, caseid, uresult):
         """Tests the outcome of this executable using its tester attribute.
 
-        :arg uresult: the overall TestResult for the test.
+        :arg str caseid: identifier for the specific case to test.
+        :arg TestResult uresult: the overall result for the test; modified with the
+          results of outcome testing for `caseid`.
         """
         #The first thing to check is the contents of the files
         self.tester.test(caseid, self, uresult)
@@ -65,7 +67,13 @@ class ExecutionResult(object):
 
 class ValueCompareResult(object):
     """The result of comparing the contents of a file to an explicit
-    value hard-coded in the testing XML tags."""
+    value hard-coded in the testing XML tags.
+
+    :ivar str path: path to the file whose contents will be checked.
+    :ivar str value: explicit value to compare the file contents to; is passed
+      to :func:`eval` before comparison.
+    :ivar bool equal: `True` if the file contents are identical to `value`.
+    """
     def __init__(self, path, value):
         self.path = path
         self.value = value
@@ -95,7 +103,7 @@ class ValueCompareResult(object):
 class OutcomeTester(object):
     """Performs outcomes tests for a single 'test' DocString.
 
-    :arg testspec: the TestSpecification for the <test> tag.
+    :arg testspec: the :class:fortpy.testing.elements.TestSpecification for the <test> tag.
     :arg codefolder: the path to the folder that has all the modules from which
       the unit tests were built.
     :arg comparer: an instance of FileComparer to compare output files
@@ -328,21 +336,22 @@ class OutcomeTester(object):
 class TestResult(object):
     """Represents a set of unit test results.
 
-    :arg identifier: the module.method identifier for this unit test.
-    :arg testid: the identifier of the <test> tag for the specific test that this
+    :arg identifier: the `module.method` identifier for this unit test.
+    :arg testid: the identifier of the `<test>` tag for the specific test that this
       result represents.
-    :attr cases: a dictionary of ExecutionResult objects with detail
-      on how the system execution went for each case. Key is caseId
-    :attr paths: a dictionary of paths to the folders that were executed for each case.
-    :attr outcomes: a dictionary of CompareResult objects with detail
+    :ivar cases: a dictionary of :class:`ExecutionResult` objects with detail
+      on how the system execution went for each case. Key is `caseId`.
+    :ivar paths: a dictionary of paths to the folders that were executed for each case.
+      Keys match those in `self.cases`.
+    :ivar outcomes: a dictionary of :py:class:~`fortpy.testing.results.CompareResult` objects with detail
       on how similar the new output files are to the model ones. Keys
-      are the same caseIds used in self.cases.
-    :attr compiled: specifies whether the executable associated with
+      are the same caseIds used in `self.cases`.
+    :ivar compiled: specifies whether the executable associated with
       this identifier compiled successfully.
-    :attr failures: CompareResult or ValueResult instances that failed the
+    :ivar failures: CompareResult or ValueResult instances that failed the
       tests outlined by the relevant test specification. Keys are the
       caseIds used by all the other dicts.
-    :attr overtimes: a tuple of (actual runtime, desired runtime range) for
+    :ivar overtimes: a tuple of (actual runtime, desired runtime range) for
       tests that were outside of the range for runtime.
     """
     def __init__(self, identifier, testid):
@@ -772,7 +781,7 @@ class UnitTester(object):
                 except OSError:
                     msg.err("Error initializing '{}' in '{}'.".format(testspec.identifier, testsfolder))
                     raise
-                runlist.append((casepath, exepath, self.quiet, case))
+                runlist.append((casepath, exepath, self.quiet, case, self.debug))
                 
             #We need to run the executable multiple times, once for each case
             #Each case has input files specified relative to the code folder.
@@ -784,7 +793,7 @@ class UnitTester(object):
                     if not self.quiet:
                         pbar.set_description("Running {}".format(case))
                     caseid, casepath = casedict[case]
-                    (case, start_time, code) = _execute_testpath(casepath, exepath, self.quiet, case)
+                    (case, start_time, code) = _execute_testpath(casepath, exepath, self.quiet, case, self.debug)
                     execodes[case] = (code, start_time)
             else:
                 from multiprocessing import Pool
@@ -866,13 +875,13 @@ class UnitTester(object):
 
 def _parallel_execute(args):
     return _execute_testpath(*args)               
-def _execute_testpath(testpath, exepath, quiet, case=""):
+def _execute_testpath(testpath, exepath, quiet, case="", debug=False):
     """Executes the unit test in the specified testing folder for 'case'."""
     start_time = clock()                              
     from os import waitpid, path
     from subprocess import Popen, PIPE
     dyld = path.dirname(exepath)
-    command = "cd {}; DYLD_LIBRARY_PATH={} {} > .fpy.x.out".format(testpath, dyld, exepath)
+    command = "cd {}; DYLD_LIBRARY_PATH={} {}{} > .fpy.x.out".format(testpath, dyld, exepath, " 1" if debug else "")
     prun = Popen(command, shell=True, executable="/bin/bash", stderr=PIPE, close_fds=True)
     waitpid(prun.pid, 0)        
     #else: #We don't need to get these lines since we are purposefully redirecting them.

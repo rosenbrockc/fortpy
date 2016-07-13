@@ -1,4 +1,4 @@
-!!<fortpy version="__version__" codeversion="1.7.6" />
+!!<fortpy version="__version__" codeversion="1.7.5" />
 !!<summary>Auto-generated auxiliary module exposing interfaces to save
 !!instances of user-derived types.</summary>
 module fpy_auxiliary
@@ -99,9 +99,12 @@ __fxauxread__
        !Because of the treatment of blank entries in vectors of allocated size, we have to check
        !for the special '.fpy.blank' suffix/member name.
        inquire(file=prefix//catstr//'-.fpy.blank', exist=memexists)
+       if (fpy_verbose > 1) write (*,*) "get_drange: ", prefix//catstr//'-.fpy.blank', "; ", memexists
        j = 1
        do while (j .le. size(members) .and. .not. memexists)
           inquire(file=prefix//catstr//'-'//trim(members(j)), exist=memexists)
+          if (fpy_verbose > 1) write (*,*) "get_drange: ", prefix//catstr//'-'//trim(members(j)), &
+               & "; ", memexists
           j = j+1
        end do
        
@@ -110,6 +113,8 @@ __fxauxread__
           D = i
        end if
     end do
+    if (fpy_verbose > 1) write (*,*) "get_drange: D = ", D
+
     if (D .eq. 0) return
     allocate(drange(D))
 
@@ -135,9 +140,12 @@ __fxauxread__
 
           memexists = .false.
           inquire(file=prefix//catstr//'-.fpy.blank', exist=memexists)
+          if (fpy_verbose > 1) write (*,*) "get_drange: ", prefix//catstr//'-.fpy.blank', "; ", memexists
           j = 1
           do while (j .le. size(members) .and. .not. memexists)
              inquire(file=prefix//catstr//'-'//trim(members(j)), exist=memexists)
+             if (fpy_verbose > 1) write (*,*) "get_drange: ", prefix//catstr//'-'//trim(members(j)), &
+                  & "; ", memexists
              j = j+1
           end do
 
@@ -149,7 +157,8 @@ __fxauxread__
           end if
        end do
        drange(k) = i
-    end do    
+    end do
+    if (fpy_verbose > 1) write (*,*) "get_drange: result => ", drange
   end subroutine fpy_get_drange
   
   !!<summary>Returns the integer index of the address in @CREF[param.stack] that

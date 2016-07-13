@@ -122,6 +122,18 @@ class MethodWriter(object):
         if self.tests[testid].constant:
             result.append("  integer :: fpy_repeat")
 
+        #Add the verbosity flag read-in from the command-line. This is only necessary
+        #for the auto-class stuff that uses auxiliary module.
+        if self.autoclass:
+            result.append("\n  !Verbosity read-in for auxiliary debug mode.")
+            result.append("  character :: sverbose")
+            result.append("  integer :: verbose")
+            result.extend(["  if (iargc()>=1) then",
+                           "    call getarg(1, sverbose)",
+                           "    read(sverbose, *) verbose",
+                           "    call fpy_set_verbosity(verbose)",
+                           "  end if"])
+            
         self._code_init(result, "  ", testid)
 
         #Before we can run the tests, we need to validate the input selection for

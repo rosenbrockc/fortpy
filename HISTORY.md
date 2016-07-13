@@ -12,6 +12,8 @@
 - Bug fixes outlined in Issue #100.
 - Fixed a bug with symlinking when the link already exists.
 - Refactored `fpy_auxiliary` to deal with arrays where the array has been initialized, but its contents don't necessarily produce files for each element. In that case, the array was not being restored to the correct size and state. New files called `.fpy.blank` are created for array elements who are allocated, but don't produce files with values. Then, when `auxread` is called, the same array structure with allocated, but empty, variables is restored. Fixes Issue #101.
+- Fixed #67
+- Fixed #103 by increasing the hard-coded line limit for the `fpy_read` to `250000` characters.
 
 ## Revision 1.7.5
 

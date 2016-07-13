@@ -7,7 +7,7 @@ kmap = {
     "real": {"dp": "fdp", "sp": "fsp"},
     "character": {"string": "len=*"}
 }
-linemax = 150000
+linemax = 250000
 """Specifies the maximum length that any line in a data file can have and still
 be supported by fortpy.
 """
@@ -227,12 +227,12 @@ def fpy_read(D, dtype, kind, suffix=None):
         common["xname"] = "fpy_read_{dtype}{skind}_{D}d{suffix}".format(**common)
 
     if suffix is None:
-        common["noexist"] = "if (.not. exists) return"
+        common["noexist"] = "return"
     elif suffix == "_p":
         #Set pointers to null if they weren't set on construction in their definition.
-        common["noexist"] = "if (.not. exists) then\n      variable => null()\n      return\n    end if"
+        common["noexist"] = "variable => null()\n      return"
     else:
-        common["noexist"] = "if (.not. exists) then\n      variable = {}\n      return\n    end if".format(common["default"])
+        common["noexist"] = "variable = {}\n      return".format(common["default"])
         
     template = """  subroutine {xname}(filename, commentchar, variable, success_, strict_)
     character(len=*), intent(in) :: filename
@@ -255,7 +255,10 @@ def fpy_read(D, dtype, kind, suffix=None):
 
     inquire(file=filename, exist=exists)
     if (present(success_)) success_ = exists .or. .false.
-    {noexist}
+    if (.not. exists) then
+      if (fpy_verbose > 0) write (*,*) "Target file '", filename, "' does not exist."
+      {noexist}
+    end if
 
 {dealloc}{analyze}{warning}{allocate}
 

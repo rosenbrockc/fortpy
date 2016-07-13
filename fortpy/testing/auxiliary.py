@@ -131,10 +131,12 @@ def _get_rsubroutine_recursive(classer, common):
     logical :: fpy_success
     {dtype}{kind}, pointer :: variable
     {vars}
+    if (fpy_verbose > 0) write (*,*) "Start recursive read for {xname}_ with '"//prefix//"'."
     {init}
 
     variable => pointer_stack(var_iloc)
     {read}
+    if (fpy_verbose > 0) write (*,*) "End recursive read for {xname}_ with '"//prefix//"'."
   end subroutine {xname}_
 
   subroutine {xname}(variable, folder, multi_stack, rstack, nested_)
@@ -150,6 +152,7 @@ def _get_rsubroutine_recursive(classer, common):
     integer :: iloc
     logical :: nested
 
+    if (fpy_verbose > 0) write (*,*) "Start recursive read for {xname} in '"//folder//"'."
     if (present(nested_)) then
       nested = nested_
     else
@@ -172,6 +175,7 @@ def _get_rsubroutine_recursive(classer, common):
 
     call {xname}_(iloc, stack, pointer_stack, lfolder)
     variable = pointer_stack(iloc)
+    if (fpy_verbose > 0) write (*,*) "End recursive read for {xname} in '"//lfolder//"'."
   end subroutine {xname}
 
 """
@@ -248,6 +252,7 @@ def _get_rsubroutine_nested(classer, common):
     {vars}
     logical :: nested
 
+    if (fpy_verbose > 0) write (*,*) "Start nested read for {xname}_p in '"//folder//"'."
     if (present(nested_)) then
       nested = nested_
     else
@@ -263,6 +268,7 @@ def _get_rsubroutine_nested(classer, common):
     end if
 
 {read}
+    if (fpy_verbose > 0) write (*,*) "End nested read for {xname}_p in '"//folder//"'."
   end subroutine {xname}_p
 
   subroutine {xname}(variable, folder, multi_stack, rstack, nested_)
@@ -275,6 +281,7 @@ def _get_rsubroutine_nested(classer, common):
     {dtype}{kind}, pointer :: lvar{Dx}
     logical :: nested
 
+    if (fpy_verbose > 0) write (*,*) "Start nested read for {xname} in '"//folder//"'."
     if (present(nested_)) then
       nested = nested_
     else
@@ -288,6 +295,7 @@ def _get_rsubroutine_nested(classer, common):
     end if
     call {xname}_p(lvar, folder, multi_stack, rstack, nested)
     variable = lvar
+    if (fpy_verbose > 0) write (*,*) "End nested read for {xname} in '"//folder//"'."
   end subroutine {xname}
 """
         return ((common["xname"], common["xname"]+"_p"), template.format(**common))
@@ -325,6 +333,8 @@ def _get_rsubroutine_flat(classer, common):
     character(len=:), allocatable :: lfolder
     logical :: nested
 
+    if (fpy_verbose > 0) write (*,*) "Start flat read for {xname} in '"//folder//"'."
+
     if (present(nested_)) then
       nested = nested_
     else
@@ -338,6 +348,7 @@ def _get_rsubroutine_flat(classer, common):
     end if
 
     {read}
+    if (fpy_verbose > 0) write (*,*) "End flat read for {xname} in '"//folder//"'."
   end subroutine {xname}
 """
     return ((common["xname"],), template.format(**common))
