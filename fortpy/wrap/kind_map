@@ -1,0 +1,7 @@
+{'complex': {'': 'complex_float',
+             '8': 'complex_double',
+             'fdp': 'complex_double',
+	     'fsp': 'complex_float'},
+ 'integer': {'': 'int', '8': 'long_long', 'fli': 'long_long', 'fsi': 'int'},
+ 'real': {'': 'float', '8': 'double', 'fdp': 'double', 'fsp': 'float'},
+ 'character': {'len=*': 'string', '100': 'string', '*': 'string', '1000': 'string', '1024': 'string', '1': 'string'}}

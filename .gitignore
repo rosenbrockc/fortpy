@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 
 *.*~
+*~
 \#*#
 tests/staging/
 *.tmp
@@ -14,6 +15,7 @@ fortpy.mod
 
 # C extensions
 *.so
+*.so.dSYM
 
 # Distribution / packaging
 .Python

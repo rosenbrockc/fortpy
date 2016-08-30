@@ -473,20 +473,35 @@ from os import path
 import sys
 sys.path.insert(0, path.expanduser("~/codes/fortpy-dist/"))
 import fortpy
-from fortpy.utility import get_fortpy_templates_dir
 
-templates = get_fortpy_templates_dir()
-statpath = path.join(templates, "static.f90")
-with open(statpath) as f:
-    static = f.read()
-
-for iface, idict in list(interfaces.items()):
-    if iface in generators:
-        static = fpy_interface(generators[iface], static, iface, idict)
+def generate(wrapped=False):
+    """Generates the fortpy.f90 file for the static or wrapped cases.
+    """
+    from fortpy.utility import get_fortpy_templates_dir
+    from os import path
+    templates = get_fortpy_templates_dir()
+    if wrapped:
+        statpath = path.join(templates, "wrap.f90")
     else:
-        raise ValueError("No generator for field {}".format(iface))
+        statpath = path.join(templates, "static.f90")
+        
+    with open(statpath) as f:
+        static = f.read()
 
-static = static.replace("__version__", fortpy.__version__)
-fortpath = path.join(templates, "fortpy.f90")
-with open(fortpath, 'w') as f:
-    f.write(static)
+    for iface, idict in list(interfaces.items()):
+        if iface in generators:
+            static = fpy_interface(generators[iface], static, iface, idict)
+        else:
+            raise ValueError("No generator for field {}".format(iface))
+
+    static = static.replace("__version__", fortpy.__version__)
+    if wrapped:
+        wrapdir = path.join(path.dirname(templates), "wrap")
+        fortpath = path.join(wrapdir, "fortpy.f90")
+    else:
+        fortpath = path.join(templates, "fortpy.f90")
+    with open(fortpath, 'w') as f:
+        f.write(static)
+
+generate()
+generate(True)
