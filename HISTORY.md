@@ -1,5 +1,9 @@
 # FORTPY: Revision History
 
+## Revision 1.7.7
+
+- Fixed a bug that prevented functions which return derived-types from being saved correctly using autoclass.
+
 ## Revision 1.7.6
 
 - Added symlinks for `fortpy.o` and `fortpy.mod` since they don't need to be copied.
