@@ -1,5 +1,9 @@
 # FORTPY: Revision History
 
+## Revision 1.7.8
+
+- Added support for complex valued parameters and variables.
+
 ## Revision 1.7.7
 
 - Fixed a bug that prevented functions which return derived-types from being saved correctly using autoclass.

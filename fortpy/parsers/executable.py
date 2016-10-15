@@ -21,7 +21,7 @@ class ExecutableParser(object):
         self.RE_CONTAINS = re.compile(self._RX_CONTAINS, re.M | re.I)
 
         #Setup a regex that can extract information about both functions and subroutines
-        self._RX_EXEC = r"\n[ \t]*((?P<type>character|real|type|logical|integer)?" + \
+        self._RX_EXEC = r"\n[ \t]*((?P<type>character|real|type|logical|integer|complex)?" + \
                         r"(?P<kind>\([a-z0-9_]+\))?)?((?P<modifiers>[\w, \t]+?))?[ \t]*" + \
                         r"(?P<codetype>subroutine|function)\s+(?P<name>[^(]+)" + \
                         r"\s*\((?P<parameters>[^)]*)\)(?P<result>\sresult\([a-z0-9_]+\))?" + \
@@ -29,7 +29,7 @@ class ExecutableParser(object):
         self.RE_EXEC = re.compile(self._RX_EXEC, re.DOTALL | re.I)
         #Regex for the signature is almost identical to the full executable, but it doesn't
         #look for any contents after the parameter list.
-        self._RX_SIG =  r"((?P<type>character|real|type|logical|integer)?" + \
+        self._RX_SIG =  r"((?P<type>character|real|type|logical|integer|complex)?" + \
                         r"(?P<kind>\([a-z0-9_]+\))?)?(,?(?P<modifiers>[^\n]+?))?\s*" + \
                         r"(?P<codetype>subroutine|function)\s+(?P<name>[^(]+)" + \
                         r"\s*\((?P<parameters>[^)]*)\)"

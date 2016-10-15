@@ -15,7 +15,8 @@ prec = {
     "integer": {None: "'('// adjustl(FMT) // 'i25)'",
                 "dp": "'('// adjustl(FMT) // 'i50)'",
                 "sp": "'('// adjustl(FMT) // 'i5)'"},
-    "complex": {"dp": "'('// adjustl(FMT) // 'e22.12)'", "sp": "'('// adjustl(FMT) // 'e22.12)'"},
+    "complex":{"dp":"'('//adjustl(FMT)//')'",
+               "sp": "'('//adjustl(FMT)//')'"},
     "real": {"dp": "*", "sp": "*"},
     "logical": {None: "*"},
     "character": {None: "'(A)'"}
@@ -69,9 +70,16 @@ def fpy_read(D, dtype, kind, suffix=None):
         "Dx": "({})".format(','.join([":"]*D)) if D >0 else "",
         "maxlen": linemax,
         "suffix": xsuffix[suffix],
-        "skind": kind if kind is not None else ""
+        "skind": kind if kind is not None else "",
+        "fmtstr": "" if dtype != "complex" else "character(:), allocatable :: FMT"
     }
-
+    if dtype == "complex":
+        rfmt = "2E22.12" if kind == "dp" else "2E19.9"
+    else:
+        rfmt = ""
+    if dtype == "complex":
+        readfmt = prec[dtype][kind]
+        
     if dtype in defaults:
         common["default"] = defaults[dtype]
     else:
@@ -107,53 +115,86 @@ def fpy_read(D, dtype, kind, suffix=None):
         common["analyze"] = ""
 
     if D==0:
-        lines = ["if ((nvalues .gt. 1) .or. (nlines /= 1)) then",
-                 "  write(*,*) \"Cannot read a single value from \", filename",
-                 "  write(*,*) \"Found \", nlines, \" lines and \", nvalues, \" values\"",
-                 "  if (present(success_)) success_ = .false.",
-                 "  if (strict) stop",
-                 "end if\n"]
+        if dtype == "complex":
+            lines = ["if ((nvalues .gt. 2) .or. (nlines /= 1)) then"]
+        else:
+            lines = ["if ((nvalues .gt. 1) .or. (nlines /= 1)) then"]
+        lines.extend(["  write(*,*) \"Cannot read a single value from \", filename",
+                      "  write(*,*) \"Found \", nlines, \" lines and \", nvalues, \" values\"",
+                      "  if (present(success_)) success_ = .false.",
+                      "  if (strict) stop",
+                      "end if\n"])
         common["warning"] = '    '+'\n    '.join(lines)
     elif D==1:
-        lines = ["if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then",
-                 '  write(*,*) "Cannot read a vector value from ", filename',
-                 '  write(*,*) "Found ", nlines, " lines and ", nvalues, " values"',
-                 "  if (present(success_)) success_ = .false.",
-                 "  if (strict) stop",
-                 "end if\n"]
+        if dtype == "complex":
+            lines = ["if ((nlines .gt. 2 .and. nvalues .gt. 2) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then"]
+        else:
+            lines = ["if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then"]
+        lines.extend(['  write(*,*) "Cannot read a vector value from ", filename',
+                      '  write(*,*) "Found ", nlines, " lines and ", nvalues, " values"',
+                      "  if (present(success_)) success_ = .false.",
+                      "  if (strict) stop",
+                      "end if\n"])
         if suffix == "_f":
-            lines.extend(["",
-                          "if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then",
-                          "  write(*,*) \"File data dimensions don't match fixed variable shape \", shape(variable)",
+            lines = [""]
+            if dtype == "complex":
+                lines.append("if ((nlines/2 .ne. size(variable, 1)) .and. (nvalues/2 .ne. size(variable, 1))) then")
+            else:
+                lines.append("if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then")
+            lines.extend(["  write(*,*) \"File data dimensions don't match fixed variable shape \", shape(variable)",
                           "  write(*,*) \"Fortpy sees data dimensions in '\", filename, \"' as \", nlines, nvalues",
                           "  if (present(success_)) success_ = .false.",
                           "  if (strict) stop",
                           "end if\n"])
         common["warning"] = '    '+'\n    '.join(lines)
     elif D==2 and suffix == "_f":
-        lines = ["if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 2))) then",
-                 "  write(*,*) \"File data dimensions don't match fixed variable shape \", shape(variable)",
-                 "  write(*,*) \"Fortpy sees data dimensions in '\", filename, \"' as \", nlines, nvalues",
-                 "  if (present(success_)) success_ = .false.",
-                 "  if (strict) stop",
-                 "end if\n"]
+        if dtype == "complex":
+            lines = ["if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 2))) then",
+                     "  write(*,*) \"File data dimensions don't match fixed variable shape \", shape(variable)",
+                     "  write(*,*) \"Fortpy sees data dimensions in '\", filename, \"' as \", nlines, nvalues/2"]
+        else:
+            lines = ["if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 2))) then",
+                     "  write(*,*) \"File data dimensions don't match fixed variable shape \", shape(variable)",
+                     "  write(*,*) \"Fortpy sees data dimensions in '\", filename, \"' as \", nlines, nvalues"]
+        lines.extend(["  if (present(success_)) success_ = .false.",
+                      "  if (strict) stop",
+                      "end if\n"])
         common["warning"] = '    '+'\n    '.join(lines)
     else:
         common["warning"] = ""
 
     if D==1 and suffix in [None, "_p"]:
-        lines = ["if (nlines .gt. 1) then",
-                 "  allocate(variable(nlines))",
-                 "else",
-                 "  allocate(variable(nvalues))",
-                 "end if",
-                 "variable = {default}\n".format(**common)]
+        if dtype == "complex":
+            lines = ["if (nlines .gt. 2) then",
+                     "  FMT = '{}'".format(rfmt)]
+        else:
+            lines = ["if (nlines .gt. 1) then"]
+        lines.extend(["  allocate(variable(nlines))",
+                      "else"])
+        if dtype == "complex":
+            lines.extend(["  FMT = '{}'".format(rfmt),
+                          "  do ifmt=2,nvalues/2; FMT = FMT//',1X,{}';  end do".format(rfmt),
+                          "  allocate(variable(nvalues/2))"])
+        else:
+            lines.append("  allocate(variable(nvalues))")
+        lines.extend(["end if",
+                      "variable = {default}\n".format(**common)])
         common["allocate"] = '    '+'\n    '.join(lines)
     elif D==2 and suffix in [None, "_p"]:
-        common["allocate"] = ("    allocate(variable(nlines, nvalues))\n"
-                              "    variable = {default}\n".format(**common))
+        if dtype=="complex":
+            common["allocate"] = ("    allocate(variable(nlines, nvalues/2))\n"
+                                  "    FMT = '{0}'\n"
+                                  "    do ifmt=2,nvalues/2; FMT = FMT//',1X,{0}';  end do\n"
+                                  "    variable = {default}\n".format(rfmt, **common))
+        else:
+            common["allocate"] = ("    allocate(variable(nlines, nvalues))\n"
+                                  "    variable = {default}\n".format(**common))
     elif D==0:
-        common["allocate"] = "    variable = {}\n".format(common["default"])
+        if dtype == "complex":
+            common["allocate"] = ("    write(FMT, *) 1\n"
+                                  "    variable = {}\n".format(common["default"]))
+        else:
+            common["allocate"] = "    variable = {}\n".format(common["default"])
     else:
         common["allocate"] = ""
 
@@ -181,31 +222,48 @@ def fpy_read(D, dtype, kind, suffix=None):
         if suffix in [None, "_p"]:
             dims = ', '.join(["dims({})".format(i+1) for i in range(D)])
             lines.append("allocate(variable({}))".format(dims))
+        if dtype == "complex":
+            lines.append("FMT = '{0}'".format(rfmt))
+            fmtloop = "do ifmt=2,dims({0}); FMT = FMT//',1X,{1}';  end do"
+            lines.append(fmtloop.format(D, rfmt))
         lines.append("variable = {default}".format(**common))
         lines.append("")
 
         common["initial"] = '\n      '.join(lines).format(D)
 
     if D==0:
-        lines = ["if (cleaned(1:1) /= commentchar) then",
-                 "  read(line, *) variable",
-                 "end if"]
+        lines = ["if (cleaned(1:1) /= commentchar) then"]
+        if dtype == "complex":
+            lines.append("  read(line, {}) variable".format(readfmt))
+        else:
+            lines.append("  read(line, *) variable")
+        lines.append("end if")
         common["readvar"] = '\n            '.join(lines)
     elif D==1:
-        lines = ["if (cleaned(1:1) /= commentchar) then",
-                 "  if (nlines .gt. 1) then",
-                 "    read(line, *) variable(i)",
-                 "    i = i+1",
-                 "  else",
-                 "    read(line, *) variable",
-                 "  end if",
-                 "end if"]
+        lines = ["if (cleaned(1:1) /= commentchar) then"]                         
+        if dtype == "complex":
+            lines.append("  if (nvalues == 2) then")
+            lines.append("    read(line, {}) variable(i)".format(readfmt))
+        else:
+            lines.append("  if (nlines .gt. 1) then")
+            lines.append("    read(line, *) variable(i)")
+        lines.extend(["    i = i+1",
+                      "  else"])
+        if dtype == "complex":
+            lines.append("    read(line, {}) variable".format(readfmt))
+        else:
+            lines.append("    read(line, *) variable")
+        lines.extend(["  end if",
+                      "end if"])
         common["readvar"] = '\n            '.join(lines)
     elif D==2:
-        lines = ["if (cleaned(1:1) /= commentchar) then",
-                 "  read(line, *) variable(i,:)",
-                 "  i = i+1",
-                 "end if"]
+        lines = ["if (cleaned(1:1) /= commentchar) then"]
+        if dtype == "complex":
+            lines.append("  read(line, {}) variable(i,:)".format(readfmt))
+        else:
+            lines.append("  read(line, *) variable(i,:)")
+        lines.extend(["  i = i+1",
+                      "end if"])
         common["readvar"] = '\n            '.join(lines)
     else:
         lines = ["if (cleaned(1:2) .eq. '##') then",
@@ -215,9 +273,12 @@ def fpy_read(D, dtype, kind, suffix=None):
             lines.append("  i{0} = indices({0})".format(i+1))
         lines.append("  i{} = 1".format(D-1))
         
-        lines.extend(["elseif (cleaned(1:1) /= commentchar) then",
-                      "  read(line, *) variable({0},:)",
-                      "  i{1} = i{1}+1",
+        lines.append("elseif (cleaned(1:1) /= commentchar) then")
+        if dtype == "complex":
+            lines.append("  read(line, {}) variable({{0}},:)".format(readfmt))
+        else:
+            lines.append("  read(line, *) variable({0},:)")
+        lines.extend(["  i{1} = i{1}+1",
                       "end if"])
         common["readvar"] = '\n            '.join(lines).format(','.join(ivars), D-1)
 
@@ -242,10 +303,11 @@ def fpy_read(D, dtype, kind, suffix=None):
     {dtype}{kind}{modify}, intent(inout) :: variable{Dx}
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     {vars}
     character({maxlen:d}) :: line
+    {fmtstr}
 
     if (present(strict_)) then
       strict = strict_
@@ -343,7 +405,9 @@ def pysave(D, dtype, kind, suffix=None):
         "D": D,
         "Dx": "({})".format(','.join([":"]*D)) if D >0 else "",
         "suffix": xsuffix[suffix],
-        "skind": kind if kind is not None else ""
+        "skind": kind if kind is not None else "",
+        "fmtvar": ("character(20) :: FMT" if dtype != "complex"
+                   else "character(:), allocatable :: FMT")
     }
 
     #For character, we use the auto-length arrays.
@@ -367,8 +431,14 @@ def pysave(D, dtype, kind, suffix=None):
 
     if D > 0:
         lines = ["dims = shape(variable)",
-                 "write(FMT, *) dims({})".format(D),
                  "if (dims({}) .eq. 0) return".format(D)]
+        if dtype == "complex":
+            rfmt = "2E22.12" if kind == "dp" else "2E19.9"
+            lines.append("FMT = '{0}'".format(rfmt))
+            fmtloop = "do ifmt=2,dims({0}); FMT = FMT//',1X,{1}';  end do"
+            lines.append(fmtloop.format(D, rfmt))
+        else:
+            lines.append("write(FMT, *) dims({})".format(D))
         common["initial"] = '\n    '.join(lines)
     else:
         common["initial"] = "write(FMT, *) 1"
@@ -415,8 +485,9 @@ def pysave(D, dtype, kind, suffix=None):
     template = """  subroutine {xname}(variable, filename)
     character(len=*), intent(in) :: filename
     {dtype}{kind}, intent(in) :: variable{Dx}
-    character(20) :: FMT
+    {fmtvar}
     {vars}
+    integer :: ifmt
     {initial}
 
     call file_open(filename, len(filename), '{dtype}')

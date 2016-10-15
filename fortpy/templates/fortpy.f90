@@ -1,4 +1,4 @@
-!!<fortpy codeversion="1.7.6" />
+!!<fortpy codeversion="1.7.8" />
 !!<summary>Provides an interface for saving the values of multiple variable
 !!types using a single call. Used as part of the FORTPY unit testing framework.</summary>
 module fortpy
@@ -228,10 +228,11 @@ contains
     real(fsp), intent(inout) :: variable
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -284,10 +285,11 @@ contains
     real(fsp), allocatable, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -352,10 +354,11 @@ contains
     real(fsp), allocatable, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -406,10 +409,11 @@ contains
     real(fsp), allocatable, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -479,10 +483,11 @@ contains
     real(fsp), allocatable, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -553,10 +558,11 @@ contains
     real(fsp), allocatable, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -628,10 +634,11 @@ contains
     real(fsp), allocatable, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -704,10 +711,11 @@ contains
     real(fsp), allocatable, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -780,10 +788,11 @@ contains
     real(fdp), intent(inout) :: variable
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -836,10 +845,11 @@ contains
     real(fdp), allocatable, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -904,10 +914,11 @@ contains
     real(fdp), allocatable, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -958,10 +969,11 @@ contains
     real(fdp), allocatable, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -1031,10 +1043,11 @@ contains
     real(fdp), allocatable, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -1105,10 +1118,11 @@ contains
     real(fdp), allocatable, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -1180,10 +1194,11 @@ contains
     real(fdp), allocatable, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -1256,10 +1271,11 @@ contains
     real(fdp), allocatable, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -1333,10 +1349,11 @@ contains
     integer, intent(inout) :: variable
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -1389,10 +1406,11 @@ contains
     integer, allocatable, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -1457,10 +1475,11 @@ contains
     integer, allocatable, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -1511,10 +1530,11 @@ contains
     integer, allocatable, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -1584,10 +1604,11 @@ contains
     integer, allocatable, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -1658,10 +1679,11 @@ contains
     integer, allocatable, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -1733,10 +1755,11 @@ contains
     integer, allocatable, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -1809,10 +1832,11 @@ contains
     integer, allocatable, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -1885,10 +1909,11 @@ contains
     integer(fsi), intent(inout) :: variable
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -1941,10 +1966,11 @@ contains
     integer(fsi), allocatable, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -2009,10 +2035,11 @@ contains
     integer(fsi), allocatable, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -2063,10 +2090,11 @@ contains
     integer(fsi), allocatable, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -2136,10 +2164,11 @@ contains
     integer(fsi), allocatable, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -2210,10 +2239,11 @@ contains
     integer(fsi), allocatable, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -2285,10 +2315,11 @@ contains
     integer(fsi), allocatable, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -2361,10 +2392,11 @@ contains
     integer(fsi), allocatable, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -2437,10 +2469,11 @@ contains
     integer(fli), intent(inout) :: variable
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -2493,10 +2526,11 @@ contains
     integer(fli), allocatable, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -2561,10 +2595,11 @@ contains
     integer(fli), allocatable, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -2615,10 +2650,11 @@ contains
     integer(fli), allocatable, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -2688,10 +2724,11 @@ contains
     integer(fli), allocatable, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -2762,10 +2799,11 @@ contains
     integer(fli), allocatable, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -2837,10 +2875,11 @@ contains
     integer(fli), allocatable, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -2913,10 +2952,11 @@ contains
     integer(fli), allocatable, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -2990,10 +3030,11 @@ contains
     complex(fsp), intent(inout) :: variable
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -3009,12 +3050,13 @@ contains
     end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
-    if ((nvalues .gt. 1) .or. (nlines /= 1)) then
+    if ((nvalues .gt. 2) .or. (nlines /= 1)) then
       write(*,*) "Cannot read a single value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
       if (present(success_)) success_ = .false.
       if (strict) stop
     end if
+    write(FMT, *) 1
     variable = 0
 
 
@@ -3026,7 +3068,7 @@ contains
           cleaned = trim(adjustl(line))
           if (len(cleaned) .gt. 0) then
             if (cleaned(1:1) /= commentchar) then
-              read(line, *) variable
+              read(line, '('//adjustl(FMT)//')') variable
             end if
           end if
         else
@@ -3046,10 +3088,11 @@ contains
     complex(fsp), allocatable, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -3066,16 +3109,19 @@ contains
 
     if (allocated(variable)) deallocate(variable)
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
-    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+    if ((nlines .gt. 2 .and. nvalues .gt. 2) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
       if (present(success_)) success_ = .false.
       if (strict) stop
     end if
-    if (nlines .gt. 1) then
+    if (nlines .gt. 2) then
+      FMT = '2E19.9'
       allocate(variable(nlines))
     else
-      allocate(variable(nvalues))
+      FMT = '2E19.9'
+      do ifmt=2,nvalues/2; FMT = FMT//',1X,2E19.9';  end do
+      allocate(variable(nvalues/2))
     end if
     variable = 0
 
@@ -3089,11 +3135,11 @@ contains
           cleaned = trim(adjustl(line))
           if (len(cleaned) .gt. 0) then
             if (cleaned(1:1) /= commentchar) then
-              if (nlines .gt. 1) then
-                read(line, *) variable(i)
+              if (nvalues == 2) then
+                read(line, '('//adjustl(FMT)//')') variable(i)
                 i = i+1
               else
-                read(line, *) variable
+                read(line, '('//adjustl(FMT)//')') variable
               end if
             end if
           end if
@@ -3114,10 +3160,11 @@ contains
     complex(fsp), allocatable, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -3134,7 +3181,9 @@ contains
 
     if (allocated(variable)) deallocate(variable)
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
-    allocate(variable(nlines, nvalues))
+    allocate(variable(nlines, nvalues/2))
+    FMT = '2E19.9'
+    do ifmt=2,nvalues/2; FMT = FMT//',1X,2E19.9';  end do
     variable = 0
 
 
@@ -3147,7 +3196,7 @@ contains
           cleaned = trim(adjustl(line))
           if (len(cleaned) .gt. 0) then
             if (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i,:)
+              read(line, '('//adjustl(FMT)//')') variable(i,:)
               i = i+1
             end if
           end if
@@ -3168,10 +3217,11 @@ contains
     complex(fsp), allocatable, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -3208,6 +3258,8 @@ contains
       end do
       
       allocate(variable(dims(1), dims(2), dims(3)))
+      FMT = '2E19.9'
+      do ifmt=2,dims(3); FMT = FMT//',1X,2E19.9';  end do
       variable = 0
       
       do
@@ -3220,7 +3272,7 @@ contains
               i1 = indices(1)
               i2 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,:)
               i2 = i2+1
             end if
           end if
@@ -3241,10 +3293,11 @@ contains
     complex(fsp), allocatable, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -3281,6 +3334,8 @@ contains
       end do
       
       allocate(variable(dims(1), dims(2), dims(3), dims(4)))
+      FMT = '2E19.9'
+      do ifmt=2,dims(4); FMT = FMT//',1X,2E19.9';  end do
       variable = 0
       
       do
@@ -3294,7 +3349,7 @@ contains
               i2 = indices(2)
               i3 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,i3,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,i3,:)
               i3 = i3+1
             end if
           end if
@@ -3315,10 +3370,11 @@ contains
     complex(fsp), allocatable, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -3355,6 +3411,8 @@ contains
       end do
       
       allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5)))
+      FMT = '2E19.9'
+      do ifmt=2,dims(5); FMT = FMT//',1X,2E19.9';  end do
       variable = 0
       
       do
@@ -3369,7 +3427,7 @@ contains
               i3 = indices(3)
               i4 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,i3,i4,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,i3,i4,:)
               i4 = i4+1
             end if
           end if
@@ -3390,10 +3448,11 @@ contains
     complex(fsp), allocatable, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -3430,6 +3489,8 @@ contains
       end do
       
       allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6)))
+      FMT = '2E19.9'
+      do ifmt=2,dims(6); FMT = FMT//',1X,2E19.9';  end do
       variable = 0
       
       do
@@ -3445,7 +3506,7 @@ contains
               i4 = indices(4)
               i5 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,i3,i4,i5,:)
               i5 = i5+1
             end if
           end if
@@ -3466,10 +3527,11 @@ contains
     complex(fsp), allocatable, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -3506,6 +3568,8 @@ contains
       end do
       
       allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6), dims(7)))
+      FMT = '2E19.9'
+      do ifmt=2,dims(7); FMT = FMT//',1X,2E19.9';  end do
       variable = 0
       
       do
@@ -3522,7 +3586,7 @@ contains
               i5 = indices(5)
               i6 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,i3,i4,i5,i6,:)
               i6 = i6+1
             end if
           end if
@@ -3542,10 +3606,11 @@ contains
     complex(fdp), intent(inout) :: variable
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -3561,12 +3626,13 @@ contains
     end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
-    if ((nvalues .gt. 1) .or. (nlines /= 1)) then
+    if ((nvalues .gt. 2) .or. (nlines /= 1)) then
       write(*,*) "Cannot read a single value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
       if (present(success_)) success_ = .false.
       if (strict) stop
     end if
+    write(FMT, *) 1
     variable = 0
 
 
@@ -3578,7 +3644,7 @@ contains
           cleaned = trim(adjustl(line))
           if (len(cleaned) .gt. 0) then
             if (cleaned(1:1) /= commentchar) then
-              read(line, *) variable
+              read(line, '('//adjustl(FMT)//')') variable
             end if
           end if
         else
@@ -3598,10 +3664,11 @@ contains
     complex(fdp), allocatable, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -3618,16 +3685,19 @@ contains
 
     if (allocated(variable)) deallocate(variable)
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
-    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+    if ((nlines .gt. 2 .and. nvalues .gt. 2) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
       if (present(success_)) success_ = .false.
       if (strict) stop
     end if
-    if (nlines .gt. 1) then
+    if (nlines .gt. 2) then
+      FMT = '2E22.12'
       allocate(variable(nlines))
     else
-      allocate(variable(nvalues))
+      FMT = '2E22.12'
+      do ifmt=2,nvalues/2; FMT = FMT//',1X,2E22.12';  end do
+      allocate(variable(nvalues/2))
     end if
     variable = 0
 
@@ -3641,11 +3711,11 @@ contains
           cleaned = trim(adjustl(line))
           if (len(cleaned) .gt. 0) then
             if (cleaned(1:1) /= commentchar) then
-              if (nlines .gt. 1) then
-                read(line, *) variable(i)
+              if (nvalues == 2) then
+                read(line, '('//adjustl(FMT)//')') variable(i)
                 i = i+1
               else
-                read(line, *) variable
+                read(line, '('//adjustl(FMT)//')') variable
               end if
             end if
           end if
@@ -3666,10 +3736,11 @@ contains
     complex(fdp), allocatable, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -3686,7 +3757,9 @@ contains
 
     if (allocated(variable)) deallocate(variable)
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
-    allocate(variable(nlines, nvalues))
+    allocate(variable(nlines, nvalues/2))
+    FMT = '2E22.12'
+    do ifmt=2,nvalues/2; FMT = FMT//',1X,2E22.12';  end do
     variable = 0
 
 
@@ -3699,7 +3772,7 @@ contains
           cleaned = trim(adjustl(line))
           if (len(cleaned) .gt. 0) then
             if (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i,:)
+              read(line, '('//adjustl(FMT)//')') variable(i,:)
               i = i+1
             end if
           end if
@@ -3720,10 +3793,11 @@ contains
     complex(fdp), allocatable, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -3760,6 +3834,8 @@ contains
       end do
       
       allocate(variable(dims(1), dims(2), dims(3)))
+      FMT = '2E22.12'
+      do ifmt=2,dims(3); FMT = FMT//',1X,2E22.12';  end do
       variable = 0
       
       do
@@ -3772,7 +3848,7 @@ contains
               i1 = indices(1)
               i2 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,:)
               i2 = i2+1
             end if
           end if
@@ -3793,10 +3869,11 @@ contains
     complex(fdp), allocatable, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -3833,6 +3910,8 @@ contains
       end do
       
       allocate(variable(dims(1), dims(2), dims(3), dims(4)))
+      FMT = '2E22.12'
+      do ifmt=2,dims(4); FMT = FMT//',1X,2E22.12';  end do
       variable = 0
       
       do
@@ -3846,7 +3925,7 @@ contains
               i2 = indices(2)
               i3 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,i3,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,i3,:)
               i3 = i3+1
             end if
           end if
@@ -3867,10 +3946,11 @@ contains
     complex(fdp), allocatable, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -3907,6 +3987,8 @@ contains
       end do
       
       allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5)))
+      FMT = '2E22.12'
+      do ifmt=2,dims(5); FMT = FMT//',1X,2E22.12';  end do
       variable = 0
       
       do
@@ -3921,7 +4003,7 @@ contains
               i3 = indices(3)
               i4 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,i3,i4,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,i3,i4,:)
               i4 = i4+1
             end if
           end if
@@ -3942,10 +4024,11 @@ contains
     complex(fdp), allocatable, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -3982,6 +4065,8 @@ contains
       end do
       
       allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6)))
+      FMT = '2E22.12'
+      do ifmt=2,dims(6); FMT = FMT//',1X,2E22.12';  end do
       variable = 0
       
       do
@@ -3997,7 +4082,7 @@ contains
               i4 = indices(4)
               i5 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,i3,i4,i5,:)
               i5 = i5+1
             end if
           end if
@@ -4018,10 +4103,11 @@ contains
     complex(fdp), allocatable, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -4058,6 +4144,8 @@ contains
       end do
       
       allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6), dims(7)))
+      FMT = '2E22.12'
+      do ifmt=2,dims(7); FMT = FMT//',1X,2E22.12';  end do
       variable = 0
       
       do
@@ -4074,7 +4162,7 @@ contains
               i5 = indices(5)
               i6 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,i3,i4,i5,i6,:)
               i6 = i6+1
             end if
           end if
@@ -4095,10 +4183,11 @@ contains
     character(len=*), intent(inout) :: variable
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -4151,10 +4240,11 @@ contains
     character(len=*), allocatable, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -4219,10 +4309,11 @@ contains
     character(len=*), allocatable, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -4273,10 +4364,11 @@ contains
     character(len=*), allocatable, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -4346,10 +4438,11 @@ contains
     character(len=*), allocatable, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -4420,10 +4513,11 @@ contains
     character(len=*), allocatable, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -4495,10 +4589,11 @@ contains
     character(len=*), allocatable, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -4571,10 +4666,11 @@ contains
     character(len=*), allocatable, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -4648,10 +4744,11 @@ contains
     logical, intent(inout) :: variable
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -4704,10 +4801,11 @@ contains
     logical, allocatable, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -4772,10 +4870,11 @@ contains
     logical, allocatable, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -4826,10 +4925,11 @@ contains
     logical, allocatable, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -4899,10 +4999,11 @@ contains
     logical, allocatable, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -4973,10 +5074,11 @@ contains
     logical, allocatable, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -5048,10 +5150,11 @@ contains
     logical, allocatable, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -5124,10 +5227,11 @@ contains
     logical, allocatable, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -5202,10 +5306,11 @@ contains
     real(fsp), intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -5222,13 +5327,6 @@ contains
     end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
-    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
-      write(*,*) "Cannot read a vector value from ", filename
-      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      if (present(success_)) success_ = .false.
-      if (strict) stop
-    end if
-
     
     if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
@@ -5272,10 +5370,11 @@ contains
     real(fsp), intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -5330,10 +5429,11 @@ contains
     real(fsp), intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -5402,10 +5502,11 @@ contains
     real(fsp), intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -5475,10 +5576,11 @@ contains
     real(fsp), intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -5549,10 +5651,11 @@ contains
     real(fsp), intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -5624,10 +5727,11 @@ contains
     real(fsp), intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -5699,10 +5803,11 @@ contains
     real(fdp), intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -5719,13 +5824,6 @@ contains
     end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
-    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
-      write(*,*) "Cannot read a vector value from ", filename
-      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      if (present(success_)) success_ = .false.
-      if (strict) stop
-    end if
-
     
     if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
@@ -5769,10 +5867,11 @@ contains
     real(fdp), intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -5827,10 +5926,11 @@ contains
     real(fdp), intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -5899,10 +5999,11 @@ contains
     real(fdp), intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -5972,10 +6073,11 @@ contains
     real(fdp), intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -6046,10 +6148,11 @@ contains
     real(fdp), intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -6121,10 +6224,11 @@ contains
     real(fdp), intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -6197,10 +6301,11 @@ contains
     integer, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -6217,13 +6322,6 @@ contains
     end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
-    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
-      write(*,*) "Cannot read a vector value from ", filename
-      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      if (present(success_)) success_ = .false.
-      if (strict) stop
-    end if
-
     
     if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
@@ -6267,10 +6365,11 @@ contains
     integer, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -6325,10 +6424,11 @@ contains
     integer, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -6397,10 +6497,11 @@ contains
     integer, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -6470,10 +6571,11 @@ contains
     integer, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -6544,10 +6646,11 @@ contains
     integer, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -6619,10 +6722,11 @@ contains
     integer, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -6694,10 +6798,11 @@ contains
     integer(fsi), intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -6714,13 +6819,6 @@ contains
     end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
-    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
-      write(*,*) "Cannot read a vector value from ", filename
-      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      if (present(success_)) success_ = .false.
-      if (strict) stop
-    end if
-
     
     if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
@@ -6764,10 +6862,11 @@ contains
     integer(fsi), intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -6822,10 +6921,11 @@ contains
     integer(fsi), intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -6894,10 +6994,11 @@ contains
     integer(fsi), intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -6967,10 +7068,11 @@ contains
     integer(fsi), intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -7041,10 +7143,11 @@ contains
     integer(fsi), intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -7116,10 +7219,11 @@ contains
     integer(fsi), intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -7191,10 +7295,11 @@ contains
     integer(fli), intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -7211,13 +7316,6 @@ contains
     end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
-    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
-      write(*,*) "Cannot read a vector value from ", filename
-      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      if (present(success_)) success_ = .false.
-      if (strict) stop
-    end if
-
     
     if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
@@ -7261,10 +7359,11 @@ contains
     integer(fli), intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -7319,10 +7418,11 @@ contains
     integer(fli), intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -7391,10 +7491,11 @@ contains
     integer(fli), intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -7464,10 +7565,11 @@ contains
     integer(fli), intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -7538,10 +7640,11 @@ contains
     integer(fli), intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -7613,10 +7716,11 @@ contains
     integer(fli), intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -7689,10 +7793,11 @@ contains
     complex(fsp), intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -7709,15 +7814,8 @@ contains
     end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
-    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
-      write(*,*) "Cannot read a vector value from ", filename
-      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      if (present(success_)) success_ = .false.
-      if (strict) stop
-    end if
-
     
-    if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then
+    if ((nlines/2 .ne. size(variable, 1)) .and. (nvalues/2 .ne. size(variable, 1))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
       write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
       if (present(success_)) success_ = .false.
@@ -7734,11 +7832,11 @@ contains
           cleaned = trim(adjustl(line))
           if (len(cleaned) .gt. 0) then
             if (cleaned(1:1) /= commentchar) then
-              if (nlines .gt. 1) then
-                read(line, *) variable(i)
+              if (nvalues == 2) then
+                read(line, '('//adjustl(FMT)//')') variable(i)
                 i = i+1
               else
-                read(line, *) variable
+                read(line, '('//adjustl(FMT)//')') variable
               end if
             end if
           end if
@@ -7759,10 +7857,11 @@ contains
     complex(fsp), intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -7781,7 +7880,7 @@ contains
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 2))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
-      write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
+      write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues/2
       if (present(success_)) success_ = .false.
       if (strict) stop
     end if
@@ -7796,7 +7895,7 @@ contains
           cleaned = trim(adjustl(line))
           if (len(cleaned) .gt. 0) then
             if (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i,:)
+              read(line, '('//adjustl(FMT)//')') variable(i,:)
               i = i+1
             end if
           end if
@@ -7817,10 +7916,11 @@ contains
     complex(fsp), intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -7856,6 +7956,8 @@ contains
         end if
       end do
       
+      FMT = '2E19.9'
+      do ifmt=2,dims(3); FMT = FMT//',1X,2E19.9';  end do
       variable = 0
       
       do
@@ -7868,7 +7970,7 @@ contains
               i1 = indices(1)
               i2 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,:)
               i2 = i2+1
             end if
           end if
@@ -7889,10 +7991,11 @@ contains
     complex(fsp), intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -7928,6 +8031,8 @@ contains
         end if
       end do
       
+      FMT = '2E19.9'
+      do ifmt=2,dims(4); FMT = FMT//',1X,2E19.9';  end do
       variable = 0
       
       do
@@ -7941,7 +8046,7 @@ contains
               i2 = indices(2)
               i3 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,i3,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,i3,:)
               i3 = i3+1
             end if
           end if
@@ -7962,10 +8067,11 @@ contains
     complex(fsp), intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -8001,6 +8107,8 @@ contains
         end if
       end do
       
+      FMT = '2E19.9'
+      do ifmt=2,dims(5); FMT = FMT//',1X,2E19.9';  end do
       variable = 0
       
       do
@@ -8015,7 +8123,7 @@ contains
               i3 = indices(3)
               i4 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,i3,i4,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,i3,i4,:)
               i4 = i4+1
             end if
           end if
@@ -8036,10 +8144,11 @@ contains
     complex(fsp), intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -8075,6 +8184,8 @@ contains
         end if
       end do
       
+      FMT = '2E19.9'
+      do ifmt=2,dims(6); FMT = FMT//',1X,2E19.9';  end do
       variable = 0
       
       do
@@ -8090,7 +8201,7 @@ contains
               i4 = indices(4)
               i5 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,i3,i4,i5,:)
               i5 = i5+1
             end if
           end if
@@ -8111,10 +8222,11 @@ contains
     complex(fsp), intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -8150,6 +8262,8 @@ contains
         end if
       end do
       
+      FMT = '2E19.9'
+      do ifmt=2,dims(7); FMT = FMT//',1X,2E19.9';  end do
       variable = 0
       
       do
@@ -8166,7 +8280,7 @@ contains
               i5 = indices(5)
               i6 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,i3,i4,i5,i6,:)
               i6 = i6+1
             end if
           end if
@@ -8186,10 +8300,11 @@ contains
     complex(fdp), intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -8206,15 +8321,8 @@ contains
     end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
-    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
-      write(*,*) "Cannot read a vector value from ", filename
-      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      if (present(success_)) success_ = .false.
-      if (strict) stop
-    end if
-
     
-    if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then
+    if ((nlines/2 .ne. size(variable, 1)) .and. (nvalues/2 .ne. size(variable, 1))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
       write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
       if (present(success_)) success_ = .false.
@@ -8231,11 +8339,11 @@ contains
           cleaned = trim(adjustl(line))
           if (len(cleaned) .gt. 0) then
             if (cleaned(1:1) /= commentchar) then
-              if (nlines .gt. 1) then
-                read(line, *) variable(i)
+              if (nvalues == 2) then
+                read(line, '('//adjustl(FMT)//')') variable(i)
                 i = i+1
               else
-                read(line, *) variable
+                read(line, '('//adjustl(FMT)//')') variable
               end if
             end if
           end if
@@ -8256,10 +8364,11 @@ contains
     complex(fdp), intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -8278,7 +8387,7 @@ contains
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
     if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 2))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
-      write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues
+      write(*,*) "Fortpy sees data dimensions in '", filename, "' as ", nlines, nvalues/2
       if (present(success_)) success_ = .false.
       if (strict) stop
     end if
@@ -8293,7 +8402,7 @@ contains
           cleaned = trim(adjustl(line))
           if (len(cleaned) .gt. 0) then
             if (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i,:)
+              read(line, '('//adjustl(FMT)//')') variable(i,:)
               i = i+1
             end if
           end if
@@ -8314,10 +8423,11 @@ contains
     complex(fdp), intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -8353,6 +8463,8 @@ contains
         end if
       end do
       
+      FMT = '2E22.12'
+      do ifmt=2,dims(3); FMT = FMT//',1X,2E22.12';  end do
       variable = 0
       
       do
@@ -8365,7 +8477,7 @@ contains
               i1 = indices(1)
               i2 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,:)
               i2 = i2+1
             end if
           end if
@@ -8386,10 +8498,11 @@ contains
     complex(fdp), intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -8425,6 +8538,8 @@ contains
         end if
       end do
       
+      FMT = '2E22.12'
+      do ifmt=2,dims(4); FMT = FMT//',1X,2E22.12';  end do
       variable = 0
       
       do
@@ -8438,7 +8553,7 @@ contains
               i2 = indices(2)
               i3 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,i3,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,i3,:)
               i3 = i3+1
             end if
           end if
@@ -8459,10 +8574,11 @@ contains
     complex(fdp), intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -8498,6 +8614,8 @@ contains
         end if
       end do
       
+      FMT = '2E22.12'
+      do ifmt=2,dims(5); FMT = FMT//',1X,2E22.12';  end do
       variable = 0
       
       do
@@ -8512,7 +8630,7 @@ contains
               i3 = indices(3)
               i4 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,i3,i4,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,i3,i4,:)
               i4 = i4+1
             end if
           end if
@@ -8533,10 +8651,11 @@ contains
     complex(fdp), intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -8572,6 +8691,8 @@ contains
         end if
       end do
       
+      FMT = '2E22.12'
+      do ifmt=2,dims(6); FMT = FMT//',1X,2E22.12';  end do
       variable = 0
       
       do
@@ -8587,7 +8708,7 @@ contains
               i4 = indices(4)
               i5 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,i3,i4,i5,:)
               i5 = i5+1
             end if
           end if
@@ -8608,10 +8729,11 @@ contains
     complex(fdp), intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -8647,6 +8769,8 @@ contains
         end if
       end do
       
+      FMT = '2E22.12'
+      do ifmt=2,dims(7); FMT = FMT//',1X,2E22.12';  end do
       variable = 0
       
       do
@@ -8663,7 +8787,7 @@ contains
               i5 = indices(5)
               i6 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,i3,i4,i5,i6,:)
               i6 = i6+1
             end if
           end if
@@ -8684,10 +8808,11 @@ contains
     character(len=*), intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -8704,13 +8829,6 @@ contains
     end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues, .true.)
-    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
-      write(*,*) "Cannot read a vector value from ", filename
-      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      if (present(success_)) success_ = .false.
-      if (strict) stop
-    end if
-
     
     if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
@@ -8754,10 +8872,11 @@ contains
     character(len=*), intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -8812,10 +8931,11 @@ contains
     character(len=*), intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -8884,10 +9004,11 @@ contains
     character(len=*), intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -8957,10 +9078,11 @@ contains
     character(len=*), intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -9031,10 +9153,11 @@ contains
     character(len=*), intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -9106,10 +9229,11 @@ contains
     character(len=*), intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -9182,10 +9306,11 @@ contains
     logical, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -9202,13 +9327,6 @@ contains
     end if
 
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
-    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
-      write(*,*) "Cannot read a vector value from ", filename
-      write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
-      if (present(success_)) success_ = .false.
-      if (strict) stop
-    end if
-
     
     if ((nlines .ne. size(variable, 1)) .and. (nvalues .ne. size(variable, 1))) then
       write(*,*) "File data dimensions don't match fixed variable shape ", shape(variable)
@@ -9252,10 +9370,11 @@ contains
     logical, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -9310,10 +9429,11 @@ contains
     logical, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -9382,10 +9502,11 @@ contains
     logical, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -9455,10 +9576,11 @@ contains
     logical, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -9529,10 +9651,11 @@ contains
     logical, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -9604,10 +9727,11 @@ contains
     logical, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -9681,10 +9805,11 @@ contains
     real(fsp), pointer, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -9750,10 +9875,11 @@ contains
     real(fsp), pointer, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -9805,10 +9931,11 @@ contains
     real(fsp), pointer, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -9879,10 +10006,11 @@ contains
     real(fsp), pointer, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -9954,10 +10082,11 @@ contains
     real(fsp), pointer, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -10030,10 +10159,11 @@ contains
     real(fsp), pointer, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -10107,10 +10237,11 @@ contains
     real(fsp), pointer, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -10184,10 +10315,11 @@ contains
     real(fdp), pointer, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -10253,10 +10385,11 @@ contains
     real(fdp), pointer, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -10308,10 +10441,11 @@ contains
     real(fdp), pointer, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -10382,10 +10516,11 @@ contains
     real(fdp), pointer, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -10457,10 +10592,11 @@ contains
     real(fdp), pointer, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -10533,10 +10669,11 @@ contains
     real(fdp), pointer, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -10610,10 +10747,11 @@ contains
     real(fdp), pointer, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -10688,10 +10826,11 @@ contains
     integer, pointer, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -10757,10 +10896,11 @@ contains
     integer, pointer, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -10812,10 +10952,11 @@ contains
     integer, pointer, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -10886,10 +11027,11 @@ contains
     integer, pointer, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -10961,10 +11103,11 @@ contains
     integer, pointer, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -11037,10 +11180,11 @@ contains
     integer, pointer, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -11114,10 +11258,11 @@ contains
     integer, pointer, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -11191,10 +11336,11 @@ contains
     integer(fsi), pointer, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -11260,10 +11406,11 @@ contains
     integer(fsi), pointer, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -11315,10 +11462,11 @@ contains
     integer(fsi), pointer, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -11389,10 +11537,11 @@ contains
     integer(fsi), pointer, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -11464,10 +11613,11 @@ contains
     integer(fsi), pointer, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -11540,10 +11690,11 @@ contains
     integer(fsi), pointer, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -11617,10 +11768,11 @@ contains
     integer(fsi), pointer, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -11694,10 +11846,11 @@ contains
     integer(fli), pointer, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -11763,10 +11916,11 @@ contains
     integer(fli), pointer, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -11818,10 +11972,11 @@ contains
     integer(fli), pointer, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -11892,10 +12047,11 @@ contains
     integer(fli), pointer, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -11967,10 +12123,11 @@ contains
     integer(fli), pointer, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -12043,10 +12200,11 @@ contains
     integer(fli), pointer, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -12120,10 +12278,11 @@ contains
     integer(fli), pointer, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -12198,10 +12357,11 @@ contains
     complex(fsp), pointer, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -12219,16 +12379,19 @@ contains
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
-    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+    if ((nlines .gt. 2 .and. nvalues .gt. 2) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
       if (present(success_)) success_ = .false.
       if (strict) stop
     end if
-    if (nlines .gt. 1) then
+    if (nlines .gt. 2) then
+      FMT = '2E19.9'
       allocate(variable(nlines))
     else
-      allocate(variable(nvalues))
+      FMT = '2E19.9'
+      do ifmt=2,nvalues/2; FMT = FMT//',1X,2E19.9';  end do
+      allocate(variable(nvalues/2))
     end if
     variable = 0
 
@@ -12242,11 +12405,11 @@ contains
           cleaned = trim(adjustl(line))
           if (len(cleaned) .gt. 0) then
             if (cleaned(1:1) /= commentchar) then
-              if (nlines .gt. 1) then
-                read(line, *) variable(i)
+              if (nvalues == 2) then
+                read(line, '('//adjustl(FMT)//')') variable(i)
                 i = i+1
               else
-                read(line, *) variable
+                read(line, '('//adjustl(FMT)//')') variable
               end if
             end if
           end if
@@ -12267,10 +12430,11 @@ contains
     complex(fsp), pointer, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -12288,7 +12452,9 @@ contains
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
-    allocate(variable(nlines, nvalues))
+    allocate(variable(nlines, nvalues/2))
+    FMT = '2E19.9'
+    do ifmt=2,nvalues/2; FMT = FMT//',1X,2E19.9';  end do
     variable = 0
 
 
@@ -12301,7 +12467,7 @@ contains
           cleaned = trim(adjustl(line))
           if (len(cleaned) .gt. 0) then
             if (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i,:)
+              read(line, '('//adjustl(FMT)//')') variable(i,:)
               i = i+1
             end if
           end if
@@ -12322,10 +12488,11 @@ contains
     complex(fsp), pointer, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -12363,6 +12530,8 @@ contains
       end do
       
       allocate(variable(dims(1), dims(2), dims(3)))
+      FMT = '2E19.9'
+      do ifmt=2,dims(3); FMT = FMT//',1X,2E19.9';  end do
       variable = 0
       
       do
@@ -12375,7 +12544,7 @@ contains
               i1 = indices(1)
               i2 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,:)
               i2 = i2+1
             end if
           end if
@@ -12396,10 +12565,11 @@ contains
     complex(fsp), pointer, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -12437,6 +12607,8 @@ contains
       end do
       
       allocate(variable(dims(1), dims(2), dims(3), dims(4)))
+      FMT = '2E19.9'
+      do ifmt=2,dims(4); FMT = FMT//',1X,2E19.9';  end do
       variable = 0
       
       do
@@ -12450,7 +12622,7 @@ contains
               i2 = indices(2)
               i3 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,i3,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,i3,:)
               i3 = i3+1
             end if
           end if
@@ -12471,10 +12643,11 @@ contains
     complex(fsp), pointer, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -12512,6 +12685,8 @@ contains
       end do
       
       allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5)))
+      FMT = '2E19.9'
+      do ifmt=2,dims(5); FMT = FMT//',1X,2E19.9';  end do
       variable = 0
       
       do
@@ -12526,7 +12701,7 @@ contains
               i3 = indices(3)
               i4 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,i3,i4,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,i3,i4,:)
               i4 = i4+1
             end if
           end if
@@ -12547,10 +12722,11 @@ contains
     complex(fsp), pointer, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -12588,6 +12764,8 @@ contains
       end do
       
       allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6)))
+      FMT = '2E19.9'
+      do ifmt=2,dims(6); FMT = FMT//',1X,2E19.9';  end do
       variable = 0
       
       do
@@ -12603,7 +12781,7 @@ contains
               i4 = indices(4)
               i5 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,i3,i4,i5,:)
               i5 = i5+1
             end if
           end if
@@ -12624,10 +12802,11 @@ contains
     complex(fsp), pointer, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -12665,6 +12844,8 @@ contains
       end do
       
       allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6), dims(7)))
+      FMT = '2E19.9'
+      do ifmt=2,dims(7); FMT = FMT//',1X,2E19.9';  end do
       variable = 0
       
       do
@@ -12681,7 +12862,7 @@ contains
               i5 = indices(5)
               i6 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,i3,i4,i5,i6,:)
               i6 = i6+1
             end if
           end if
@@ -12701,10 +12882,11 @@ contains
     complex(fdp), pointer, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -12722,16 +12904,19 @@ contains
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
-    if ((nlines .gt. 1 .and. nvalues .gt. 1) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
+    if ((nlines .gt. 2 .and. nvalues .gt. 2) .or. (nlines .eq. 0 .or. nvalues .eq. 0)) then
       write(*,*) "Cannot read a vector value from ", filename
       write(*,*) "Found ", nlines, " lines and ", nvalues, " values"
       if (present(success_)) success_ = .false.
       if (strict) stop
     end if
-    if (nlines .gt. 1) then
+    if (nlines .gt. 2) then
+      FMT = '2E22.12'
       allocate(variable(nlines))
     else
-      allocate(variable(nvalues))
+      FMT = '2E22.12'
+      do ifmt=2,nvalues/2; FMT = FMT//',1X,2E22.12';  end do
+      allocate(variable(nvalues/2))
     end if
     variable = 0
 
@@ -12745,11 +12930,11 @@ contains
           cleaned = trim(adjustl(line))
           if (len(cleaned) .gt. 0) then
             if (cleaned(1:1) /= commentchar) then
-              if (nlines .gt. 1) then
-                read(line, *) variable(i)
+              if (nvalues == 2) then
+                read(line, '('//adjustl(FMT)//')') variable(i)
                 i = i+1
               else
-                read(line, *) variable
+                read(line, '('//adjustl(FMT)//')') variable
               end if
             end if
           end if
@@ -12770,10 +12955,11 @@ contains
     complex(fdp), pointer, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -12791,7 +12977,9 @@ contains
 
     if (associated(variable)) variable => null()
     call fpy_linevalue_count(filename, commentchar, nlines, nvalues)
-    allocate(variable(nlines, nvalues))
+    allocate(variable(nlines, nvalues/2))
+    FMT = '2E22.12'
+    do ifmt=2,nvalues/2; FMT = FMT//',1X,2E22.12';  end do
     variable = 0
 
 
@@ -12804,7 +12992,7 @@ contains
           cleaned = trim(adjustl(line))
           if (len(cleaned) .gt. 0) then
             if (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i,:)
+              read(line, '('//adjustl(FMT)//')') variable(i,:)
               i = i+1
             end if
           end if
@@ -12825,10 +13013,11 @@ contains
     complex(fdp), pointer, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -12866,6 +13055,8 @@ contains
       end do
       
       allocate(variable(dims(1), dims(2), dims(3)))
+      FMT = '2E22.12'
+      do ifmt=2,dims(3); FMT = FMT//',1X,2E22.12';  end do
       variable = 0
       
       do
@@ -12878,7 +13069,7 @@ contains
               i1 = indices(1)
               i2 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,:)
               i2 = i2+1
             end if
           end if
@@ -12899,10 +13090,11 @@ contains
     complex(fdp), pointer, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -12940,6 +13132,8 @@ contains
       end do
       
       allocate(variable(dims(1), dims(2), dims(3), dims(4)))
+      FMT = '2E22.12'
+      do ifmt=2,dims(4); FMT = FMT//',1X,2E22.12';  end do
       variable = 0
       
       do
@@ -12953,7 +13147,7 @@ contains
               i2 = indices(2)
               i3 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,i3,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,i3,:)
               i3 = i3+1
             end if
           end if
@@ -12974,10 +13168,11 @@ contains
     complex(fdp), pointer, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -13015,6 +13210,8 @@ contains
       end do
       
       allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5)))
+      FMT = '2E22.12'
+      do ifmt=2,dims(5); FMT = FMT//',1X,2E22.12';  end do
       variable = 0
       
       do
@@ -13029,7 +13226,7 @@ contains
               i3 = indices(3)
               i4 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,i3,i4,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,i3,i4,:)
               i4 = i4+1
             end if
           end if
@@ -13050,10 +13247,11 @@ contains
     complex(fdp), pointer, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -13091,6 +13289,8 @@ contains
       end do
       
       allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6)))
+      FMT = '2E22.12'
+      do ifmt=2,dims(6); FMT = FMT//',1X,2E22.12';  end do
       variable = 0
       
       do
@@ -13106,7 +13306,7 @@ contains
               i4 = indices(4)
               i5 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,i3,i4,i5,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,i3,i4,i5,:)
               i5 = i5+1
             end if
           end if
@@ -13127,10 +13327,11 @@ contains
     complex(fdp), pointer, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(250000) :: line
+    character(:), allocatable :: FMT
 
     if (present(strict_)) then
       strict = strict_
@@ -13168,6 +13369,8 @@ contains
       end do
       
       allocate(variable(dims(1), dims(2), dims(3), dims(4), dims(5), dims(6), dims(7)))
+      FMT = '2E22.12'
+      do ifmt=2,dims(7); FMT = FMT//',1X,2E22.12';  end do
       variable = 0
       
       do
@@ -13184,7 +13387,7 @@ contains
               i5 = indices(5)
               i6 = 1
             elseif (cleaned(1:1) /= commentchar) then
-              read(line, *) variable(i1,i2,i3,i4,i5,i6,:)
+              read(line, '('//adjustl(FMT)//')') variable(i1,i2,i3,i4,i5,i6,:)
               i6 = i6+1
             end if
           end if
@@ -13205,10 +13408,11 @@ contains
     character(len=*), pointer, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -13274,10 +13478,11 @@ contains
     character(len=*), pointer, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -13329,10 +13534,11 @@ contains
     character(len=*), pointer, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -13403,10 +13609,11 @@ contains
     character(len=*), pointer, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -13478,10 +13685,11 @@ contains
     character(len=*), pointer, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -13554,10 +13762,11 @@ contains
     character(len=*), pointer, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -13631,10 +13840,11 @@ contains
     character(len=*), pointer, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -13709,10 +13919,11 @@ contains
     logical, pointer, intent(inout) :: variable(:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -13778,10 +13989,11 @@ contains
     logical, pointer, intent(inout) :: variable(:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: nlines, nvalues, i
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -13833,10 +14045,11 @@ contains
     logical, pointer, intent(inout) :: variable(:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(3), i1, i2, i3, indices(3)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -13907,10 +14120,11 @@ contains
     logical, pointer, intent(inout) :: variable(:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(4), i1, i2, i3, i4, indices(4)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -13982,10 +14196,11 @@ contains
     logical, pointer, intent(inout) :: variable(:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(5), i1, i2, i3, i4, i5, indices(5)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -14058,10 +14273,11 @@ contains
     logical, pointer, intent(inout) :: variable(:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(6), i1, i2, i3, i4, i5, i6, indices(6)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -14135,10 +14351,11 @@ contains
     logical, pointer, intent(inout) :: variable(:,:,:,:,:,:,:)
 
     character(len=:), allocatable :: cleaned
-    integer :: ioerr, funit
+    integer :: ioerr, funit, ifmt
     logical :: exists, strict
     integer :: dims(7), i1, i2, i3, i4, i5, i6, i7, indices(7)
     character(250000) :: line
+    
 
     if (present(strict_)) then
       strict = strict_
@@ -14326,6 +14543,7 @@ contains
     real(fsp), intent(in) :: variable
     character(20) :: FMT
     
+    integer :: ifmt
     write(FMT, *) 1
 
     call file_open(filename, len(filename), 'real')
@@ -14339,9 +14557,10 @@ contains
     character(20) :: FMT
     integer :: dims(1)
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(1)
     if (dims(1) .eq. 0) return
+    write(FMT, *) dims(1)
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, *) variable(:)
@@ -14354,9 +14573,10 @@ contains
     character(20) :: FMT
     integer :: dims(2), i1
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(2)
     if (dims(2) .eq. 0) return
+    write(FMT, *) dims(2)
 
     call file_open(filename, len(filename), 'real')
     do i1=1, dims(1)
@@ -14371,9 +14591,10 @@ contains
     character(20) :: FMT
     integer :: dims(3), i1, i2
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(3)
     if (dims(3) .eq. 0) return
+    write(FMT, *) dims(3)
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 3i15)") "## ", dims
@@ -14392,9 +14613,10 @@ contains
     character(20) :: FMT
     integer :: dims(4), i1, i2, i3
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(4)
     if (dims(4) .eq. 0) return
+    write(FMT, *) dims(4)
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 4i15)") "## ", dims
@@ -14415,9 +14637,10 @@ contains
     character(20) :: FMT
     integer :: dims(5), i1, i2, i3, i4
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(5)
     if (dims(5) .eq. 0) return
+    write(FMT, *) dims(5)
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 5i15)") "## ", dims
@@ -14440,9 +14663,10 @@ contains
     character(20) :: FMT
     integer :: dims(6), i1, i2, i3, i4, i5
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(6)
     if (dims(6) .eq. 0) return
+    write(FMT, *) dims(6)
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 6i15)") "## ", dims
@@ -14467,9 +14691,10 @@ contains
     character(20) :: FMT
     integer :: dims(7), i1, i2, i3, i4, i5, i6
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(7)
     if (dims(7) .eq. 0) return
+    write(FMT, *) dims(7)
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 7i15)") "## ", dims
@@ -14494,6 +14719,7 @@ contains
     real(fdp), intent(in) :: variable
     character(20) :: FMT
     
+    integer :: ifmt
     write(FMT, *) 1
 
     call file_open(filename, len(filename), 'real')
@@ -14507,9 +14733,10 @@ contains
     character(20) :: FMT
     integer :: dims(1)
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(1)
     if (dims(1) .eq. 0) return
+    write(FMT, *) dims(1)
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, *) variable(:)
@@ -14522,9 +14749,10 @@ contains
     character(20) :: FMT
     integer :: dims(2), i1
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(2)
     if (dims(2) .eq. 0) return
+    write(FMT, *) dims(2)
 
     call file_open(filename, len(filename), 'real')
     do i1=1, dims(1)
@@ -14539,9 +14767,10 @@ contains
     character(20) :: FMT
     integer :: dims(3), i1, i2
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(3)
     if (dims(3) .eq. 0) return
+    write(FMT, *) dims(3)
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 3i15)") "## ", dims
@@ -14560,9 +14789,10 @@ contains
     character(20) :: FMT
     integer :: dims(4), i1, i2, i3
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(4)
     if (dims(4) .eq. 0) return
+    write(FMT, *) dims(4)
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 4i15)") "## ", dims
@@ -14583,9 +14813,10 @@ contains
     character(20) :: FMT
     integer :: dims(5), i1, i2, i3, i4
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(5)
     if (dims(5) .eq. 0) return
+    write(FMT, *) dims(5)
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 5i15)") "## ", dims
@@ -14608,9 +14839,10 @@ contains
     character(20) :: FMT
     integer :: dims(6), i1, i2, i3, i4, i5
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(6)
     if (dims(6) .eq. 0) return
+    write(FMT, *) dims(6)
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 6i15)") "## ", dims
@@ -14635,9 +14867,10 @@ contains
     character(20) :: FMT
     integer :: dims(7), i1, i2, i3, i4, i5, i6
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(7)
     if (dims(7) .eq. 0) return
+    write(FMT, *) dims(7)
 
     call file_open(filename, len(filename), 'real')
     write(fileunit, "(A, 7i15)") "## ", dims
@@ -14663,6 +14896,7 @@ contains
     integer, intent(in) :: variable
     character(20) :: FMT
     
+    integer :: ifmt
     write(FMT, *) 1
 
     call file_open(filename, len(filename), 'integer')
@@ -14676,9 +14910,10 @@ contains
     character(20) :: FMT
     integer :: dims(1)
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(1)
     if (dims(1) .eq. 0) return
+    write(FMT, *) dims(1)
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, '('// adjustl(FMT) // 'i25)') variable(:)
@@ -14691,9 +14926,10 @@ contains
     character(20) :: FMT
     integer :: dims(2), i1
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(2)
     if (dims(2) .eq. 0) return
+    write(FMT, *) dims(2)
 
     call file_open(filename, len(filename), 'integer')
     do i1=1, dims(1)
@@ -14708,9 +14944,10 @@ contains
     character(20) :: FMT
     integer :: dims(3), i1, i2
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(3)
     if (dims(3) .eq. 0) return
+    write(FMT, *) dims(3)
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 3i15)") "## ", dims
@@ -14729,9 +14966,10 @@ contains
     character(20) :: FMT
     integer :: dims(4), i1, i2, i3
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(4)
     if (dims(4) .eq. 0) return
+    write(FMT, *) dims(4)
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 4i15)") "## ", dims
@@ -14752,9 +14990,10 @@ contains
     character(20) :: FMT
     integer :: dims(5), i1, i2, i3, i4
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(5)
     if (dims(5) .eq. 0) return
+    write(FMT, *) dims(5)
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 5i15)") "## ", dims
@@ -14777,9 +15016,10 @@ contains
     character(20) :: FMT
     integer :: dims(6), i1, i2, i3, i4, i5
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(6)
     if (dims(6) .eq. 0) return
+    write(FMT, *) dims(6)
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 6i15)") "## ", dims
@@ -14804,9 +15044,10 @@ contains
     character(20) :: FMT
     integer :: dims(7), i1, i2, i3, i4, i5, i6
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(7)
     if (dims(7) .eq. 0) return
+    write(FMT, *) dims(7)
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 7i15)") "## ", dims
@@ -14831,6 +15072,7 @@ contains
     integer(fsi), intent(in) :: variable
     character(20) :: FMT
     
+    integer :: ifmt
     write(FMT, *) 1
 
     call file_open(filename, len(filename), 'integer')
@@ -14844,9 +15086,10 @@ contains
     character(20) :: FMT
     integer :: dims(1)
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(1)
     if (dims(1) .eq. 0) return
+    write(FMT, *) dims(1)
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, '('// adjustl(FMT) // 'i5)') variable(:)
@@ -14859,9 +15102,10 @@ contains
     character(20) :: FMT
     integer :: dims(2), i1
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(2)
     if (dims(2) .eq. 0) return
+    write(FMT, *) dims(2)
 
     call file_open(filename, len(filename), 'integer')
     do i1=1, dims(1)
@@ -14876,9 +15120,10 @@ contains
     character(20) :: FMT
     integer :: dims(3), i1, i2
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(3)
     if (dims(3) .eq. 0) return
+    write(FMT, *) dims(3)
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 3i15)") "## ", dims
@@ -14897,9 +15142,10 @@ contains
     character(20) :: FMT
     integer :: dims(4), i1, i2, i3
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(4)
     if (dims(4) .eq. 0) return
+    write(FMT, *) dims(4)
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 4i15)") "## ", dims
@@ -14920,9 +15166,10 @@ contains
     character(20) :: FMT
     integer :: dims(5), i1, i2, i3, i4
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(5)
     if (dims(5) .eq. 0) return
+    write(FMT, *) dims(5)
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 5i15)") "## ", dims
@@ -14945,9 +15192,10 @@ contains
     character(20) :: FMT
     integer :: dims(6), i1, i2, i3, i4, i5
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(6)
     if (dims(6) .eq. 0) return
+    write(FMT, *) dims(6)
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 6i15)") "## ", dims
@@ -14972,9 +15220,10 @@ contains
     character(20) :: FMT
     integer :: dims(7), i1, i2, i3, i4, i5, i6
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(7)
     if (dims(7) .eq. 0) return
+    write(FMT, *) dims(7)
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 7i15)") "## ", dims
@@ -14999,6 +15248,7 @@ contains
     integer(fli), intent(in) :: variable
     character(20) :: FMT
     
+    integer :: ifmt
     write(FMT, *) 1
 
     call file_open(filename, len(filename), 'integer')
@@ -15012,9 +15262,10 @@ contains
     character(20) :: FMT
     integer :: dims(1)
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(1)
     if (dims(1) .eq. 0) return
+    write(FMT, *) dims(1)
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, '('// adjustl(FMT) // 'i50)') variable(:)
@@ -15027,9 +15278,10 @@ contains
     character(20) :: FMT
     integer :: dims(2), i1
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(2)
     if (dims(2) .eq. 0) return
+    write(FMT, *) dims(2)
 
     call file_open(filename, len(filename), 'integer')
     do i1=1, dims(1)
@@ -15044,9 +15296,10 @@ contains
     character(20) :: FMT
     integer :: dims(3), i1, i2
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(3)
     if (dims(3) .eq. 0) return
+    write(FMT, *) dims(3)
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 3i15)") "## ", dims
@@ -15065,9 +15318,10 @@ contains
     character(20) :: FMT
     integer :: dims(4), i1, i2, i3
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(4)
     if (dims(4) .eq. 0) return
+    write(FMT, *) dims(4)
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 4i15)") "## ", dims
@@ -15088,9 +15342,10 @@ contains
     character(20) :: FMT
     integer :: dims(5), i1, i2, i3, i4
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(5)
     if (dims(5) .eq. 0) return
+    write(FMT, *) dims(5)
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 5i15)") "## ", dims
@@ -15113,9 +15368,10 @@ contains
     character(20) :: FMT
     integer :: dims(6), i1, i2, i3, i4, i5
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(6)
     if (dims(6) .eq. 0) return
+    write(FMT, *) dims(6)
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 6i15)") "## ", dims
@@ -15140,9 +15396,10 @@ contains
     character(20) :: FMT
     integer :: dims(7), i1, i2, i3, i4, i5, i6
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(7)
     if (dims(7) .eq. 0) return
+    write(FMT, *) dims(7)
 
     call file_open(filename, len(filename), 'integer')
     write(fileunit, "(A, 7i15)") "## ", dims
@@ -15166,43 +15423,48 @@ contains
   subroutine pysave_complexsp_0d(variable, filename)
     character(len=*), intent(in) :: filename
     complex(fsp), intent(in) :: variable
-    character(20) :: FMT
+    character(:), allocatable :: FMT
     
+    integer :: ifmt
     write(FMT, *) 1
 
     call file_open(filename, len(filename), 'complex')
-    write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable
+    write(fileunit, '('//adjustl(FMT)//')') variable
     call file_close()
   end subroutine pysave_complexsp_0d
     
   subroutine pysave_complexsp_1d(variable, filename)
     character(len=*), intent(in) :: filename
     complex(fsp), intent(in) :: variable(:)
-    character(20) :: FMT
+    character(:), allocatable :: FMT
     integer :: dims(1)
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(1)
     if (dims(1) .eq. 0) return
+    FMT = '2E19.9'
+    do ifmt=2,dims(1); FMT = FMT//',1X,2E19.9';  end do
 
     call file_open(filename, len(filename), 'complex')
-    write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(:)
+    write(fileunit, '('//adjustl(FMT)//')') variable(:)
     call file_close()
   end subroutine pysave_complexsp_1d
     
   subroutine pysave_complexsp_2d(variable, filename)
     character(len=*), intent(in) :: filename
     complex(fsp), intent(in) :: variable(:,:)
-    character(20) :: FMT
+    character(:), allocatable :: FMT
     integer :: dims(2), i1
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(2)
     if (dims(2) .eq. 0) return
+    FMT = '2E19.9'
+    do ifmt=2,dims(2); FMT = FMT//',1X,2E19.9';  end do
 
     call file_open(filename, len(filename), 'complex')
     do i1=1, dims(1)
-      write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(i1, :)
+      write(fileunit, '('//adjustl(FMT)//')') variable(i1, :)
     end do
     call file_close()
   end subroutine pysave_complexsp_2d
@@ -15210,19 +15472,21 @@ contains
   subroutine pysave_complexsp_3d(variable, filename)
     character(len=*), intent(in) :: filename
     complex(fsp), intent(in) :: variable(:,:,:)
-    character(20) :: FMT
+    character(:), allocatable :: FMT
     integer :: dims(3), i1, i2
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(3)
     if (dims(3) .eq. 0) return
+    FMT = '2E19.9'
+    do ifmt=2,dims(3); FMT = FMT//',1X,2E19.9';  end do
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 3i15)") "## ", dims
     do i1=1, dims(1)
       write(fileunit, "(A, 3i15)") "## ", i1, 0, 0
       do i2=1, dims(2)
-        write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(i1, i2, :)
+        write(fileunit, '('//adjustl(FMT)//')') variable(i1, i2, :)
       end do
     end do
     call file_close()
@@ -15231,12 +15495,14 @@ contains
   subroutine pysave_complexsp_4d(variable, filename)
     character(len=*), intent(in) :: filename
     complex(fsp), intent(in) :: variable(:,:,:,:)
-    character(20) :: FMT
+    character(:), allocatable :: FMT
     integer :: dims(4), i1, i2, i3
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(4)
     if (dims(4) .eq. 0) return
+    FMT = '2E19.9'
+    do ifmt=2,dims(4); FMT = FMT//',1X,2E19.9';  end do
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 4i15)") "## ", dims
@@ -15244,7 +15510,7 @@ contains
       do i2=1, dims(2)
         write(fileunit, "(A, 4i15)") "## ", i1, i2, 0, 0
         do i3=1, dims(3)
-          write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(i1, i2, i3, :)
+          write(fileunit, '('//adjustl(FMT)//')') variable(i1, i2, i3, :)
         end do
       end do
     end do
@@ -15254,12 +15520,14 @@ contains
   subroutine pysave_complexsp_5d(variable, filename)
     character(len=*), intent(in) :: filename
     complex(fsp), intent(in) :: variable(:,:,:,:,:)
-    character(20) :: FMT
+    character(:), allocatable :: FMT
     integer :: dims(5), i1, i2, i3, i4
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(5)
     if (dims(5) .eq. 0) return
+    FMT = '2E19.9'
+    do ifmt=2,dims(5); FMT = FMT//',1X,2E19.9';  end do
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 5i15)") "## ", dims
@@ -15268,7 +15536,7 @@ contains
         do i3=1, dims(3)
           write(fileunit, "(A, 5i15)") "## ", i1, i2, i3, 0, 0
           do i4=1, dims(4)
-            write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(i1, i2, i3, i4, :)
+            write(fileunit, '('//adjustl(FMT)//')') variable(i1, i2, i3, i4, :)
           end do
         end do
       end do
@@ -15279,12 +15547,14 @@ contains
   subroutine pysave_complexsp_6d(variable, filename)
     character(len=*), intent(in) :: filename
     complex(fsp), intent(in) :: variable(:,:,:,:,:,:)
-    character(20) :: FMT
+    character(:), allocatable :: FMT
     integer :: dims(6), i1, i2, i3, i4, i5
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(6)
     if (dims(6) .eq. 0) return
+    FMT = '2E19.9'
+    do ifmt=2,dims(6); FMT = FMT//',1X,2E19.9';  end do
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 6i15)") "## ", dims
@@ -15294,7 +15564,7 @@ contains
           do i4=1, dims(4)
             write(fileunit, "(A, 6i15)") "## ", i1, i2, i3, i4, 0, 0
             do i5=1, dims(5)
-              write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(i1, i2, i3, i4, i5, :)
+              write(fileunit, '('//adjustl(FMT)//')') variable(i1, i2, i3, i4, i5, :)
             end do
           end do
         end do
@@ -15306,12 +15576,14 @@ contains
   subroutine pysave_complexsp_7d(variable, filename)
     character(len=*), intent(in) :: filename
     complex(fsp), intent(in) :: variable(:,:,:,:,:,:,:)
-    character(20) :: FMT
+    character(:), allocatable :: FMT
     integer :: dims(7), i1, i2, i3, i4, i5, i6
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(7)
     if (dims(7) .eq. 0) return
+    FMT = '2E19.9'
+    do ifmt=2,dims(7); FMT = FMT//',1X,2E19.9';  end do
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 7i15)") "## ", dims
@@ -15322,7 +15594,7 @@ contains
             do i5=1, dims(5)
               write(fileunit, "(A, 7i15)") "## ", i1, i2, i3, i4, i5, 0, 0
               do i6=1, dims(6)
-                write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(i1, i2, i3, i4, i5, i6, :)
+                write(fileunit, '('//adjustl(FMT)//')') variable(i1, i2, i3, i4, i5, i6, :)
               end do
             end do
           end do
@@ -15334,43 +15606,48 @@ contains
       subroutine pysave_complexdp_0d(variable, filename)
     character(len=*), intent(in) :: filename
     complex(fdp), intent(in) :: variable
-    character(20) :: FMT
+    character(:), allocatable :: FMT
     
+    integer :: ifmt
     write(FMT, *) 1
 
     call file_open(filename, len(filename), 'complex')
-    write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable
+    write(fileunit, '('//adjustl(FMT)//')') variable
     call file_close()
   end subroutine pysave_complexdp_0d
     
   subroutine pysave_complexdp_1d(variable, filename)
     character(len=*), intent(in) :: filename
     complex(fdp), intent(in) :: variable(:)
-    character(20) :: FMT
+    character(:), allocatable :: FMT
     integer :: dims(1)
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(1)
     if (dims(1) .eq. 0) return
+    FMT = '2E22.12'
+    do ifmt=2,dims(1); FMT = FMT//',1X,2E22.12';  end do
 
     call file_open(filename, len(filename), 'complex')
-    write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(:)
+    write(fileunit, '('//adjustl(FMT)//')') variable(:)
     call file_close()
   end subroutine pysave_complexdp_1d
     
   subroutine pysave_complexdp_2d(variable, filename)
     character(len=*), intent(in) :: filename
     complex(fdp), intent(in) :: variable(:,:)
-    character(20) :: FMT
+    character(:), allocatable :: FMT
     integer :: dims(2), i1
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(2)
     if (dims(2) .eq. 0) return
+    FMT = '2E22.12'
+    do ifmt=2,dims(2); FMT = FMT//',1X,2E22.12';  end do
 
     call file_open(filename, len(filename), 'complex')
     do i1=1, dims(1)
-      write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(i1, :)
+      write(fileunit, '('//adjustl(FMT)//')') variable(i1, :)
     end do
     call file_close()
   end subroutine pysave_complexdp_2d
@@ -15378,19 +15655,21 @@ contains
   subroutine pysave_complexdp_3d(variable, filename)
     character(len=*), intent(in) :: filename
     complex(fdp), intent(in) :: variable(:,:,:)
-    character(20) :: FMT
+    character(:), allocatable :: FMT
     integer :: dims(3), i1, i2
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(3)
     if (dims(3) .eq. 0) return
+    FMT = '2E22.12'
+    do ifmt=2,dims(3); FMT = FMT//',1X,2E22.12';  end do
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 3i15)") "## ", dims
     do i1=1, dims(1)
       write(fileunit, "(A, 3i15)") "## ", i1, 0, 0
       do i2=1, dims(2)
-        write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(i1, i2, :)
+        write(fileunit, '('//adjustl(FMT)//')') variable(i1, i2, :)
       end do
     end do
     call file_close()
@@ -15399,12 +15678,14 @@ contains
   subroutine pysave_complexdp_4d(variable, filename)
     character(len=*), intent(in) :: filename
     complex(fdp), intent(in) :: variable(:,:,:,:)
-    character(20) :: FMT
+    character(:), allocatable :: FMT
     integer :: dims(4), i1, i2, i3
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(4)
     if (dims(4) .eq. 0) return
+    FMT = '2E22.12'
+    do ifmt=2,dims(4); FMT = FMT//',1X,2E22.12';  end do
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 4i15)") "## ", dims
@@ -15412,7 +15693,7 @@ contains
       do i2=1, dims(2)
         write(fileunit, "(A, 4i15)") "## ", i1, i2, 0, 0
         do i3=1, dims(3)
-          write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(i1, i2, i3, :)
+          write(fileunit, '('//adjustl(FMT)//')') variable(i1, i2, i3, :)
         end do
       end do
     end do
@@ -15422,12 +15703,14 @@ contains
   subroutine pysave_complexdp_5d(variable, filename)
     character(len=*), intent(in) :: filename
     complex(fdp), intent(in) :: variable(:,:,:,:,:)
-    character(20) :: FMT
+    character(:), allocatable :: FMT
     integer :: dims(5), i1, i2, i3, i4
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(5)
     if (dims(5) .eq. 0) return
+    FMT = '2E22.12'
+    do ifmt=2,dims(5); FMT = FMT//',1X,2E22.12';  end do
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 5i15)") "## ", dims
@@ -15436,7 +15719,7 @@ contains
         do i3=1, dims(3)
           write(fileunit, "(A, 5i15)") "## ", i1, i2, i3, 0, 0
           do i4=1, dims(4)
-            write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(i1, i2, i3, i4, :)
+            write(fileunit, '('//adjustl(FMT)//')') variable(i1, i2, i3, i4, :)
           end do
         end do
       end do
@@ -15447,12 +15730,14 @@ contains
   subroutine pysave_complexdp_6d(variable, filename)
     character(len=*), intent(in) :: filename
     complex(fdp), intent(in) :: variable(:,:,:,:,:,:)
-    character(20) :: FMT
+    character(:), allocatable :: FMT
     integer :: dims(6), i1, i2, i3, i4, i5
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(6)
     if (dims(6) .eq. 0) return
+    FMT = '2E22.12'
+    do ifmt=2,dims(6); FMT = FMT//',1X,2E22.12';  end do
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 6i15)") "## ", dims
@@ -15462,7 +15747,7 @@ contains
           do i4=1, dims(4)
             write(fileunit, "(A, 6i15)") "## ", i1, i2, i3, i4, 0, 0
             do i5=1, dims(5)
-              write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(i1, i2, i3, i4, i5, :)
+              write(fileunit, '('//adjustl(FMT)//')') variable(i1, i2, i3, i4, i5, :)
             end do
           end do
         end do
@@ -15474,12 +15759,14 @@ contains
   subroutine pysave_complexdp_7d(variable, filename)
     character(len=*), intent(in) :: filename
     complex(fdp), intent(in) :: variable(:,:,:,:,:,:,:)
-    character(20) :: FMT
+    character(:), allocatable :: FMT
     integer :: dims(7), i1, i2, i3, i4, i5, i6
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(7)
     if (dims(7) .eq. 0) return
+    FMT = '2E22.12'
+    do ifmt=2,dims(7); FMT = FMT//',1X,2E22.12';  end do
 
     call file_open(filename, len(filename), 'complex')
     write(fileunit, "(A, 7i15)") "## ", dims
@@ -15490,7 +15777,7 @@ contains
             do i5=1, dims(5)
               write(fileunit, "(A, 7i15)") "## ", i1, i2, i3, i4, i5, 0, 0
               do i6=1, dims(6)
-                write(fileunit, '('// adjustl(FMT) // 'e22.12)') variable(i1, i2, i3, i4, i5, i6, :)
+                write(fileunit, '('//adjustl(FMT)//')') variable(i1, i2, i3, i4, i5, i6, :)
               end do
             end do
           end do
@@ -15505,6 +15792,7 @@ contains
     character(len=*), intent(in) :: variable
     character(20) :: FMT
     
+    integer :: ifmt
     write(FMT, *) 1
 
     call file_open(filename, len(filename), 'character')
@@ -15518,9 +15806,10 @@ contains
     character(20) :: FMT
     integer :: dims(1)
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(1)
     if (dims(1) .eq. 0) return
+    write(FMT, *) dims(1)
 
     call file_open(filename, len(filename), 'character')
     call char_write_trimmed(variable(:))
@@ -15533,9 +15822,10 @@ contains
     character(20) :: FMT
     integer :: dims(2), i1
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(2)
     if (dims(2) .eq. 0) return
+    write(FMT, *) dims(2)
 
     call file_open(filename, len(filename), 'character')
     do i1=1, dims(1)
@@ -15550,9 +15840,10 @@ contains
     character(20) :: FMT
     integer :: dims(3), i1, i2
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(3)
     if (dims(3) .eq. 0) return
+    write(FMT, *) dims(3)
 
     call file_open(filename, len(filename), 'character')
     write(fileunit, "(A, 3i15)") "## ", dims
@@ -15571,9 +15862,10 @@ contains
     character(20) :: FMT
     integer :: dims(4), i1, i2, i3
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(4)
     if (dims(4) .eq. 0) return
+    write(FMT, *) dims(4)
 
     call file_open(filename, len(filename), 'character')
     write(fileunit, "(A, 4i15)") "## ", dims
@@ -15594,9 +15886,10 @@ contains
     character(20) :: FMT
     integer :: dims(5), i1, i2, i3, i4
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(5)
     if (dims(5) .eq. 0) return
+    write(FMT, *) dims(5)
 
     call file_open(filename, len(filename), 'character')
     write(fileunit, "(A, 5i15)") "## ", dims
@@ -15619,9 +15912,10 @@ contains
     character(20) :: FMT
     integer :: dims(6), i1, i2, i3, i4, i5
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(6)
     if (dims(6) .eq. 0) return
+    write(FMT, *) dims(6)
 
     call file_open(filename, len(filename), 'character')
     write(fileunit, "(A, 6i15)") "## ", dims
@@ -15646,9 +15940,10 @@ contains
     character(20) :: FMT
     integer :: dims(7), i1, i2, i3, i4, i5, i6
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(7)
     if (dims(7) .eq. 0) return
+    write(FMT, *) dims(7)
 
     call file_open(filename, len(filename), 'character')
     write(fileunit, "(A, 7i15)") "## ", dims
@@ -15674,6 +15969,7 @@ contains
     logical, intent(in) :: variable
     character(20) :: FMT
     
+    integer :: ifmt
     write(FMT, *) 1
 
     call file_open(filename, len(filename), 'logical')
@@ -15687,9 +15983,10 @@ contains
     character(20) :: FMT
     integer :: dims(1)
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(1)
     if (dims(1) .eq. 0) return
+    write(FMT, *) dims(1)
 
     call file_open(filename, len(filename), 'logical')
     write(fileunit, *) variable(:)
@@ -15702,9 +15999,10 @@ contains
     character(20) :: FMT
     integer :: dims(2), i1
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(2)
     if (dims(2) .eq. 0) return
+    write(FMT, *) dims(2)
 
     call file_open(filename, len(filename), 'logical')
     do i1=1, dims(1)
@@ -15719,9 +16017,10 @@ contains
     character(20) :: FMT
     integer :: dims(3), i1, i2
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(3)
     if (dims(3) .eq. 0) return
+    write(FMT, *) dims(3)
 
     call file_open(filename, len(filename), 'logical')
     write(fileunit, "(A, 3i15)") "## ", dims
@@ -15740,9 +16039,10 @@ contains
     character(20) :: FMT
     integer :: dims(4), i1, i2, i3
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(4)
     if (dims(4) .eq. 0) return
+    write(FMT, *) dims(4)
 
     call file_open(filename, len(filename), 'logical')
     write(fileunit, "(A, 4i15)") "## ", dims
@@ -15763,9 +16063,10 @@ contains
     character(20) :: FMT
     integer :: dims(5), i1, i2, i3, i4
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(5)
     if (dims(5) .eq. 0) return
+    write(FMT, *) dims(5)
 
     call file_open(filename, len(filename), 'logical')
     write(fileunit, "(A, 5i15)") "## ", dims
@@ -15788,9 +16089,10 @@ contains
     character(20) :: FMT
     integer :: dims(6), i1, i2, i3, i4, i5
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(6)
     if (dims(6) .eq. 0) return
+    write(FMT, *) dims(6)
 
     call file_open(filename, len(filename), 'logical')
     write(fileunit, "(A, 6i15)") "## ", dims
@@ -15815,9 +16117,10 @@ contains
     character(20) :: FMT
     integer :: dims(7), i1, i2, i3, i4, i5, i6
 
+    integer :: ifmt
     dims = shape(variable)
-    write(FMT, *) dims(7)
     if (dims(7) .eq. 0) return
+    write(FMT, *) dims(7)
 
     call file_open(filename, len(filename), 'logical')
     write(fileunit, "(A, 7i15)") "## ", dims
