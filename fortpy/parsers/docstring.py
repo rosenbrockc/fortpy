@@ -222,7 +222,7 @@ class DocStringParser(object):
         self.RE_REFS = re.compile(self._RX_REFS)
         #Regex to match first lines of declarations for code elements that can be
         #decorated by docstrings.
-        self._RX_DECOR = (r"((?P<type>character|real|type|logical|integer)?"
+        self._RX_DECOR = (r"((?P<type>character|real|type|logical|integer|complex)?"
                           r"(?P<kind>\([a-z0-9_]+\))?)?(,?(?P<modifiers>[^\n]+?))?"
                           r"\s*(?P<codetype>subroutine|function|type|module|interface)\s+(?P<name>[^(]+)")
         self.RE_DECOR = re.compile(self._RX_DECOR, re.I)
