@@ -50,27 +50,39 @@ class MethodWriter(object):
         #Initialize the dictionary of all possible test specifications using a basic
         #version of the method finder.
         finder = MethodFinder(self.mainid, parser, None, None, basic=True)
+
         if finder.group is not None:
-            self.group = finder.group
+            self.groups = finder.executable.test_groups
             """The TestingGroup instance for the executable being unit tested."""
-            self.tests = finder.group.tests
+            self._tests = {}
             """Returns a dictionary of the tests available to the method writer
-            from the underlying XML documentation.
+            from the underlying XML documentation. Keys are integer group ids,
+            values are `dict` of available tests.
             """
+            self.tests = {}
+            """Returns a dictionary of the tests available to the method writer
+            from the underlying XML documentation. Keys are integer test ids.
+            """
+            for groupid, group in enumerate(self.groups):
+                self._tests[groupid] = group.tests
         else:
             self.group = None
             self.tests = {}
         
-        for testid in self.tests:
-            self.finders[testid] = MethodFinder(self.mainid, parser, None, testid,
-                                                fatal_if_missing, True)
-            self.method_dicts[testid] = {}
-            self.ordered[testid] = []
-            self._tracker = 0
-            self._order_dependencies(self.finders[testid], testid)
+        for groupid, tests in self._tests.items():
+            for testid in tests:
+                #TODO: assuming globally unique test ids here...
+                self.tests[testid] = tests[testid]
+                self.finders[testid] = MethodFinder(self.mainid, parser, None, testid,
+                                                    fatal_if_missing, True,
+                                                    groupid=groupid)
+                self.method_dicts[testid] = {}
+                self.ordered[testid] = []
+                self._tracker = 0
+                self._order_dependencies(self.finders[testid], testid)
 
-            self.globals[testid] = {}
-            self.ordered_globals[testid] = []
+                self.globals[testid] = {}
+                self.ordered_globals[testid] = []
 
     def reset(self, testid, coderoot):
         """Resets the executable writer to work with the new testid under the same

@@ -21,7 +21,7 @@ class CodeElement(object):
         self.end = 0
 
         self._tests = None
-        self._testgroup = None
+        self._testgroup = []
         self._module = None
         self._full_name = None
         self._summary = None
@@ -65,7 +65,7 @@ class CodeElement(object):
 
     def __setstate__(self, dict):
         self._tests = None
-        self._testgroup = None
+        self._testgroup = []
         self._module = None
         self._summary = None
         self.parent = None
@@ -161,17 +161,29 @@ class CodeElement(object):
 
         return self._tests
 
-    @property 
-    def test_group(self):
-        """Returns the doc group with purpose="testing" if it exists."""
-        if self._testgroup is None:
+    def _find_testgroups(self):
+        """Finds all testing groups in the docstrings for this
+        element.
+        """
+        if len(self._testgroup) == 0:
             for gkey in self.groups:
                 docgrp = self.groups[gkey]
                 if "purpose" in docgrp.attributes and \
                    docgrp.attributes["purpose"].lower() == "testing":
-                    self._testgroup = TestingGroup(docgrp, self)
-
+                    self._testgroup.append(TestingGroup(docgrp, self))
+    
+    @property
+    def test_groups(self):
+        """Returns the list of *all* test groups in the code element.
+        """
+        self._find_testgroups()
         return self._testgroup
+    
+    @property 
+    def test_group(self):
+        """Returns the *first* doc group with purpose="testing" if it exists."""
+        self._find_testgroups()
+        return self._testgroup[0] if len(self._testgroup) > 0 else None
 
     @property
     def has_docstring(self):

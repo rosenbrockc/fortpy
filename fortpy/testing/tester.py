@@ -378,7 +378,7 @@ class TestResult(object):
         if case in self.outcomes:
             if isinstance(self.outcomes[case], list):
                 for result in self.outcomes[case]:
-                    if result is not None:
+                    if result is not None and hasattr(result, "clean"):
                         result.clean()
             else:
                 self.outcomes[case].clean()

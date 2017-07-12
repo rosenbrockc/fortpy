@@ -3326,9 +3326,11 @@ class MethodFinder(object):
     :attr basic: when true, the Finder only initializes the executable attribute for
       the given identifier, but doesn't recursively find pre-req and other dependency
       methods.
+    :attr groupid: integer index of the group in the executable's
+      testing groups list.
     """
     def __init__(self, identifier, parser, element, testid, fatal_if_missing = True,
-                 main=False, basic=False):
+                 main=False, basic=False, groupid=0):
         self.identifiers = identifier.lower().split(".")
         self.name = identifier
         self.writekey = self.name
@@ -3349,8 +3351,8 @@ class MethodFinder(object):
         self.executable = self._find_executable()
         #If we have a result, get a pointer to the tests so we don't have to go one level
         #deep all the time.
-        if self.executable is not None:
-            self.group = self.executable.test_group
+        if self.executable is not None and len(self.executable.test_groups) > 0:
+            self.group = self.executable.test_groups[groupid]
         else:
             self.group = None
 
