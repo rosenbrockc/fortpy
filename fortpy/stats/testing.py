@@ -3,6 +3,11 @@
 def testability(parser, module):
     """Returns a dictionary of testability scores, indexed by executable
     name with value {"score", "dscore", "pscore"}.
+
+    dscore: 1. is a perfect score, meaning it doesn't rely on any *dependincies*
+      for which unit tests have not been setup.
+    pscore: 1. is a perfect score, meaning no input *parameters*, score decreases
+      for each additional input parameter.
     """
     execs = _list_executables(parser, module)
     result = {}

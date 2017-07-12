@@ -263,7 +263,7 @@ class UserContext(object):
         #Finding the module name is trivial; start at the beginning of
         #the module and iterate lines until we find the module.
         for sline in self._source:
-            if len(sline) > 0 and sline[0] != "!":
+            if len(sline) > 0 and sline.strip()[0] != "!":
                 rmatch = self.RE_MODULE.match(sline)
                 if rmatch is not None:
                     self.modulename = rmatch.group("name")
