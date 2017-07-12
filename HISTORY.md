@@ -1,5 +1,9 @@
 # FORTPY: Revision History
 
+## Revision 1.7.9
+
+- Added support for multiple testing groups.
+
 ## Revision 1.7.8
 
 - Added support for complex valued parameters and variables.
