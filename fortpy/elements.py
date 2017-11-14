@@ -1625,8 +1625,10 @@ class Module(CodeElement, Decoratable):
 
             while (self._contains_index is None and i < max_i
                    and start + i < len(self._lines)):
-                if "contains" in self._lines[start + i].lower():
-                    self._contains_index = start + i
+                iline = self._lines[start + i].lower()
+                if "contains" in iline:
+                    if '!' not in iline or (iline.index('!') > iline.index("contains")):
+                        self._contains_index = start + i
                 i += 1
 
             if self._contains_index is None:
