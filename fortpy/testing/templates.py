@@ -1,4 +1,5 @@
 from .. import msg
+import numpy as np
 from .results import DictResult, ListResult
 import xml.etree.ElementTree as ET
 import re
@@ -524,7 +525,8 @@ class LineComparer(object):
         if self.tolerance is not None:
             if self.numeric:
                 if isdict:
-                    return value1[self.name] - value2[self.name] <= self.tolerance
+                    adiff = np.abs(np.array(value1[self.name]) - np.array(value2[self.name]))
+                    return np.all(adiff <= self.tolerance)
                 else:
                     return value1 - value2 <= self.tolerance
             else:
@@ -582,7 +584,6 @@ class FieldComparisons(object):
         #Initialize a list result. The basic initialization is common to
         #both logic branches.
         result = DictResult(dict1, dict2, key, outcomes)
-
         if key in self.compares:
             self._compare_dict(dict1, dict2, self.compares[key], result)
         else:
