@@ -889,7 +889,10 @@ def _execute_testpath(testpath, exepath, quiet, case="", debug=False):
     if len(error) > 0:
         if quiet:
             msg.info("With Executable at {}".format(exepath), 1)
-        msg.err('\n  '+'  '.join(error))
+        try:
+            msg.err('\n  '+' '.join(error))
+        except:
+            msg.err("\n" + error[0].strip().decode("utf-8"))
     code = len(error)
     prun.stderr.close()
     
