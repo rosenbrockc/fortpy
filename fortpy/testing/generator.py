@@ -144,6 +144,10 @@ class TestGenerator(object):
             if needk == "fortpy" or needk=="fpy_auxiliary":
                 continue
 
+            #Ignore external modules defined at the library-level configuration.
+            if needk.lower() in self.parser.externals:
+                continue
+            
             needed = self.parser.modules[needk]
             moddate = modification_date(needed.filepath)
             #We also consider a module altered if its XML file has changed since

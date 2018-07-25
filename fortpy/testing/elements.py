@@ -571,12 +571,16 @@ class AutoClasser(object):
             rootstr = "{}character({}), parameter :: fpy_coderoot = '{}'"
             lines.append(rootstr.format(spacer, len(self.coderoot), self.coderoot))
         if position == "save" and write:
+            if self.variable.D > 0:
+                acroot += '_'
             if type(self.variable).__name__ == "ValueElement":
                 fstr = "{}call auxsave({}, '{}')"
             elif type(self.variable).__name__ == "Function":
                 fstr = "{}call auxsave({}_fpy, '{}')"
             lines.append(fstr.format(spacer, self.variable.name, acroot))
         elif position == "assign" and not write:
+            if self.variable.D > 0:
+                acroot += '_'
             fstr = "{}call auxread({}, '{}')"
             lines.append(fstr.format(spacer, self.variable.name, acroot))
     

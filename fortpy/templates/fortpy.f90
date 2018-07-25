@@ -1,4 +1,4 @@
-!!<fortpy codeversion="1.7.8" />
+!!<fortpy codeversion="1.7.7" />
 !!<summary>Provides an interface for saving the values of multiple variable
 !!types using a single call. Used as part of the FORTPY unit testing framework.</summary>
 module fortpy
@@ -12933,7 +12933,7 @@ contains
               if (nvalues == 2) then
                 read(line, '('//adjustl(FMT)//')') variable(i)
                 i = i+1
-              else
+             else
                 read(line, '('//adjustl(FMT)//')') variable
               end if
             end if

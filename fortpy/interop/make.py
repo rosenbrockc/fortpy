@@ -4,7 +4,7 @@ for the shared libraries required by the ftypes interop package.
 def makefile(identifier, dependencies, makepath, compileid,
              precompile=False, inclfortpy=True, parser=None,
              executable=True, extralinks=None, inclfpyaux=False,
-             makefpyaux=False, verbose=False):
+             makefpyaux=False, verbose=False, coderoot=None):
     """Generates a makefile to create the unit testing executable
     for the specified test identifier.
 
@@ -23,6 +23,7 @@ def makefile(identifier, dependencies, makepath, compileid,
       f90 files. These aren't checked at all, just added to the linklist.
     :arg verbose: when True, the full compilation header will be printed with flags and module
       information; otherwise it won't.
+    :arg coderoot: path to the code directory in which a `.fortpy.ini` might be found.
     """
     lines = []
 
@@ -44,11 +45,17 @@ def makefile(identifier, dependencies, makepath, compileid,
     lines.append("LIBMODULESF90\t= \\")
 
     for modk in dependencies:
+        #Don't include module dependencies that are defined in the externally
+        #linked libraries.
+        if parser is not None and modk.lower() in parser.externals:
+            continue
+        
         if modk not in ["fortpy", "fpy_auxiliary", identifier]:
             if parser is not None:
                 lines.append("\t\t{} \\".format(_get_mapping(parser, modk)))
             else:
                 lines.append("\t\t{} \\".format(modk))
+                
     if makefpyaux:
         lines.append("\t\tfpy_auxiliary.f90 \\")
     lines.append("")
@@ -75,6 +82,31 @@ def makefile(identifier, dependencies, makepath, compileid,
 
     lines.append("")
 
+    #Also add the external library paths defined in the library-level config
+    #files.
+    from os import path
+    modname = compileid.split('.')[0]
+    lines.append("LINKS	= \\")
+    if (parser is not None and
+        (modname in parser.modules or coderoot is not None)):
+        from fortpy.library import option
+        if coderoot is None:
+            mod = parser.modules[modname]
+            root = path.dirname(mod.filepath)
+        else:
+            root = coderoot
+        I = option(root, "I", [])
+        L = option(root, "L", [])
+        libs = option(root, "libs", [])
+        if len(I) > 0 or len(L) > 0:
+            for ipath in I:
+                lines.append("\t\t-I{} \\".format(ipath))
+            for lpath in L:
+                lines.append("\t\t-L{} \\".format(lpath))
+            for libpath in libs:
+                lines.append("\t\t-l{} \\".format(libpath))
+            lines.append("")
+    
     #We need to add the error handling commands to make debugging compiling easier.
     lines.append(_make_error())
     lines.append("")
@@ -84,7 +116,6 @@ def makefile(identifier, dependencies, makepath, compileid,
     lines.append(_make_info(compileid, verbose))
     lines.append(_make_exe(linklibs, identifier, verbose))
 
-    from os import path
     makedir, makef = path.split(makepath)
     lines[-1] += "	make -f '{}'".format(makef)
 
@@ -179,7 +210,7 @@ SHOW_LOG	= ( perl -pi -e 's/ [Ee]rror \#/\\n\\n\\n$(ERR)\\n*** error \#/' $(LOG)
 
 def _make_exe(linklibs, identifier, verbose):
     """Generates the script to run the compiling."""
-    linktxt = "$(LIBS) " if linklibs else ""
+    linktxt = "$(LIBS) $(LINKS) " if linklibs else ""
     redirect = "" if verbose else " > /dev/null"
     base = """
 $(EXENAME): $(OBJSF90)
@@ -191,7 +222,7 @@ $(EXENAME): $(OBJSF90)
 
 $(OBJSF90): %.o: %.f90
 	echo -n "Compiling: $^... "{2}
-	-$(F90) -c $(FFLAGS) $^ >> $(LOG) 2>> $(LOG)
+	-$(F90) -c $(FFLAGS) $(LINKS) $^ >> $(LOG) 2>> $(LOG)
 	echo "done."{2}
 
 {1}.so: $(SLIBF90)

@@ -603,16 +603,25 @@ def _generate_single(classers, write=True):
 
     return (xnames, modcode, routines, modules)
 
-def _prepare_dir(parser, modnames, auxdir):
+def _prepare_dir(parser, modnames, auxdir, coderoot):
     """Prepares the directory with the necessary dependencies to compile the auxiliary
     module.
 
-    :arg parser: a fortpy.code.CodeParser for accessing the dependency modules.
-    :arg modnames: a list of module names that need to be included in the directory.
+    Args:
+        parser (fortpy.code.CodeParser): for accessing the dependency modules.
+        modnames (list): of `str`; module names that need to be included in the
+          directory.
+        coderoot (str): path to the directory where the code for the auxiliary
+          modules is found.
     """
     #We need to see whether to include the pre-compiler directive or not.
     precompile = False
     for needed in modnames:
+        if needed in parser.externals:
+            #Ignore external modules because they are linked in as compiled
+            #libraries.
+            continue
+        
         if parser.modules[needed].precompile:
             precompile = True
             break
@@ -624,7 +633,7 @@ def _prepare_dir(parser, modnames, auxdir):
     lines = []
     makepath = path.join(auxdir, "Makefile.fpy_aux")
     makefile("fpy_aux", modnames, makepath, "fpy_auxiliary.all", precompile,
-             parser=parser, executable="so", makefpyaux=True)
+             parser=parser, executable="so", makefpyaux=True, coderoot=coderoot)
 
 def _compile(auxdir, compiler=None, debug=False, profile=False):
     """Compiles the auxiliary module to generate a .mod and a .o file.
@@ -645,6 +654,10 @@ def _should_recompile(auxdir, parser, modules, compiler):
     
     recompile = False
     for modulename in modules:
+        if modulename in parser.externals:
+            #Ignore external modules because they are linked in as compiled
+            #libraries.
+            continue
         module = parser.modules[modulename]
         auxpath = path.join(auxdir, path.split(module.filepath)[1])
         if not path.isfile(auxpath):
@@ -723,5 +736,5 @@ def generate(parser, coderoot, stagedir, compiler=None, debug=False, profile=Fal
         f.write(static)
 
     if docompile:
-        _prepare_dir(parser, modules, auxdir)
+        _prepare_dir(parser, modules, auxdir, coderoot)
         return _compile(auxdir, compiler, debug, profile)

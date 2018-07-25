@@ -27,6 +27,10 @@ class CodeParser(object):
        is supposed to be loading; otherwise it just continues.
     :attr ssh: when true, the config settings for a remote SSH server are used instead
        of the local file system config.
+
+    Attributes:
+        externals (list): of module names that exist in external libraries, so that
+          we don't try and follow them for dependency searches.
     """
     
     def __init__(self, ssh=False, austere=False):
@@ -72,7 +76,8 @@ class CodeParser(object):
         #that have no modules from being parsed repeatedly.
         self._parsed = []
         self.verbose = False
-
+        self.externals = []
+        
         self.rescan()
 
     def __iter__(self):
@@ -345,7 +350,8 @@ class CodeParser(object):
                     msg.info("MAPPING: using {} as the file".format(self.mappings[key]) + 
                              " name for module {}".format(key))
                 self.parse(self._pathfiles[self.mappings[key]], dependencies, recursive)
-            elif key not in ["mkl_vsl_type", "mkl_vsl", "iso_c_binding"]:
+            elif (key not in ["mkl_vsl_type", "mkl_vsl", "iso_c_binding"] and
+                  key not in self.externals):
                 #The parsing can't continue without the necessary dependency modules.
                 msg.err(("could not find module {}. Enable greedy search or"
                        " add a module filename mapping.".format(key)))
@@ -388,6 +394,11 @@ class CodeParser(object):
                 sline = line.strip()
                 if len(sline) > 0 and sline[0] != '#':
                     patterns.append(sline)
+
+        if ".fortpy.ini" in files:
+            from fortpy.library import option
+            externals = option(path, "externals", [])
+            self.externals.extend([e for e in externals if e not in self.externals])
                     
         #Filter them to find the fortran code files
         from fnmatch import fnmatch
@@ -542,6 +553,12 @@ def _process_module_order(parser, module, i, result):
     if module == "fortpy" or module == "fpy_auxiliary":
         return
 
+    #If the module is defined in an external library, then we don't want to try
+    #and parse it to look for more dependencies. The external library will have
+    #been compiled with everything.
+    if module.lower() in parser.externals:
+        return    
+    
     #See if the parser has alread loaded this module.
     if module not in parser.modules:
         parser.load_dependency(module, True, True, False)

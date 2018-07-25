@@ -170,7 +170,7 @@ class ModuleParser(object):
 
             #Before we append the module to the list, we need to update its list
             #of publics if it hasn't explicitly been declared as private.
-            module.all_to_public()                
+            module.all_to_public()
             result.append(module)
         return result
 

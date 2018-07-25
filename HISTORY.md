@@ -3,6 +3,7 @@
 ## Revision 1.7.8
 
 - Added support for complex valued parameters and variables.
+- Removed `matplotlib` and `scipy` from the dependencies list for installation to make it more lightweight. They are only used in the analysis shell. In that case, the user will get an import error and can add them after the fact. They will probably have them installed already anyway.
 
 ## Revision 1.7.7
 

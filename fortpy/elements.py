@@ -986,6 +986,7 @@ class Function(Executable):
                     self.kind = member.kind
                     self.default = member.default
                     self.dimension = member.dimension
+                    self.D = member.D
                     del self.members[m]
                     break
 

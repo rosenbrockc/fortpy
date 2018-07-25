@@ -109,6 +109,10 @@ class ExecutableGenerator(object):
         for needed in allneeds:
             if needed=="fortpy" or needed=="fpy_auxiliary":
                 continue
+            #Skip the external modules in pre-compiled libraries.
+            if needed.lower() in self.parser.externals:
+                continue
+            
             if self.parser.modules[needed].precompile:
                 precompile = True
                 break
