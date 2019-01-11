@@ -1,5 +1,10 @@
 # FORTPY: Revision History
 
+## Revision 1.7.10
+
+- Fixed a bug that prevented a unit-test error message that was a list
+  of bytes from displaying.
+
 ## Revision 1.7.9
 
 - Added support for multiple testing groups.
