@@ -232,7 +232,7 @@ class OutcomeTester(object):
                     if mxres is not None:
                         f.write(print_compare_result(mxres, self.verbose))
                     else:
-                        f.write("The result comparison failed. Check the unit test console output.")
+                        f.write("The result comparison failed. Check the unit test console output.\n")
             else:
                 onlym.append(m)
         onlyx = [f for f in xfiles if (f[0] == "_" and ".fpy" not in f and f not in mfiles)]
@@ -868,7 +868,7 @@ class UnitTester(object):
         sucpath = path.join(testpath, "SUCCESS")
         if code == 0:
             with open(sucpath, 'w') as f:
-                f.write(time.strftime("%c"))
+                f.write(time.strftime("%c") + '\n')
         else:
             if path.isfile(sucpath):
                 remove(sucpath)

@@ -91,7 +91,7 @@ class ExecutableGenerator(object):
         #to execute the pre-req methods and the one we are trying to test.
         lines.append(self.writer.lines(testid, coderoot))
 
-        lines.append("\nEND PROGRAM UNITTEST_{}".format(self.writer.finders[testid].executable.name))
+        lines.append("\nEND PROGRAM UNITTEST_{}\n".format(self.writer.finders[testid].executable.name))
 
         with open(path.join(self.folder, "{}.f90".format(identifier)), 'w') as f:
             f.writelines(lines)
