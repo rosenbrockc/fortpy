@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 
+*~
 *.*~
 \#*#
 tests/staging/
@@ -11,6 +12,7 @@ tests/staging/
 *fortpy.o.*
 fortpy.o
 fortpy.mod
+fortpy/wrap
 
 # C extensions
 *.so

@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
 <compilers>
-  <compiler path="/usr/local/bin/gfortran" key="g52" name="gfortran52"
+  <compiler path="/usr/local/bin/gfortran-8" key="g82" name="gfortran82"
 	    default="true" />
 </compilers>
