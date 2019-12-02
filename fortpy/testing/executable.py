@@ -66,6 +66,12 @@ class ExecutableGenerator(object):
         #Create the directory for the executable files to be copied and written to.
         if not path.exists(self.folder):
             msg.okay("EXEC DIR: create {}".format(self.folder))
+            # Make sure that the parent staging directory also exists. If it doesn't, create it.
+            # We could have used the `-p` version of `mkdir`, but if the path is all mangled then
+            # that wreaks havoc, so we just check the one.
+            parent = path.dirname(self.folder)
+            if not path.isdir(parent):
+                mkdir(parent)
             mkdir(self.folder)
 
         return newstage
