@@ -1,7 +1,17 @@
 #This config module handles retrieval of global variable values for fortpy from environment
 #variables or a config XML file.
 import types
+import logging
 from sys import modules
+from os import getenv, path
+
+from fortpy import msg
+
+CONFIG_ENV = "FORTPY_CONFIG"
+"""str: name of the environment variable that has the path to the fortpy config XML file.
+"""
+
+log = logging.getLogger(__name__)
 
 class _config(types.ModuleType):
     def __init__(self):
@@ -10,12 +20,26 @@ class _config(types.ModuleType):
         storage via XML as well as static oft-used variables."""
         self._vardict = {}
         self._initialized = False
-        self.getenvar("FORTPY_CONFIG")
+        self.getenvar(CONFIG_ENV)
+        self.file_check()
 
         if self.implicit_XML is not None:
 #            print "Loading FORTPY config variables from " + self.implicit_XML
             self.load_xml(self.implicit_XML)
             self._initialized = True      
+
+    def file_check(self):
+        """Warns the user if the fortpy config file is missing or the environment variable
+        has not been set.
+        """        
+        log.debug("Checking existing of {CONFIG_ENV} environment variable and corresponding file.")
+        if getenv(CONFIG_ENV) is None:
+            msg.warn("The `FORTPY_CONFIG` environment variable is not set. It should point "
+                     "to the `fortpy` configuration XML file.", 1)
+        else:
+            userpath = path.expanduser(getenv(CONFIG_ENV))
+            if not path.isfile(userpath):
+                msg.warn("`fortpy` global configuration XML file is missing at {}.".format(userpath))
 
     @property
     def isense(self):
@@ -83,14 +107,12 @@ class _config(types.ModuleType):
             return default
 
     def getenvar(self, envar):
-        from os import getenv
         """Retrieves the value of an environment variable if it exists."""
         if getenv(envar) is not None:
             self._vardict[envar] = getenv(envar)
 
     def load_xml(self, filepath):
         """Loads the values of the configuration variables from an XML path."""
-        from os import path
         import xml.etree.ElementTree as ET
         #Make sure the file exists and then import it as XML and read the values out.
         uxpath = path.expanduser(filepath)
