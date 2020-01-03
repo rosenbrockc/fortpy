@@ -33,6 +33,10 @@ def makefile(identifier, dependencies, makepath, compileid,
     lines.append("HOSTNAME\t= $(shell hostname)")
     lines.append("LOG\t\t= compile.{}.log".format(identifier if identifier is not None else "default"))
     lines.append("")
+    lines.append("F90 := $(if $(F90),$(F90),gfortran)")
+    lines.append("F90_OUTPUT=$(shell ${F90} --version)")
+    lines.append('FAM = $(shell if [[ "${F90_OUTPUT}" == *"GNU Fortran"* ]]; then echo "gfortran"; fi)')
+    lines.append("")
 
     #Now the standard entries for ifort. We will just have the ifort include
     #file so that the MPI and other options can be tested to.
