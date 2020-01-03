@@ -537,7 +537,8 @@ class UnitTester(object):
         if profile==True:
             from fortpy.utility import which
             gprof = which("gprof")
-            if gprof is None:
+            gcov = which("gcov")
+            if gprof is None and gcov is None:
                 msg.err("gprof is required to run profiling with fortpy.")
                 exit(1)
             else:
@@ -881,7 +882,11 @@ def _execute_testpath(testpath, exepath, quiet, case="", debug=False):
     from os import waitpid, path
     from subprocess import Popen, PIPE
     dyld = path.dirname(exepath)
-    command = "cd {}; DYLD_LIBRARY_PATH={} {}{} > .fpy.x.out".format(testpath, dyld, exepath, " 1" if debug else "")
+    redirect = " > .fpy.x.out"
+    if debug:
+        #exepath = "gdb --args " + exepath
+        redirect = ""
+    command = "cd {}; DYLD_LIBRARY_PATH={} {}{}{}".format(testpath, dyld, exepath, " 1" if debug else "", redirect)
     prun = Popen(command, shell=True, executable="/bin/bash", stderr=PIPE, close_fds=True)
     waitpid(prun.pid, 0)        
     #else: #We don't need to get these lines since we are purposefully redirecting them.

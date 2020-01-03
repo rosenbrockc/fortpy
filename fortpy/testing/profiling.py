@@ -1,5 +1,10 @@
 from .. import msg
 from os import path, system
+from fortpy.utility import which
+
+gprof_exe = which("gprof")
+gcov_exe = which("gcov")
+
 #What I learned. gprof is a tool that does exactly what we want and would
 #work with both ifort and gfortran (both using the -pg option for compiling
 #and for linking. This is supposed to produce a gmon.out file in the directory
@@ -14,6 +19,7 @@ from os import path, system
 #application; but that requires you to attach to a long-running process, which
 #then gets analyzed. We just want what gprof does.
 gprof = "gprof {} -F {} -b > profiling.out"
+gcov = "gcov {} -f {} -b > profiling.out"
 
 def profile(testpath, identifier, exepath, compiler):
     """Performs the profiling steps for the specified unit test specification
@@ -29,7 +35,10 @@ def profile(testpath, identifier, exepath, compiler):
     else:
         function = _after_gfortran(identifier)
 
-    command = gprof.format(exepath, function)
+    if gprof_exe is not None:
+        command = gprof.format(exepath, function)
+    elif gcov_exe is not None:
+        command = gcov.format(exepath, function)
     fullcmd = "cd {}; {}".format(testpath, command)
     system(fullcmd)
 
